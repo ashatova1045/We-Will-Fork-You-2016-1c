@@ -31,6 +31,22 @@ void nueva_conexion(int socket){
 
 int main(int argc, char **argv){
 
+	//TODO Leer archivo de configuración y solicitar un bloque de memoria contigua
+
+	//TODO Crear estructura caché TLB
+
+	//TODO Crear estructuras administrativas(Páginas y frames)
+
+	//TODO Consola
+
+	//TODO Conectar con proceso Núcleo
+
+	//TODO Manejar_pedidos de conexiones (multihilo para cpu)
+
+	//TODO mensajes faltantes a Swap
+
+	//TODO Operaciones
+
 	//Me conecto al área de swap
 	socketswap = conectar("192.168.43.188",4100);
 
