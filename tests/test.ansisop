@@ -1,0 +1,4 @@
+#!./../consola/Debug/consola
+begin
+	variables a
+end
