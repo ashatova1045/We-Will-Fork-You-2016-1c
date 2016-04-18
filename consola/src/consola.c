@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include "../../sockets/Sockets.h"
 #include <pthread.h>
-#include <parser/metadata_program.h>
 #include <unistd.h>
 
 FILE* abrir_programa(char* path) {
