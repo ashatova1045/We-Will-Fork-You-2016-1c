@@ -28,7 +28,7 @@ int crearArchivoConfiguracion(){
 
 }
 
-int contestar(){
+int responderUMC(){
 	int socket = conectar("192.168.43.57",4200);
 	if (socket == -1)
 		exit(EXIT_FAILURE);
@@ -42,7 +42,7 @@ int contestar(){
 		//	return EXIT_FAILURE;
 		//}
 
-		mensaje = "puertademierda";
+		mensaje = "respuestaSwap";
 
 		int msj_len = strlen(mensaje);
 		//mensaje[msj_len-1] = '\0'; //reemplazo el salto de linea por el caracter nulo
@@ -71,6 +71,7 @@ int main(int argc, char** argv) {
 	//	return EXIT_FAILURE;
 	//}
 
+	// Inicializa la conexión y queda a espera de procesos UMC
 	int socketserver = crear_socket_escucha(4100);
 	if (socketserver == -1)
 		exit(EXIT_FAILURE);
@@ -78,6 +79,7 @@ int main(int argc, char** argv) {
 	//printf("Se creo un socket. Su fd es: %d \n",socketserver);
 	puts("Escuchando conexiones");
 
+	// Acepta la conexón de un proceso UMC
 	int socket_conectado =  aceptar_cliente(socketserver);
 
 	if(socket_conectado == -1)
@@ -86,19 +88,29 @@ int main(int argc, char** argv) {
 	printf("Se conecto el UMC con socket: %d \n",socket_conectado);
 
 	t_paquete* paquete;
+
+	// Recibe la petición
 	paquete = recibir_paquete(socket_conectado);
 	if(paquete->cod_op == ERROR_COD_OP)
 		exit(EXIT_FAILURE);
 
+	//uint16_t cod_op = paquete->cod_op;
+ 	//char *datos = paquete->datos;
 	puts("Paquete recibido");
 	printf("Codigo de operacion: %d\n",paquete->cod_op);
 	printf("Tamano de los datos: %d\n",paquete->tamano_datos);
 	printf("Datos: %s\n",(char*)paquete->datos);
 
-//	if(paquete->tamano_datos > 0){
-//		contestar();
-//	}
+	//todo: Asignar tamaño necesario para el proceso en caso de solicitarse
+	//todo: Compactar partición en caso de fragmentación
 
+	//todo: Devolver página / Sobreescribir página
+
+	//todo: Administrar espacio libre - Control de Bitmap
+
+	//todo: Liberar espacio en caso que se finalice el proceso
+
+//	responderUMC();
 
 	destruir_paquete(paquete);
 
