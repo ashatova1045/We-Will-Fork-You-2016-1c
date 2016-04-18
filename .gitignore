@@ -31,10 +31,8 @@
 # Debug files
 *.dSYM/
 
+.settings
 *.d
-*/.cproject
-**/.project
-**/.settings
 **/Debug/**
 !*.mk
 !makefile
