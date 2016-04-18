@@ -7,6 +7,8 @@
 #include <string.h>
 #include <netdb.h>
 #include <stdbool.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 
 typedef struct
 {
