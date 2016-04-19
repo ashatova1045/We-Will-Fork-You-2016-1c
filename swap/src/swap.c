@@ -1,54 +1,23 @@
+#include <commons/log.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <commons/config.h>
+
 #include "../../sockets/Sockets.h"
-#include <commons/string.h>
-
-typedef struct{
-	int puerto_escucha;
-	char* nombre_swap;
-	int cantidad_paginas;
-	int tamanio_pagina;
-	int retardo_compactacion;
-}t_confFile;
-
-int crearArchivoConfiguracion(){
-	FILE * confFile;
-	confFile = fopen("swap.data", "w");
-	t_confFile confData;
-	confData.puerto_escucha = 4100;
-	confData.nombre_swap = "swap.data";
-	confData.cantidad_paginas = 512;
-	confData.tamanio_pagina = 256;
-	confData.retardo_compactacion = 6000;
-	fseek(confFile,0,SEEK_SET);
-	if(fwrite(&confData,sizeof(t_confFile),1,confFile) == 1)
-		return EXIT_SUCCESS;
-
-	return EXIT_FAILURE;
-
-}
 
 int responderUMC(){
 	int socket = conectar("192.168.43.57",4200);
 	if (socket == -1)
 		exit(EXIT_FAILURE);
 
-	printf("Se conecto. Se creo el socket %d \n",socket);
 	char* mensaje = malloc(100*sizeof(char));
 	for(;;){
-		//puts("Escriba su mensaje y pulse enter para enviarlo.");
-		//if(fgets(mensaje, 100, stdin)==NULL){
-		//	perror("Error al leer datos.");
-		//	return EXIT_FAILURE;
-		//}
-
 		mensaje = "respuestaSwap";
 
 		int msj_len = strlen(mensaje);
-		//mensaje[msj_len-1] = '\0'; //reemplazo el salto de linea por el caracter nulo
-
-		//si la persona escribio "hola", realoco a 5 bytes ("hola" + el de escape).
-		//asi puedo enviar menos bytes
 
 		if (mensaje==NULL){
 			perror("Error al alocar memoria.");
@@ -65,19 +34,46 @@ int responderUMC(){
 	return EXIT_SUCCESS;
 }
 
+t_log* crearLog(){
+	t_log *logSwap = log_create("log.txt", "swap.c", false, LOG_LEVEL_INFO);
+	return logSwap;
+}
+
+typedef struct{
+	int puerto_escucha;
+	char* nombre_swap;
+	int cantidad_paginas;
+	int tamanio_pagina;
+	int retardo_compactacion;
+}t_swapcfg;
+
+t_swapcfg* levantarConfiguracion(){
+	t_swapcfg* datosSwap = (t_swapcfg*)malloc(sizeof(t_swapcfg));
+	t_config* config = config_create("../swap/swap.cfg");
+	datosSwap->puerto_escucha = config_get_int_value(config,"PUERTO_ESCUCHA");
+	datosSwap->nombre_swap = config_get_string_value(config, "NOMBRE_SWAP");
+	datosSwap->cantidad_paginas = config_get_int_value(config, "CANTIDAD_PAGINAS");
+	datosSwap->tamanio_pagina = config_get_int_value(config, "TAMANIO_PAGINA");
+	datosSwap->retardo_compactacion = config_get_int_value(config, "RETARDO_COMPACTACION");
+	return datosSwap;
+}
+
 int main(int argc, char** argv) {
 
-	//if(crearArchivoConfiguracion() != 1){
-	//	return EXIT_FAILURE;
-	//}
+	// Crea archivo de log
+	t_log* logSwap = crearLog();
+	log_info(logSwap, "Ejecución del proceso SWAP");
+
+	// Levanta la configuración del Swap
+	t_swapcfg* config_swap = levantarConfiguracion();
+	printf("Se conecta al puerto %d \n",config_swap->puerto_escucha);
 
 	// Inicializa la conexión y queda a espera de procesos UMC
 	int socketserver = crear_socket_escucha(4100);
 	if (socketserver == -1)
 		exit(EXIT_FAILURE);
 
-	//printf("Se creo un socket. Su fd es: %d \n",socketserver);
-	puts("Escuchando conexiones");
+	puts("Esperando procesos UMC...");
 
 	// Acepta la conexón de un proceso UMC
 	int socket_conectado =  aceptar_cliente(socketserver);
@@ -85,7 +81,7 @@ int main(int argc, char** argv) {
 	if(socket_conectado == -1)
 		exit(EXIT_FAILURE);
 
-	printf("Se conecto el UMC con socket: %d \n",socket_conectado);
+	printf("Se conectó el UMC con socket: %d \n",socket_conectado);
 
 	t_paquete* paquete;
 
@@ -96,7 +92,7 @@ int main(int argc, char** argv) {
 
 	//uint16_t cod_op = paquete->cod_op;
  	//char *datos = paquete->datos;
-	puts("Paquete recibido");
+	puts("Proceso recibido");
 	printf("Codigo de operacion: %d\n",paquete->cod_op);
 	printf("Tamano de los datos: %d\n",paquete->tamano_datos);
 	printf("Datos: %s\n",(char*)paquete->datos);
