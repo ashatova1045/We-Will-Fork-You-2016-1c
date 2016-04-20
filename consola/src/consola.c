@@ -46,6 +46,10 @@ long int calcular_tamano_prog(FILE* programa){
 }
 
 int main(int argc, char **argv) {
+	/*no es necesario usar signals para el ctrl+c.
+	 * si matan a este proceso, el select del otro lado se da cuenta solo
+	 */
+
 	//leer el codigo del programa
 	FILE* programa = abrir_programa(argv[1]);
 	long int size = calcular_tamano_prog(programa);
@@ -53,12 +57,42 @@ int main(int argc, char **argv) {
 	fclose(programa);
 
 	int socket_kernel = conectar_kernel();
-	//todo: handshake con kernel, enviar el codigo del programa
-	enviar(1,size,programabuf,socket_kernel);
-	//todo:esperar respuesta/finalizacion en un while
+	if(socket_kernel == -1)
+		exit(EXIT_FAILURE);
+
+	//todo: handshake con kernel? o lo que sigue cuenta como handshake?
+	enviar(NUEVO_PROGRAMA,size,programabuf,socket_kernel);
+	free(programabuf);
+
+	t_paquete* actualizacion;
+	do {
+		actualizacion = recibir_paquete(socket_kernel);
+		switch (actualizacion->cod_op) {
+			case IMPRIMIR_TEXTO:
+					puts("Impresion de texto por pantalla:");
+					puts(actualizacion->datos);
+				break;
+			case IMPRIMIR_VARIABLE:
+				puts("Impresion de variable por pantalla:");
+				//todo imprimir variable
+				break;
+			case TERMINO_BIEN_PROGRAMA:
+				puts("El programa ha finalizado correctamente");
+				break;
+			case TERMINO_MAL_PROGRAMA:
+				puts("El programa ha finalizado inesperadamente");
+				break;
+			case ERROR_COD_OP:
+				puts("Error en la conexion!!");
+				break;
+			default:
+				break;
+		}
+	} while (	actualizacion->cod_op != TERMINO_BIEN_PROGRAMA &&
+				actualizacion->cod_op != TERMINO_MAL_PROGRAMA &&
+				actualizacion->cod_op != ERROR_COD_OP);
 
 	close(socket_kernel);
-	free(programabuf);
 
 	return EXIT_SUCCESS;
 }
