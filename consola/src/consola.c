@@ -3,6 +3,7 @@
 #include "../../sockets/Sockets.h"
 #include <pthread.h>
 #include <unistd.h>
+#include <commons/config.h>
 
 FILE* abrir_programa(char* path) {
 	FILE* programa = fopen(path, "r");
@@ -26,7 +27,14 @@ char* leer_programa(FILE* programa_fd,long int size){
 }
 
 int conectar_kernel(){
-	int sock = conectar("192.168.43.246",4000);
+	t_config *conf = config_create("../consola/consola.cfg"); //esto se corre desde la carpeta /test
+	if (!conf)
+		exit(EXIT_FAILURE);
+
+	int sock = conectar(config_get_string_value(conf,"IP_KERNEL"),config_get_int_value(conf,"PUERTO_KERNEL"));
+
+	config_destroy(conf);
+
 	if(sock == -1)
 		exit(EXIT_FAILURE);
 	return sock;
@@ -43,7 +51,6 @@ int main(int argc, char **argv) {
 	long int size = calcular_tamano_prog(programa);
 	char* programabuf = leer_programa(programa,size);
 	fclose(programa);
-
 
 	int socket_kernel = conectar_kernel();
 	//todo: handshake con kernel, enviar el codigo del programa
