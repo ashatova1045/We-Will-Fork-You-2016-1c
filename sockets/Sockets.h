@@ -7,6 +7,8 @@
 #include <string.h>
 #include <netdb.h>
 #include <stdbool.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 
 typedef struct
 {
@@ -22,7 +24,14 @@ typedef struct
 #define ERROR_TAMANO 2
 #define ERROR_DATOS "E"
 
-enum cod_op {PLANIFICADOR,TVCPU,MEMORIA,SWAP,TVPCBRUN,TVPCBSTOP}; // Si se persisten en algun lado,agregar los cod_ops al final
+enum cod_op{ // Si se persisten en algun lado,agregar los cod_ops al final
+	RIP_CONSOLA,
+	NUEVO_PROGRAMA,
+	TERMINO_BIEN_PROGRAMA,
+	TERMINO_MAL_PROGRAMA,
+	IMPRIMIR_TEXTO,
+	IMPRIMIR_VARIABLE
+};
 
 int enviar(uint16_t cod_op, int tamano_datos_en_bytes, void* datos, int destino_fd);
 int conectar(char* direccion, int puerto);
