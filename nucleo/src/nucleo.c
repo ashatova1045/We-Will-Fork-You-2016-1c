@@ -65,23 +65,46 @@ t_nucleoConfig* cargarConfiguracion(t_config* config){
 	return datosNucleo;
 }
 
+/*#define DESTRUIR_PP(nucleo_param) \
+		for(i=0 ; *(nucleo_param + i) != NULL ; i++ ){  \
+			free(*(nucleo_param + i));					\
+		}												\
+		free(nucleo_param)								\
+		*/
+
 void destruirNucleoConfig(t_nucleoConfig* datosADestruir){
-	//int i=0;
+	int i=0;
 	if (!datosADestruir)
 		return;
-	//free(datosADestruir->ip_umc);
-	free(datosADestruir->io_ids);
-	free(datosADestruir->io_retardo);
-	free(datosADestruir->semaf_ids);
-/*	for(i=0 ; *(datosADestruir->semaf_ids + i) != NULL ; i++ ){ //pensando como..
-		printf("Destruyendo %s\n",*(datosADestruir->semaf_ids + i));
-		free(*(datosADestruir->semaf_ids + i));
-}*/
+/*	DESTRUIR_PP( datosADestruir->io_ids);
+	DESTRUIR_PP( datosADestruir->io_retardo);
+	DESTRUIR_PP( datosADestruir->semaf_ids);
+	DESTRUIR_PP( datosADestruir->semaf_init);
+	DESTRUIR_PP( datosADestruir->shared_vars);*/
 
+	for(i=0 ; *(datosADestruir->io_ids + i) != NULL ; i++ ){
+			free(*(datosADestruir->io_ids + i));
+	}
+	free(datosADestruir->io_ids);
+	for(i=0 ; *(datosADestruir->io_retardo + i) != NULL ; i++ ){
+		free(*(datosADestruir->io_retardo + i));
+	}
+	free(datosADestruir->io_retardo);
+	for(i=0 ; *(datosADestruir->semaf_ids + i) != NULL ; i++ ){
+		free(*(datosADestruir->semaf_ids + i));
+	}
+	free(datosADestruir->semaf_ids);
+	for(i=0 ; *(datosADestruir->semaf_init + i) != NULL ; i++ ){
+		free(*(datosADestruir->semaf_init + i));
+	}
 	free(datosADestruir->semaf_init);
+	for(i=0 ; *(datosADestruir->shared_vars + i) != NULL ; i++ ){
+		free(*(datosADestruir->shared_vars + i));
+	}
 	free(datosADestruir->shared_vars);
 	free(datosADestruir);
 }
+//#undef DESTRUIR_PP solo lo puedo usar hasta aca, si lo uso en otro lado no existe
 
 void manejar_socket_consola(int socket,t_paquete paquete){
 	printf("Llego un pedido de %d\n",socket);
@@ -198,8 +221,7 @@ int main(int argc, char **argv){
 	pthread_join(thread_cpu, NULL); //el padre espera a qe termina este hilo
 	pthread_join(thread_consola, NULL); //el padre espera a qe termina este hilo
 
-
-	destruirNucleoConfig(config_nucleo);//FIXME no esta liberando bien! ver valgrind
+	destruirNucleoConfig(config_nucleo);
 	config_destroy(config);
 
 	log_destroy(logNucleo);
