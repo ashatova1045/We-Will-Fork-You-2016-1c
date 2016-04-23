@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../../sockets/Sockets.h"
+#include "../../general/general.h"
 #include <pthread.h>
 #include <unistd.h>
 #include <commons/config.h>
@@ -85,19 +86,21 @@ int main(int argc, char **argv) {
 		log_info(logconsola,"Eperando mensajes del kernel");
 		puts("El programa esta corriendo correctamente. Espere un momento por favor.");
 		actualizacion = recibir_paquete(socket_kernel);
+
 		log_info(logconsola,"Nuevo mensaje del kernel!\nTamano: %d\nCopOp: %d",
 					actualizacion->tamano_datos,
 					actualizacion->cod_op);
 		switch (actualizacion->cod_op) {
 			case IMPRIMIR_TEXTO:
 				log_info(logconsola,"Mostrando por pantalla el texto: %s",actualizacion->datos);
-				puts("Impresion de texto por pantalla:");
+				puts("TEXTO:");
 				puts(actualizacion->datos);
 				break;
 			case IMPRIMIR_VARIABLE:
-				log_info(logconsola,"Mostrando por pantalla la variable: %s",actualizacion->datos); //fixme ver que mostrar aca
-				puts("Impresion de variable por pantalla:");
-				//todo imprimir variable
+				{t_variable_completa* variable = actualizacion->datos;
+				log_info(logconsola,"Mostrando por pantalla la variable: %c con valor %d",variable->nombre, variable->valor);
+				printf("VARIABLE: nombre %c - valor %d",variable->nombre,variable->valor);
+				}
 				break;
 			case TERMINO_BIEN_PROGRAMA:
 				log_info(logconsola,"Termino correctamente!");
