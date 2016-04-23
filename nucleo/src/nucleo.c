@@ -6,6 +6,7 @@
 #include <commons/collections/list.h>
 #include <pthread.h>
 #include <commons/log.h>
+#include <errno.h>
 #include <commons/config.h>
 
 typedef struct {
@@ -15,16 +16,16 @@ typedef struct {
 	void (*conexion_nueva_aceptada)(int);
 } t_estructura_server;
 
-int cpu;
-
-t_log* crearLog(){
-	t_log *logNucleo = log_create("log.txt", "nucleo.c", false, LOG_LEVEL_INFO);
-	return logNucleo;
-}
+typedef struct{
+	int puerto;
+	char* direccion;
+}t_estructura_cliente;
 
 typedef struct{
 	int puerto_prog;
 	int puerto_cpu;
+	int puerto_umc;
+	char* ip_umc;
 	int quantum;
 	int quantum_sleep;
 	char** semaf_ids;
@@ -34,16 +35,26 @@ typedef struct{
 	char** shared_vars;
 } t_nucleoConfig;
 
-		/*semaforo = malloc(sizeof(semaforo_t));
-		semaforo->valor = atoi(valorSemaforosArray[i]);
-		semaforo->cola = queue_create();
-		usando el atoi dentro de un while*/
+/*semaforo = malloc(sizeof(semaforo_t));
+semaforo->valor = atoi(valorSemaforosArray[i]);
+semaforo->cola = queue_create();
+usando el atoi dentro de un while*/
 
-t_nucleoConfig* cargarConfiguracion(){
+
+int cpu;
+
+t_log* crearLog(){
+	t_log *logNucleo = log_create("log.txt", "nucleo.c", false, LOG_LEVEL_INFO);
+	return logNucleo;
+}
+
+t_nucleoConfig* cargarConfiguracion(t_config* config){
+
 	t_nucleoConfig* datosNucleo = (t_nucleoConfig*)malloc(sizeof(t_nucleoConfig));
-	t_config* config = config_create("../nucleo/nucleo.cfg");
 	datosNucleo->puerto_prog=config_get_int_value(config,"PUERTO_PROG");
 	datosNucleo->puerto_cpu=config_get_int_value(config,"PUERTO_CPU");
+	datosNucleo->puerto_umc=config_get_int_value(config,"PUERTO_UMC");
+	datosNucleo->ip_umc=config_get_string_value(config,"IP_UMC");
 	datosNucleo->quantum=config_get_int_value(config,"QUANTUM");
 	datosNucleo->quantum_sleep=config_get_int_value(config,"QUANTUM_SLEEP");
 	datosNucleo->semaf_ids=config_get_array_value(config,"SEMAF_IDS");
@@ -51,16 +62,22 @@ t_nucleoConfig* cargarConfiguracion(){
 	datosNucleo->io_ids=config_get_array_value(config,"IO_IDS");
 	datosNucleo->io_retardo=config_get_array_value(config,"IO_RETARDO");
 	datosNucleo->shared_vars=config_get_array_value(config,"SHARED_VARS");
-	config_destroy(config);
 	return datosNucleo;
 }
 
 void destruirNucleoConfig(t_nucleoConfig* datosADestruir){
+	//int i=0;
 	if (!datosADestruir)
 		return;
+	//free(datosADestruir->ip_umc);
 	free(datosADestruir->io_ids);
 	free(datosADestruir->io_retardo);
 	free(datosADestruir->semaf_ids);
+/*	for(i=0 ; *(datosADestruir->semaf_ids + i) != NULL ; i++ ){ //pensando como..
+		printf("Destruyendo %s\n",*(datosADestruir->semaf_ids + i));
+		free(*(datosADestruir->semaf_ids + i));
+}*/
+
 	free(datosADestruir->semaf_init);
 	free(datosADestruir->shared_vars);
 	free(datosADestruir);
@@ -79,14 +96,11 @@ void cerrar_socket_consola(int socket){
 	//TODO manejar el cierre de socket de la consola
 }
 
-
 void nueva_conexion_consola(int socket){
 	printf("Se conecto %d\n",socket);
 	//TODO crear PCB
 	//TODO pedir espacio a UMC y enviar codigo del programa y paginas, y luego almacenar estructuras.
 }
-
-
 
 void manejar_socket_cpu(int socket,t_paquete paquete){
 	printf("Llego un pedido de %d\n",socket);
@@ -107,55 +121,88 @@ void nueva_conexion_cpu(int socket){
 }
 
 
-void funcion_hilo_servidor(t_estructura_server *conf){
+void funcion_hilo_servidor(t_estructura_server *conf_server){
 
 	fd_set set_de_fds;
 	int* fdmax = malloc(sizeof(int));
-	int socketserver = crear_server_multiconexion(&set_de_fds,conf->puerto,fdmax);
+	int socketserver = crear_server_multiconexion(&set_de_fds,conf_server->puerto,fdmax);
 	printf("Se creo un socket multiconexion. Su fd es: %d \n",socketserver);
 	puts("Escuchando conexiones y corriendo!");
-	correr_server_multiconexion(fdmax,&set_de_fds,socketserver,conf->manejar_pedido,conf->socket_cerrado,conf->conexion_nueva_aceptada);
+	correr_server_multiconexion(fdmax,&set_de_fds,socketserver,conf_server->manejar_pedido,conf_server->socket_cerrado,conf_server->conexion_nueva_aceptada);
 	close(socketserver);
 	free(fdmax);
-
 }
+
 int main(int argc, char **argv){
 
-	//Crear archivo de log
+//Declaracion de variables Locales
+	pthread_t thread_consola, thread_cpu;
+	t_estructura_server conf_consola, conf_cpu;
+	t_estructura_cliente conf_umc;
+	int socket_umc;
+
+//Crea archivo de log
 	t_log* logNucleo = crearLog();
 	log_info(logNucleo, "Ejecucion del Proceso NUCLEO");
 
-	//Levantar archivo de config del proceso Nucleo
-	t_nucleoConfig* config_nucleo = cargarConfiguracion();
+//Levanta archivo de config del proceso Nucleo
+	t_config* config = config_create("../nucleo/nucleo.cfg");
+	t_nucleoConfig* config_nucleo = cargarConfiguracion(config);
+
+	log_info(logNucleo, "Configuracion Cargada");
+
 	printf("El puerto para Proceso Consola es: %d \n", config_nucleo->puerto_prog);
 	printf("El puerto para Proceso CPU es: %d \n", config_nucleo->puerto_cpu);
-	//TODO  setear el kernel agregar puerto/ip de la UMC
+	printf("El puerto para Proceso UMC es: %d \n", config_nucleo->puerto_umc);
 
-	//TODO conectarme con UMC
-	t_estructura_server conf_consola;
 	conf_consola.conexion_nueva_aceptada = nueva_conexion_consola;
 	conf_consola.manejar_pedido = manejar_socket_consola;
 	conf_consola.socket_cerrado = cerrar_socket_consola;
 	conf_consola.puerto=config_nucleo->puerto_prog;
 
-	t_estructura_server conf_cpu;
 	conf_cpu.conexion_nueva_aceptada=nueva_conexion_cpu;
 	conf_cpu.manejar_pedido=manejar_socket_cpu;
 	conf_cpu.socket_cerrado=cerrar_socket_cpu;
 	conf_cpu.puerto= config_nucleo->puerto_cpu;
 
-	pthread_t thread_actual;
-	if (pthread_create(&thread_actual, NULL, (void*)funcion_hilo_servidor, &conf_cpu)){
-	        perror("Error el crear el thread.");
+	//TODO conectarme con UMC
+	conf_umc.puerto=config_nucleo->puerto_umc;
+	conf_umc.direccion=config_nucleo->ip_umc;
+
+
+//Creacion hilos para atender conexiones desde cpu/consola/ umv?
+	if (pthread_create(&thread_cpu, NULL, (void*)funcion_hilo_servidor, &conf_cpu)){
+	        perror("Error el crear el thread cpu.");
 	        exit(EXIT_FAILURE);
 	    }
+	log_info(logNucleo, "Me pude conectar con proc_cpu");
 
-	funcion_hilo_servidor(&conf_consola); //FIXME pasar a un hilo para que deje de ser bloqueante
+	if (pthread_create(&thread_consola, NULL, (void*)funcion_hilo_servidor, &conf_consola)){
+		        perror("Error el crear el thread consola.");
+		        exit(EXIT_FAILURE);
+		}
+	log_info(logNucleo, "Me pude conectar con proc_consola");
+
+
+	if( (socket_umc = conectar(conf_umc.direccion, conf_umc.puerto)) == -1){
+		perror("Error al crear socket de conexion con el proceso umc");
+		exit(EXIT_FAILURE);
+	}
+	log_info(logNucleo, "Me pude conectar con proc_umc");
 
 
 	//TODO planificacion de los procesos
 
-	destruirNucleoConfig(config_nucleo);
+	// TODO ante cualquiera de las fallas en alguno de los hilos, que pueda atender el otro sin esperar, ahora estaria dando la prioridad a cpu
+	// con un semaforo contador? o alguna estructura de datos compartida donde cada thread avisa si esta activo o  no
+	pthread_join(thread_cpu, NULL); //el padre espera a qe termina este hilo
+	pthread_join(thread_consola, NULL); //el padre espera a qe termina este hilo
+
+
+	destruirNucleoConfig(config_nucleo);//FIXME no esta liberando bien! ver valgrind
+	config_destroy(config);
+
+	log_destroy(logNucleo);
 
 	return EXIT_SUCCESS;
 
