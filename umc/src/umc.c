@@ -328,7 +328,7 @@ int main(int argc, char **argv){
 	ejecutoConsola();
 
 	//Se escribe el log de creacion exitosa de hilo de consola
-	log_info(logUMC,"Se creo el hilo de la consola");
+	//log_info(logUMC,"Se creo el hilo de la consola");
 
 
 
@@ -337,8 +337,6 @@ int main(int argc, char **argv){
 	//TODO Crear estructura caché TLB
 
 	//TODO Crear estructuras administrativas(Páginas y frames)
-
-	//TODO Consola
 
 	//TODO Conectar con proceso Núcleo
 
@@ -349,7 +347,7 @@ int main(int argc, char **argv){
 	//TODO Operaciones
 
 	//Me conecto al área de swap
-	socketswap = conectar("192.168.43.188",4100);
+	socketswap = conectar(config_umc->ip_swap,config_umc->puerto_swap);
 
 	//Creo el server multiconexión
 	fd_set set_de_fds;
