@@ -35,6 +35,8 @@ typedef struct{
 	char** shared_vars;
 } t_nucleoConfig;
 
+
+
 /*semaforo = malloc(sizeof(semaforo_t));
 semaforo->valor = atoi(valorSemaforosArray[i]);
 semaforo->cola = queue_create();
@@ -42,6 +44,7 @@ usando el atoi dentro de un while*/
 
 
 int cpu;
+int consola;
 
 t_log* crearLog(){
 	t_log *logNucleo = log_create("log.txt", "nucleo.c", false, LOG_LEVEL_INFO);
@@ -107,11 +110,24 @@ void destruirNucleoConfig(t_nucleoConfig* datosADestruir){
 //#undef DESTRUIR_PP solo lo puedo usar hasta aca, si lo uso en otro lado no existe
 
 void manejar_socket_consola(int socket,t_paquete paquete){
-	printf("Llego un pedido de %d\n",socket);
-	printf("El socket %d dice:\n",socket);
-	puts(paquete.datos);
-	enviar(1,paquete.tamano_datos,paquete.datos,cpu);
+	switch (paquete.cod_op) {
+		case HS_CONSOLA_NUCLEO:
+			enviar(OK_HS_CONSOLA,1,&socket,socket);
+			break;
+		case NUEVO_PROGRAMA:
+			printf("Llego un pedido de conexion del socketConsola  %d\n",socket);
+			printf("El socket %d dice:\n",socket);
+			puts(paquete.datos); //no pasa los datos
+			enviar(1,paquete.tamano_datos,paquete.datos,cpu);
+			break;
+		default:
+			break;
+	}
+
 	//TODO atender pedidos de la consola
+	/* yo recibo del programa algo asi enviar(NUEVO_PROGRAMA,size,programabuf,socket_kernel);
+	 * y le tengo que devolver paquete por el socket: actualizacion = recibir_paquete(socket_kernel);
+	 */
 }
 
 void cerrar_socket_consola(int socket){
@@ -121,6 +137,7 @@ void cerrar_socket_consola(int socket){
 
 void nueva_conexion_consola(int socket){
 	printf("Se conecto %d\n",socket);
+	// recibir paquete HS de consola
 	//TODO crear PCB
 	//TODO pedir espacio a UMC y enviar codigo del programa y paginas, y luego almacenar estructuras.
 }
@@ -145,7 +162,6 @@ void nueva_conexion_cpu(int socket){
 
 
 void funcion_hilo_servidor(t_estructura_server *conf_server){
-
 	fd_set set_de_fds;
 	int* fdmax = malloc(sizeof(int));
 	int socketserver = crear_server_multiconexion(&set_de_fds,conf_server->puerto,fdmax);
@@ -193,7 +209,7 @@ int main(int argc, char **argv){
 	conf_umc.direccion=config_nucleo->ip_umc;
 
 
-//Creacion hilos para atender conexiones desde cpu/consola/ umv?
+//Creacion hilos para atender conexiones desde cpu/consola/ umc?
 	if (pthread_create(&thread_cpu, NULL, (void*)funcion_hilo_servidor, &conf_cpu)){
 	        perror("Error el crear el thread cpu.");
 	        exit(EXIT_FAILURE);
@@ -206,18 +222,20 @@ int main(int argc, char **argv){
 		}
 	log_info(logNucleo, "Me pude conectar con proc_consola");
 
-
+/*
 	if( (socket_umc = conectar(conf_umc.direccion, conf_umc.puerto)) == -1){
 		perror("Error al crear socket de conexion con el proceso umc");
 		exit(EXIT_FAILURE);
 	}
-	log_info(logNucleo, "Me pude conectar con proc_umc");
+	log_info(logNucleo, "Me pude conectar con proc_umc");*/
 
 
 	//TODO planificacion de los procesos
 
 	// TODO ante cualquiera de las fallas en alguno de los hilos, que pueda atender el otro sin esperar, ahora estaria dando la prioridad a cpu
-	// con un semaforo contador? o alguna estructura de datos compartida donde cada thread avisa si esta activo o  no
+	/* con un semaforo contador? o alguna estructura de datos compartida donde cada thread avisa si esta activo o  no
+	Los ayudates dijeron que no hace falta, no van a destruir hilos porque si */
+
 	pthread_join(thread_cpu, NULL); //el padre espera a qe termina este hilo
 	pthread_join(thread_consola, NULL); //el padre espera a qe termina este hilo
 

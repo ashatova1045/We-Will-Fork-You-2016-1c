@@ -32,6 +32,13 @@ enum cod_op{ // Si se persisten en algun lado,agregar los cod_ops al final
 	IMPRIMIR_VARIABLE,
 	HS_CONSOLA_NUCLEO,
 	OK_HS_CONSOLA,
+	HS_CPU_NUCLEO,
+	HS_CPU_UMC,
+	OK_HS_CPU,
+	HS_NUCLEO_UMC,
+	OK_HS_NUCLEO,
+	HS_UMC_SWAP,
+	OK_HS_UMC,
 	CORRER_PCB
 
 };
