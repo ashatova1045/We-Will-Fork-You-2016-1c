@@ -1,15 +1,18 @@
-#include <commons/config.h>
-#include <commons/log.h>
 #include <stdbool.h>
+#include "../../sockets/Sockets.h"
+//#include "../../general/general.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include "estructuras_swap.h"
 #include "funciones_swap.h"
+#include <commons/config.h>
+#include <commons/log.h>
 
 t_log* logSwap;
 t_swapcfg* config_swap;
+int socket_memoria;
 
 int main(int argc, char** argv) {
 
@@ -18,7 +21,9 @@ int main(int argc, char** argv) {
 	log_info(logSwap, "Ejecución del proceso SWAP");
 
 	// Levanta la configuración del Swap
-	config_swap = levantarConfiguracion();
+	t_config* config = config_create("../swap/swap.cfg");
+	config_swap = levantarConfiguracion(config);
+	printf("Se conecta al puerto %s \n",config_swap->ip_umc);
 	printf("Se conecta al puerto %d \n",config_swap->puerto_escucha);
 
 	// Inicializa la conexión y queda a espera de procesos UMC
@@ -30,26 +35,32 @@ int main(int argc, char** argv) {
 	puts("Esperando procesos UMC...");
 
 	// Acepta la conexón de un proceso UMC
-	int socket_memoria =  aceptar_cliente(socketserver);
+	socket_memoria =  aceptar_cliente(socketserver);
 
 	if(socket_memoria == -1)
 		exit(EXIT_FAILURE);
 
-	printf("Se conectó el UMC con socket: %d \n",socket_memoria);
+	log_info(logSwap,"Conectado a la UMC");
 
-	// Recibe la petición
-	t_paquete* paquete;
-	//paquete = recibir_paquete(socket_memoria);
+	config_destroy(config);
 
-	while(recibir_paquete(socket_memoria) != NULL){
-		puts("Proceso recibido");
-		printf("Codigo de operacion: %d\n",paquete->cod_op);
-		printf("Tamano de los datos: %d\n",paquete->tamano_datos);
-		printf("Datos: %s\n",(char*)paquete->datos);
+	//printf("Se conectó el UMC con socket: %d \n",socket_memoria);
+	printf("Main - Socket memoria %d \n",socket_memoria);
+
+	while(true){
+		// Recibe la petición
+		t_paquete* paquete;
+		paquete = recibir_paquete(socket_memoria);
+
+		manejar_socket_umc(paquete);
+
+		 puts("Proceso recibido");
+		 printf("Codigo de operacion: %d\n",paquete->cod_op);
+		 printf("Tamano de los datos: %d\n",paquete->tamano_datos);
+		 printf("Datos: %s\n",(char*)paquete->datos);
+
+		destruir_paquete(paquete);
 	}
-
-//	if(paquete->cod_op == ERROR_COD_OP)
-//		exit(EXIT_FAILURE);
 
 	//todo: Asignar tamaño necesario para el proceso en caso de solicitarse
 
@@ -60,8 +71,6 @@ int main(int argc, char** argv) {
 	//todo: Administrar espacio libre - Control de Bitmap
 
 	//todo: Liberar espacio en caso que se finalice el proceso
-
-	responderUMC(&socket_memoria, config_swap);
 
 	//destruir_paquete(paquete);
 
