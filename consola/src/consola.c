@@ -51,6 +51,14 @@ int conectar_kernel(){
 	log_info(logconsola,"Conectado al kernel");
 
 	config_destroy(conf);
+
+	if(handshake(sock,HS_CONSOLA_NUCLEO,OK_HS_CONSOLA) == -1){
+		log_error(logconsola,"Handshake incorrecto");
+		puts("No se pudo hacer un hansdhake correcto");
+		exit(EXIT_FAILURE);
+	}
+	puts("Handshake correcto!");
+	log_info(logconsola,"Handshake correcto!");
 	return sock;
 }
 
@@ -76,7 +84,6 @@ int main(int argc, char **argv) {
 
 	int socket_kernel = conectar_kernel();
 
-	//todo: handshake con kernel? o lo que sigue cuenta como handshake?
 	enviar(NUEVO_PROGRAMA,size,programabuf,socket_kernel);
 	log_info(logconsola,"Programa enviado al kernel");
 	free(programabuf);
