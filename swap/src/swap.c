@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
 
 	// Inicializa la conexión y queda a espera de procesos UMC
 	int socketserver = crear_socket_escucha(config_swap->puerto_escucha);
-	//int socketserver = crear_socket_escucha(4100);
+
 	if (socketserver == -1)
 		exit(EXIT_FAILURE);
 
@@ -37,18 +37,19 @@ int main(int argc, char** argv) {
 
 	printf("Se conectó el UMC con socket: %d \n",socket_memoria);
 
-	t_paquete* paquete;
-
 	// Recibe la petición
-	paquete = recibir_paquete(socket_memoria);
+	t_paquete* paquete;
+	//paquete = recibir_paquete(socket_memoria);
 
-	if(paquete->cod_op == ERROR_COD_OP)
-		exit(EXIT_FAILURE);
+	while(recibir_paquete(socket_memoria) != NULL){
+		puts("Proceso recibido");
+		printf("Codigo de operacion: %d\n",paquete->cod_op);
+		printf("Tamano de los datos: %d\n",paquete->tamano_datos);
+		printf("Datos: %s\n",(char*)paquete->datos);
+	}
 
-	puts("Proceso recibido");
-	printf("Codigo de operacion: %d\n",paquete->cod_op);
-	printf("Tamano de los datos: %d\n",paquete->tamano_datos);
-	printf("Datos: %s\n",(char*)paquete->datos);
+//	if(paquete->cod_op == ERROR_COD_OP)
+//		exit(EXIT_FAILURE);
 
 	//todo: Asignar tamaño necesario para el proceso en caso de solicitarse
 
@@ -60,7 +61,7 @@ int main(int argc, char** argv) {
 
 	//todo: Liberar espacio en caso que se finalice el proceso
 
-	//responderUMC(&socket_memoria);
+	responderUMC(&socket_memoria, config_swap);
 
 	//destruir_paquete(paquete);
 

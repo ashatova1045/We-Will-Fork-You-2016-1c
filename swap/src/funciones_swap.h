@@ -18,7 +18,7 @@ t_swapcfg* levantarConfiguracion(){
 	if(datosSwap != NULL){
 		t_config* config = config_create("../swap/swap.cfg");
 		datosSwap->puerto_escucha = config_get_int_value(config,"PUERTO_ESCUCHA");
-		datosSwap->ip_umc = config_get_int_value(config,"IP_UMC");
+		datosSwap->ip_umc = config_get_string_value(config,"IP_UMC");
 		datosSwap->nombre_swap = config_get_string_value(config, "NOMBRE_SWAP");
 		datosSwap->cantidad_paginas = config_get_int_value(config, "CANTIDAD_PAGINAS");
 		datosSwap->tamanio_pagina = config_get_int_value(config, "TAMANIO_PAGINA");
@@ -28,9 +28,9 @@ t_swapcfg* levantarConfiguracion(){
 	return datosSwap;
 }
 
-/*int responderUMC(int *socket_memoria){
+int responderUMC(int *socket_memoria, t_swapcfg *config_swap){
 	printf("Socket memoria: %d", *socket_memoria);
-	int socket = conectar("192.168.43.57",4200);
+	int socket = conectar(config_swap->ip_umc,config_swap->puerto_escucha);
 	if (socket == -1)
 		exit(EXIT_FAILURE);
 
@@ -53,7 +53,6 @@ t_swapcfg* levantarConfiguracion(){
 
 	close(socket);
 	return EXIT_SUCCESS;
-}*/
-
+}
 
 #endif /* FUNCIONES_SWAP_H_ */
