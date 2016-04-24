@@ -5,6 +5,17 @@ int tamano_del_paquete(t_paquete paquete)
 	return paquete.tamano_datos + SIZE_HEADER;
 }
 
+int handshake(int socket, uint16_t cop_op_cliente, uint16_t cod_op_esperado)
+{
+	int respuesta = -1;
+	enviar(cop_op_cliente,1,&socket,socket);
+	t_paquete* paquete = recibir_paquete(socket);
+	if(paquete->cod_op == cod_op_esperado)
+		respuesta = 1;
+	destruir_paquete(paquete);
+	return respuesta;
+}
+
 int crear_socket_escucha(int puerto)
 {
 	struct sockaddr_in socket_info;
