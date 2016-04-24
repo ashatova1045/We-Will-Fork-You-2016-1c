@@ -25,14 +25,15 @@ typedef struct
 #define ERROR_DATOS "E"
 
 enum cod_op{ // Si se persisten en algun lado,agregar los cod_ops al final
-	RIP_CONSOLA,
 	NUEVO_PROGRAMA,
 	TERMINO_BIEN_PROGRAMA,
 	TERMINO_MAL_PROGRAMA,
 	IMPRIMIR_TEXTO,
 	IMPRIMIR_VARIABLE,
 	HS_CONSOLA_NUCLEO,
-	OK_HS_CONSOLA
+	OK_HS_CONSOLA,
+	CORRER_PCB
+
 };
 
 int enviar(uint16_t cod_op, int tamano_datos_en_bytes, void* datos, int destino_fd);
@@ -66,5 +67,6 @@ int correr_server_multiconexion(int* fdmax,fd_set* read_fds, int socket_escucha,
 int crear_server_multiconexion(fd_set* fds, int puerto, int* fdmax);
 
 bool recibio_datos(int socket);
+int handshake(int socket, uint16_t cop_op_cliente, uint16_t cod_op_esperado);
 
 #endif /* SOCKETS_H_ */
