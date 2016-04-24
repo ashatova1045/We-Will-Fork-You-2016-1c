@@ -9,7 +9,6 @@
 #include <unistd.h>
 #include <commons/config.h>
 #include <errno.h>
-#include <commons/collections/list.h>
 
 //------------------------------------------------------------------------------------------------------
 //Log
@@ -20,7 +19,7 @@ t_log* logUMC;
 
 //Defino la funcion para crear el log
 t_log* crearLog(){
-	t_log* logUMC = log_create("Log.log","umc.c",false,LOG_LEVEL_INFO);
+	t_log* logUMC = log_create("Log.log","umc.c",false,LOG_LEVEL_DEBUG);
 	return logUMC;
 }
 
@@ -44,12 +43,9 @@ typedef struct{
 t_umcConfig* config_umc;
 
 //Defino la función para leer la configuración
-t_umcConfig* leerConfiguracion(){
+t_umcConfig* leerConfiguracion(t_config* config){
 	//Asigno memoria para estructura de configuración
 	t_umcConfig* datosUmc = (t_umcConfig*)malloc(sizeof(t_umcConfig));
-
-	//Creo el archivo de configuración
-	t_config* config = config_create("../umc/umc.cfg");
 
 	//Completo los datos de la umc con los valores del archivo de configuración
 	datosUmc->puerto = config_get_int_value(config,"PUERTO");
@@ -60,9 +56,6 @@ t_umcConfig* leerConfiguracion(){
 	datosUmc->marco_x_proc = config_get_int_value(config,"MARCO_X_PROC");
 	datosUmc->entradas_tlb = config_get_int_value(config,"ENTRADAS_TLB");
 	datosUmc->retardo = config_get_int_value(config,"RETARDO");
-
-	//Elimino la configuración que ya no necesito
-	config_destroy(config);
 
 	//Devuelvo la estructura de datos cargados
 	return datosUmc;
@@ -84,10 +77,40 @@ void eliminarConfigUmc(t_umcConfig* datosUmcAEliminar){
 //Sockets
 //------------------------------------------------------------------------------------------------------
 //Creo el entero para referenciar al socket del swap
-int socketswap;
-
+int socketServerPedido, socketswap;
+char* codigo; //fixme
+int d; //fixme
 //Función para manejar los mensajes
 void manejar_paquete(int socket,t_paquete paq){
+	log_info(logUMC,"Llego un paquete");
+	switch (paq.cod_op) {
+		case HS_CPU_UMC:
+			enviar(OK_HS_CPU,1,&socket,socket);
+			puts("Handshake CPU correcto");
+			log_info(logUMC,"Handshake con CPU exitoso");
+			break;
+		case HS_NUCLEO_UMC:
+			enviar(OK_HS_NUCLEO,1,&socket,socket);
+			puts("Handshake Nucleo correcto");
+			log_info(logUMC,"Handshake con nucleo exitoso");
+			break;
+		case ERROR_COD_OP:
+			log_error(logUMC,"Llego el codigo de error");
+			exit(EXIT_FAILURE);
+		case NUEVO_PROGRAMA:
+			puts(paq.datos);
+			enviar(paq.cod_op,paq.tamano_datos,paq.datos,socketswap);
+			break;
+		case 50://CPU me pide paquete
+			puts("Llego 50");
+			enviar(50,1,&socketswap,socketswap);
+			t_paquete* nuevo_paq=recibir_paquete(socketswap);
+			enviar(50,nuevo_paq->tamano_datos,nuevo_paq->datos,socket);
+			break;
+		default:
+			break;
+	}
+
 	printf("Llego un pedido de conexion de %d\n",socket);
 	printf("El socket %d dice:\n",socket);
 	puts(paq.datos);
@@ -302,35 +325,86 @@ void ejecutoConsola(){
 	}
 }
 
-//Defino el hilo de la consola
-//pthread_t consolaThread;
+//------------------------------------------------------------------------------------------------------
+//Hilos sockets
+//------------------------------------------------------------------------------------------------------
+
+void servidor_pedidos(){
+	log_debug(logUMC,"Entro a la funcion servidor");
+
+	//Creo el server multiconexión
+	fd_set set_de_fds;
+	int fdmax;
+
+	int puerto=config_umc->puerto;
+	socketServerPedido = crear_server_multiconexion(&set_de_fds,puerto,&fdmax);
+	if(socketServerPedido ==-1){
+		log_error(logUMC,"Error al crear el server");
+		exit(EXIT_FAILURE);
+	}
+
+	//Mensajes de conexión exitosa
+	printf("Se creo un socket multiconexion. Su fd es: %d \n",socketServerPedido);
+	puts("Escuchando conexiones y corriendo!");
+
+	//correr_server_multiconexion(fdmax,&set_de_fds,socketServer,manejar_paquete,cerrar_conexion,nueva_conexion);
+	correr_server_multiconexion(&fdmax,&set_de_fds,socketServerPedido,manejar_paquete,cerrar_conexion,nueva_conexion);
+
+	//Terminacion del hilo de consola
+	//pthread_join(consolaThread,NULL);
+
+	//Cierro el puerto y libero la memoria del socket
+	close(socketServerPedido);
+}
 
 //------------------------------------------------------------------------------------------------------
 
 int main(int argc, char **argv){
 
+	//Defino los hilos
+	pthread_t  pedidosThread;
+
 	//Creo el archivo log
 	logUMC = crearLog();
 	log_info(logUMC,"Ejecución del proceso UMC");
 
+	//Creo el archivo de configuración
+	t_config* config = config_create("../umc/umc.cfg");
+
 	//Leo la configuración de la memoria
-	config_umc = leerConfiguracion();
+	config_umc = leerConfiguracion(config);
 	printf("Puerto de conexion %d\n",config_umc->puerto);
+	log_info(logUMC,"Se cargo la configuracion");
 
-	//TODO poner todos los sockets aquí!!!!!!!!
+	//Me conecto al área de swap
+	socketswap = conectar(config_umc->ip_swap,config_umc->puerto_swap);
+	if(socketswap == -1)
+		puts("No se pudo conectar");
 
-	//Creo el hilo de la consola
-	/*if(pthread_create(&consolaThread,NULL,ejecutoConsola,NULL)){
+	if(handshake(socketswap,HS_UMC_SWAP,OK_HS_UMC) ==-1 ){
+		puts("Swap no respondio al handshake");
+	}
+	printf("Handshake Swap correcto");
+	//printf("%d",)
+
+
+	//Creo el hilo de pedidos
+	log_debug(logUMC,"Creando el hilo para recibir pedidos");
+	if(pthread_create(&pedidosThread,NULL,(void*)servidor_pedidos,NULL)){
+		perror("Error al crear el hilo de la cpu");
+		exit(EXIT_FAILURE);
+	}
+
+	/*//Creo el hilo de la consola
+	log_debug(logUMC,"Creando el hilo para la consola");
+	if(pthread_create(&consolaThread,NULL,(void*)ejecutoConsola,NULL)){
 		perror("Error al crear el hilo de la consola");
 		exit(EXIT_FAILURE);
-	}*/
+	}
+	//Se escribe el log de creacion exitosa de hilo de consola
+	log_info(logUMC,"Se creo el hilo de la consola");*/
 
 	ejecutoConsola();
-
-	//Se escribe el log de creacion exitosa de hilo de consola
-	//log_info(logUMC,"Se creo el hilo de la consola");
-
-
 
 	//TODO Leer archivo de configuración y solicitar un bloque de memoria contigua
 
@@ -338,43 +412,22 @@ int main(int argc, char **argv){
 
 	//TODO Crear estructuras administrativas(Páginas y frames)
 
-	//TODO Conectar con proceso Núcleo
-
 	//TODO Manejar_pedidos de conexiones (multihilo para cpu)
 
 	//TODO mensajes faltantes a Swap
 
 	//TODO Operaciones
 
-	//Me conecto al área de swap
-	socketswap = conectar(config_umc->ip_swap,config_umc->puerto_swap);
-
-	//Creo el server multiconexión
-	fd_set set_de_fds;
-	int* fdmax = malloc(sizeof(int));
-	if (fdmax==NULL){
-		perror("Error al alocar memoria.");
-		return EXIT_FAILURE;
-	}
-	int puerto=4200;
-	int socketServer = crear_server_multiconexion(&set_de_fds,puerto,fdmax);
-
-	//Mensajes de conexión exitosa
-	printf("Se creo un socket multiconexion. Su fd es: %d \n",socketServer);
-	puts("Escuchando conexiones y corriendo!");
-
-	//correr_server_multiconexion(fdmax,&set_de_fds,socketServer,manejar_paquete,cerrar_conexion,nueva_conexion);
-	correr_server_multiconexion(fdmax,&set_de_fds,socketServer,manejar_paquete,cerrar_conexion,nueva_conexion);
-
 	//Terminacion del hilo de consola
-	//pthread_join(consolaThread,NULL);
+	//pthread_join(pedido,NULL);
 
 	//Cierro el puerto y libero la memoria del socket
-	close(socketServer);
-	free(fdmax);
+	close(socketServerPedido);
 
 	//Libero la memoria de la estructura
 	eliminarConfigUmc(config_umc);
+
+	config_destroy(config);
 
 	return EXIT_SUCCESS;
 }
