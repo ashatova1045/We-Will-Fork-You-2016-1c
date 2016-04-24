@@ -36,27 +36,55 @@ void conectar_cpu() {
 	}
 
 	socket_umc = conectar(config_get_string_value(conf, "IP_UMC"),
-								config_get_int_value(conf, "PUERTO_UMC"));
+			config_get_int_value(conf, "PUERTO_UMC"));
 	if (socket_umc == -1) {
 		log_error(logcpu,"Error al conectarse a la umc!");
 		  exit(EXIT_FAILURE);
 	}
+	if(handshake(socket_nucleo,HS_CPU_NUCLEO,OK_HS_CPU) == -1){
+		log_error(logcpu,"Handshake de nucleo incorrecto");
+		puts("No se pudo hacer un hansdhake con el nucleo");
+		exit(EXIT_FAILURE);
+	}
+	puts("Handshake de nucleo correcto!");
+	log_info(logcpu,"Handshake de nucleo correcto!");
+
+	if(handshake(socket_umc,HS_CPU_UMC,OK_HS_CPU) == -1){
+		log_error(logcpu,"Handshake de umc incorrecto");
+		puts("No se pudo hacer un hansdhake con la umc");
+		exit(EXIT_FAILURE);
+	}
+	puts("Handshake de umc correcto!");
+	log_info(logcpu,"Handshake de umc correcto!");
+
 
 //Elimino la configuración que ya no necesito
 	config_destroy(conf);
 }
 
 void atender_pedido_nucleo(t_paquete* paquete){
-	//todo pedir codigo a umc
-	//todo parsear
-	//todo responder al nucleo
-	enviar(CORRER_PCB,1,&socket_umc,socket_umc);
+
+	//TODO pedir instrucción a umc
+
+
+	//TODO parsear
+
+
+	//TODO responder al nucleo
+
+
 }
 
 int main() {
 	//Creo archivo de log
 	logcpu = log_create("logcpu.log", "cpu", false, LOG_LEVEL_DEBUG);
 	conectar_cpu();
+	sleep(15);
+	puts("Pasaron 15");
+	enviar(50,1,&socket_umc,socket_umc);
+	t_paquete* paq =recibir_paquete(socket_umc);
+	puts(paq->datos);
+
 
 	while(true){
 		t_paquete* paquete_actual =recibir_paquete(socket_nucleo);
@@ -67,6 +95,10 @@ int main() {
 		}
 		destruir_paquete(paquete_actual);
 	}
+
+
+
+
 
 	log_destroy(logcpu);
 	log_info(logcpu, "Termino el proceso CPU");
