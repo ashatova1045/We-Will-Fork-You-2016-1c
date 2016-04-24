@@ -30,7 +30,8 @@ enum cod_op{ // Si se persisten en algun lado,agregar los cod_ops al final
 	TERMINO_BIEN_PROGRAMA,
 	TERMINO_MAL_PROGRAMA,
 	IMPRIMIR_TEXTO,
-	IMPRIMIR_VARIABLE
+	IMPRIMIR_VARIABLE,
+	CORRER_PCB
 };
 
 int enviar(uint16_t cod_op, int tamano_datos_en_bytes, void* datos, int destino_fd);

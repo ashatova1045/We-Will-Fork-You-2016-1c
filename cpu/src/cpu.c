@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <commons/collections/list.h>
 #include "../../sockets/Sockets.h"
+#include <pthread.h>
 
 int socket_umc,socket_nucleo;
 t_log* logcpu;
@@ -45,12 +46,29 @@ void conectar_cpu() {
 	config_destroy(conf);
 }
 
+void atender_pedido_nucleo(t_paquete* paquete){
+	//todo pedir codigo a umc
+	//todo parsear
+	//todo responder al nucleo
+	enviar(CORRER_PCB,1,&socket_umc,socket_umc);
+}
+
 int main() {
 	//Creo archivo de log
 	logcpu = log_create("logcpu.log", "cpu", false, LOG_LEVEL_DEBUG);
-
 	conectar_cpu();
+
+	while(true){
+		t_paquete* paquete_actual =recibir_paquete(socket_nucleo);
+		if(paquete_actual->cod_op == CORRER_PCB){
+			pthread_t hilo_ejecucion;
+			pthread_create(&hilo_ejecucion,NULL,(void *) atender_pedido_nucleo,paquete_actual);
+			log_info(logcpu,"Se crea hilo para atender el pedido de correr un PCB");
+		}
+		destruir_paquete(paquete_actual);
+	}
+
 	log_destroy(logcpu);
-	log_debug(logcpu, "");
+	log_info(logcpu, "Termino el proceso CPU");
 	return (EXIT_SUCCESS);
 }
