@@ -17,15 +17,4 @@ typedef struct{
 	int retardo_compactacion;
 }t_swapcfg;
 
-typedef struct{
-	char tipo_operacion[1];
-	char* datos;
-}t_prot_swap_umc;
-
-typedef struct{
-	int processId;
-	char tipo_operacion[1];
-	char* datos;
-}t_prot_umc_swap;
-
 #endif /* ESTRUCTURAS_SWAP_H_ */
