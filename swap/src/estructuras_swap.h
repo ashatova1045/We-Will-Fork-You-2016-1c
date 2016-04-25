@@ -1,10 +1,3 @@
-/*
- * estructurasSwap.h
- *
- *  Created on: 22/4/2016
- *      Author: utnso
- */
-
 #ifndef ESTRUCTURASSWAP_H_
 #define ESTRUCTURASSWAP_H_
 

@@ -1,5 +1,5 @@
 #include <stdbool.h>
-#include "../../sockets/Sockets.h"
+#include "../../sockets/Sockets.c"
 //#include "../../general/general.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +9,9 @@
 #include "funciones_swap.h"
 #include <commons/config.h>
 #include <commons/log.h>
+
+char* prog;
+int tamanio;
 
 t_log* logSwap;
 t_swapcfg* config_swap;
