@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <parser/metadata_program.h>
-#include "../../sockets/Sockets.h"
+#include "../../sockets/Sockets.c"
 #include <commons/string.h>
 #include <commons/collections/list.h>
 #include <pthread.h>
@@ -49,7 +49,7 @@ int cpu;
 int consola;
 
 t_log* crearLog(){
-	t_log *logNucleo = log_create("log.txt", "nucleo.c", false, LOG_LEVEL_INFO);
+	t_log *logNucleo = log_create("logNucleo.log", "nucleo.c", false, LOG_LEVEL_INFO);
 	return logNucleo;
 }
 
