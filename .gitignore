@@ -31,9 +31,15 @@
 # Debug files
 *.dSYM/
 
+#excluyo los ejecutables uno por uno
+**/Debug/nucleo
+**/Debug/swap
+**/Debug/cpu
+**/Debug/consola
+**/Debug/umc
+
 *.log
 .settings
 *.d
-**/Debug/**
 !*.mk
 !makefile

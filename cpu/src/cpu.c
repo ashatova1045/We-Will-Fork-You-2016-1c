@@ -13,7 +13,7 @@
 #include <commons/log.h>
 #include <errno.h>
 #include <commons/collections/list.h>
-#include "../../sockets/Sockets.h"
+#include "../../sockets/Sockets.c"
 #include <pthread.h>
 
 int socket_umc,socket_nucleo;
