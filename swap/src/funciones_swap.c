@@ -1,10 +1,16 @@
+#include "funciones_swap.h"
+
 #include <commons/config.h>
 #include <commons/log.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+//#include <Sockets.h>
+
 #include "estructuras_swap.h"
-#include "funciones_swap.h"
-//#include "../../sockets/Sockets.h"
+
+#include "../../sockets/Sockets.c"
 
 t_log* logSwap;
 t_swapcfg* config_swap;

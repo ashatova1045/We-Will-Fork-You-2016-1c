@@ -1,5 +1,5 @@
 #include <stdbool.h>
-#include "../../sockets/Sockets.c"
+#include "../../sockets/Sockets.h"
 //#include "../../general/general.h"
 #include <stdio.h>
 #include <stdlib.h>
