@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../../sockets/Sockets.h"
+#include "../../sockets/Sockets.c"
 #include "../../general/general.h"
 #include <pthread.h>
 #include <unistd.h>

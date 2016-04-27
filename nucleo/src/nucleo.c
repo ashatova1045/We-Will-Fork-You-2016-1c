@@ -1,13 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <parser/metadata_program.h>
-#include "../../sockets/Sockets.h"
+#include "../../sockets/Sockets.c"
 #include <commons/string.h>
 #include <commons/collections/list.h>
 #include <pthread.h>
 #include <commons/log.h>
 #include <errno.h>
 #include <commons/config.h>
+#include "../../general/general.h"
+
+int socket_umc;
 
 typedef struct {
 	int puerto;
@@ -42,12 +45,11 @@ semaforo->valor = atoi(valorSemaforosArray[i]);
 semaforo->cola = queue_create();
 usando el atoi dentro de un while*/
 
-
 int cpu;
 int consola;
 
 t_log* crearLog(){
-	t_log *logNucleo = log_create("log.txt", "nucleo.c", false, LOG_LEVEL_INFO);
+	t_log *logNucleo = log_create("logNucleo.log", "nucleo.c", false, LOG_LEVEL_INFO);
 	return logNucleo;
 }
 
@@ -113,12 +115,22 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 	switch (paquete.cod_op) {
 		case HS_CONSOLA_NUCLEO:
 			enviar(OK_HS_CONSOLA,1,&socket,socket);
+			//TODO agregar a lista de consolas conectadas dupla cosola-procesid
 			break;
 		case NUEVO_PROGRAMA:
 			printf("Llego un pedido de conexion del socketConsola  %d\n",socket);
 			printf("El socket %d dice:\n",socket);
+			//TODO crear PCB
+			//TODO pedir espacio a UMC y enviar codigo del programa y paginas, y luego almacenar estructuras.
+			//t_metadata_program * metadata;
+			//metadata= metadata_desde_literal(paquete.datos);
+			//Recibir codigo fuente del programa
+			//crear pcb para programa (PID,PC,SP)
+			//crear nuevo stack, pedir umc paginas para el codigo del programa y paginas para almacenar stack
+			//recibir paginas donde almacenar
+			//almacenar estructuras si no puede porque no hay espacio: rechazar acceso, informar al procPrograma
 			puts(paquete.datos); //no pasa los datos
-			enviar(1,paquete.tamano_datos,paquete.datos,cpu);
+			enviar(NUEVO_PROGRAMA,paquete.tamano_datos,paquete.datos,socket_umc);
 			break;
 		default:
 			break;
@@ -136,16 +148,27 @@ void cerrar_socket_consola(int socket){
 }
 
 void nueva_conexion_consola(int socket){
-	printf("Se conecto %d\n",socket);
-	// recibir paquete HS de consola
-	//TODO crear PCB
-	//TODO pedir espacio a UMC y enviar codigo del programa y paginas, y luego almacenar estructuras.
+	printf("Se conecto proceso Programa %d\n",socket);
+
 }
 
 void manejar_socket_cpu(int socket,t_paquete paquete){
-	printf("Llego un pedido de %d\n",socket);
-	printf("El socket %d dice:\n",socket);
-	puts(paquete.datos);
+	switch (paquete.cod_op) {
+			case HS_CPU_NUCLEO:
+				enviar(OK_HS_CPU,1,&socket,socket);
+				puts("Handshake exitoso");
+				break;
+			case NUEVO_PROGRAMA:
+				printf("Llego un pedido de conexion del socketCPU  %d\n",socket);
+				printf("El socket %d dice:\n",socket);
+				puts(paquete.datos); //no pasa los datos
+
+				//
+				break;
+			default:
+				break;
+		}
+
 	//TODO manejar pedidos del CPU
 }
 
@@ -156,7 +179,7 @@ void cerrar_socket_cpu(int socket){
 
 
 void nueva_conexion_cpu(int socket){
-	printf("Se conecto %d\n",socket);
+	printf("Se conecto cpu %d\n",socket);
 	cpu = socket;
 }
 
@@ -178,7 +201,6 @@ int main(int argc, char **argv){
 	pthread_t thread_consola, thread_cpu;
 	t_estructura_server conf_consola, conf_cpu;
 	t_estructura_cliente conf_umc;
-	int socket_umc;
 
 //Crea archivo de log
 	t_log* logNucleo = crearLog();
@@ -210,6 +232,14 @@ int main(int argc, char **argv){
 
 
 //Creacion hilos para atender conexiones desde cpu/consola/ umc?
+
+	 if( (socket_umc = conectar(conf_umc.direccion, conf_umc.puerto)) == -1){
+		perror("Error al crear socket de conexion con el proceso umc");
+		exit(EXIT_FAILURE);
+	}
+	log_info(logNucleo, "Me pude conectar con proc_umc");
+	handshake(socket_umc,HS_NUCLEO_UMC,OK_HS_NUCLEO);
+
 	if (pthread_create(&thread_cpu, NULL, (void*)funcion_hilo_servidor, &conf_cpu)){
 	        perror("Error el crear el thread cpu.");
 	        exit(EXIT_FAILURE);
@@ -222,12 +252,6 @@ int main(int argc, char **argv){
 		}
 	log_info(logNucleo, "Me pude conectar con proc_consola");
 
-/*
-	if( (socket_umc = conectar(conf_umc.direccion, conf_umc.puerto)) == -1){
-		perror("Error al crear socket de conexion con el proceso umc");
-		exit(EXIT_FAILURE);
-	}
-	log_info(logNucleo, "Me pude conectar con proc_umc");*/
 
 
 	//TODO planificacion de los procesos
