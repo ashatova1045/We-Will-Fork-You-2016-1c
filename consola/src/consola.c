@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../../sockets/Sockets.c"
+#include "../../sockets/Sockets.h"
 #include "../../general/general.h"
 #include <pthread.h>
 #include <unistd.h>
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
 		puts("El programa esta corriendo correctamente. Espere un momento por favor.");
 		actualizacion = recibir_paquete(socket_kernel);
 
-		log_info(logconsola,"Nuevo mensaje del kernel!\nTamano: %d\nCopOp: %d",
+		log_info(logconsola,"Nuevo mensaje del kernel!\nTamano: %d\nCodigo de operacion: %d",
 					actualizacion->tamano_datos,
 					actualizacion->cod_op);
 		switch (actualizacion->cod_op) {
@@ -118,18 +118,21 @@ int main(int argc, char **argv) {
 				puts("El programa ha finalizado inesperadamente!");
 				break;
 			case ERROR_COD_OP:
-				log_error(logconsola,"Error en la conexion: %s",strerror(errno));
-				puts("Error en la conexion!");
+				log_warning(logconsola,"Se desconecto el nucleo: %s",strerror(errno));
+				puts("Se desconecto el nucleo! El programa no pudo terminar su ejecucion.");
 				break;
 			default:
+				log_warning(logconsola,"Llego un codigo de operacion desconocido");
 				break;
 		}
 	} while (	actualizacion->cod_op != TERMINO_BIEN_PROGRAMA &&
 				actualizacion->cod_op != TERMINO_MAL_PROGRAMA &&
 				actualizacion->cod_op != ERROR_COD_OP);
 
-	log_info(logconsola,"Salio del loop y ya no recibira mensajes.");
 	close(socket_kernel);
+	log_info(logconsola,"Socket cerrado");
 
+	log_info(logconsola,"Consola terminada.\n\n\n");
+	log_destroy(logconsola);
 	return EXIT_SUCCESS;
 }
