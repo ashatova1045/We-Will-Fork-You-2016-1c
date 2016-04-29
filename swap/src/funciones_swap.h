@@ -10,5 +10,6 @@
 t_log* crearLog();
 t_swapcfg* levantarConfiguracion(t_config*);
 void manejar_socket_umc(t_paquete*);
+FILE* inicializaSwapFile(t_swapcfg*);
 
 #endif /* FUNCIONES_SWAP_H_ */
