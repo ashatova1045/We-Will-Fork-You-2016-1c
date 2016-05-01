@@ -8,8 +8,7 @@
 #include <commons/log.h>//Incluyo commons
 #include <commons/string.h>//Incluyo funciones de strings
 #include <parser/metadata_program.h>//Incluyo el parser
-#include "../../sockets/Sockets.c"
-#include <stdbool.h>
+#include "../../sockets/Sockets.h"
 #include <unistd.h>
 #include <commons/config.h>
 #include <errno.h>
@@ -67,6 +66,15 @@ void eliminarConfigUmc(t_umcConfig* datosUmcAEliminar){
 		free(datosUmcAEliminar);
 	}
 }
+
+//------------------------------------------------------------------------------------------------------
+//Estructuras de memoria
+//------------------------------------------------------------------------------------------------------
+
+char *memoria_principal;
+t_marco *tabla_marcos;
+t_info_marco *tlb;
+
 
 //------------------------------------------------------------------------------------------------------
 //Sockets
@@ -367,7 +375,6 @@ void servidor_pedidos(){
 	//Cierro el puerto y libero la memoria del socket
 	close(socketServerPedido);
 }
-
 //------------------------------------------------------------------------------------------------------
 
 int main(int argc, char **argv){
@@ -387,6 +394,9 @@ int main(int argc, char **argv){
 	printf("Puerto de conexion %d\n",config_umc->puerto);
 
 	log_info(logUMC,"Se cargo la configuracion");
+
+	//Creo las estructuras de memoria
+	crear_estructuras();
 
 	//Me conecto al área de swap y hago handshake
 	socketswap = conectar(config_umc->ip_swap,config_umc->puerto_swap);
@@ -423,11 +433,19 @@ int main(int argc, char **argv){
 
 	//Cierro el puerto y libero la memoria del socket
 	close(socketServerPedido);
+	log_info(logUMC,"Socket de pedidos cerrado");
+	close(socketswap);
+	log_info(logUMC,"Socket de swap cerrado");
 
 	//Libero la memoria de la estructura
 	eliminarConfigUmc(config_umc);
-
 	config_destroy(config);
+	log_debug(logUMC,"Configuracion destruida");
+
+	destruir_estructuras();
+	log_info(logUMC,"Estructuras de memoria destruidas");
+
+	log_destroy(logUMC);
 
 	return EXIT_SUCCESS;
 }
