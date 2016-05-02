@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <parser/metadata_program.h>
-#include "../../sockets/Sockets.c"
+#include "../../sockets/Sockets.h"
 #include <commons/string.h>
 #include <commons/collections/list.h>
 #include <pthread.h>
@@ -10,7 +10,6 @@
 #include <commons/config.h>
 #include "../../general/general.h"
 
-int socket_umc;
 
 typedef struct {
 	int puerto;
@@ -47,6 +46,7 @@ usando el atoi dentro de un while*/
 
 int cpu;
 int consola;
+int socket_umc;
 
 t_log* crearLog(){
 	t_log *logNucleo = log_create("logNucleo.log", "nucleo.c", false, LOG_LEVEL_INFO);
@@ -126,7 +126,8 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			//metadata= metadata_desde_literal(paquete.datos);
 			//Recibir codigo fuente del programa
 			//crear pcb para programa (PID,PC,SP)
-			//crear nuevo stack, pedir umc paginas para el codigo del programa y paginas para almacenar stack
+			//crear nuevo stack,
+			//pedir umc paginas para el codigo del programa y paginas para almacenar stack
 			//recibir paginas donde almacenar
 			//almacenar estructuras si no puede porque no hay espacio: rechazar acceso, informar al procPrograma
 			puts(paquete.datos); //no pasa los datos
