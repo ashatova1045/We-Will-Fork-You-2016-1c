@@ -1,21 +1,15 @@
-/*
- * estructuras_memoria.c
- *
- *  Created on: Apr 29, 2016
- *      Author: utnso
- */
-#include <commons/config.h>
-#include <commons/log.h>
+#include "Config_Umc.h"
+#include "Log_Umc.h"
 #include "estructuras_umc.h"
 #include "../../sockets/Sockets.h"
 #include <stdlib.h>
 
-extern char *memoria_principal;
+/*extern char *memoria_principal;
 extern t_marco *tabla_marcos;
 extern t_info_marco *tlb;
 
 extern t_umcConfig* config_umc;
-extern t_log* logUMC;
+extern t_log* logUMC;*/
 
 void crear_estructuras(){
 	//creo la memoria_principal

@@ -33,6 +33,11 @@ typedef struct {
 	int posicion;	//posicion de este marco en la memoria_principal
 }t_info_marco;
 
+
+char *memoria_principal;
+t_marco *tabla_marcos;
+t_info_marco *tlb;
+
 void crear_estructuras();
 t_info_marco* obtener_marco(int pid, int pagina);
 char* obtener_posicion_real(int pid, int pagina,int offset_en_bytes);
