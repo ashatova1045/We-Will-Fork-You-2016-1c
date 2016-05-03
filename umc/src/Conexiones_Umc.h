@@ -17,8 +17,6 @@
 #include <pthread.h>
 #include "estructuras_umc.h"
 
-bool nucleo_conectado=false;
-
 t_paquete* pedido;
 
 //Creo el entero para referenciar al socket del swap

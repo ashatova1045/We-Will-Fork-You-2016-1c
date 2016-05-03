@@ -43,7 +43,7 @@ void atender_conexion(t_datosConexion* datos){
 
 int crear_hilo_conexion(t_datosConexion* datosConexion){
 
-	return pthread_create(datosConexion->thread, NULL,(void*)atender_conexion,datosConexion);
+	return pthread_create(&datosConexion->thread, NULL,(void*)atender_conexion,datosConexion);
 }
 
 
