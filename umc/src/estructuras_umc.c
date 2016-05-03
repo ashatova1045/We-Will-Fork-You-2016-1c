@@ -4,12 +4,40 @@
 #include "../../sockets/Sockets.h"
 #include <stdlib.h>
 
-/*extern char *memoria_principal;
-extern t_marco *tabla_marcos;
-extern t_info_marco *tlb;
+t_datosConexion* crear_estructura_conexion(int socket){
 
-extern t_umcConfig* config_umc;
-extern t_log* logUMC;*/
+	//pthread_t* thread=malloc(sizeof(pthread_t)); //No tiene free
+	pthread_t thread;
+	/*if(thread==NULL){
+		log_error(logUMC,"No se pudo reservar memoria para el hilo");
+	}*/
+
+
+	//int socketDatos=malloc(sizeof(int));//No tiene free
+	int socketDatos;
+	/*if (socketDatos==NULL){
+		log_error(logUMC,"No se pudo reservar memoria para los datos de la conexion");
+	}*/
+
+	socketDatos=socket;
+
+	t_datosConexion* datosAEnviar=malloc(sizeof(t_datosConexion));
+	if(datosAEnviar==NULL){
+		log_error(logUMC,"No se pudo reservar espacio para la estructura de conexion");
+	}
+
+	datosAEnviar->datosSocket=socketDatos;
+	datosAEnviar->thread=thread;
+
+	return datosAEnviar;
+
+}
+
+void destruir_estructura_conexion(t_datosConexion* datosConexion){
+	free(datosConexion->datosSocket);
+	free(datosConexion->thread);
+	free(datosConexion);
+}
 
 void crear_estructuras(){
 	//creo la memoria_principal

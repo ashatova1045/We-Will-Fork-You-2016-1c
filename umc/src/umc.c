@@ -61,12 +61,7 @@ int main(int argc, char **argv){
 
 	ejecutoConsola();
 
-	//TODO Manejar_pedidos de conexiones (multihilo para cpu)
-
 	//TODO mensajes faltantes a Swap
-
-	//TODO Operaciones
-
 
 	//Cierro el puerto y libero la memoria del socket
 	close(socketServerPedido);

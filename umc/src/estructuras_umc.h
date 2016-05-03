@@ -33,6 +33,11 @@ typedef struct {
 	int posicion;	//posicion de este marco en la memoria_principal
 }t_info_marco;
 
+typedef struct {
+	int datosSocket;
+	pthread_t thread;
+}t_datosConexion;
+
 
 char *memoria_principal;
 t_marco *tabla_marcos;
@@ -44,4 +49,7 @@ char* obtener_posicion_real(int pid, int pagina,int offset_en_bytes);
 void destruir_estructuras();
 char* obtener_posicion_real_desde_marco(t_info_marco* marco_info, int offset_en_bytes);
 bool es_el_marco_requerido(t_marco marco, int pagina, int pid);
+
+t_datosConexion* crear_estructura_conexion(int socket);
+void destruir_estructura_conexion(t_datosConexion* datosConexion);
 #endif /* ESTRUCTURAS_UMC_H_ */
