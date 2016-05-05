@@ -10,17 +10,18 @@
 #include "estructuras_swap.h"
 #include "funciones_swap.h"
 #include <commons/collections/list.h>
+#include <commons/bitarray.h>
 
 char* prog;
 int tamanio;
 
 t_log* logSwap;
 t_swapcfg* config_swap;
-t_list* lista_utilizada;
+t_list* lista_procesos;
 int socket_memoria;
+t_bitarray* bitarray;
 
 int main(int argc, char** argv) {
-
 
 	// Crea archivo de log
 	logSwap = crearLog();
@@ -35,6 +36,53 @@ int main(int argc, char** argv) {
 
 	// Inicializa archivo Swap
 	FILE* swapFile = inicializaSwapFile(config_swap);
+
+	lista_procesos = list_create();
+
+	//// TEST LISTA Y GRABACIÓN ARCHIVO SWAP
+	int pid = 175;
+	int cantPags = 20;
+
+	int y;
+	int posicion = 0, pagina = 0;
+	while(bitarray_test_bit(bitarray,posicion)){
+		posicion++;
+	}
+
+	for(y=0;y<cantPags;y++){
+		//printf("Página %d - Posición %d \n",pagina,posicion);
+		t_control_swap* controlSwap = malloc(sizeof(t_control_swap));
+		controlSwap->PId = pid;
+		controlSwap->nroPagina = pagina;
+		controlSwap->posicion = posicion;
+
+		list_add(lista_procesos,controlSwap);
+
+		pagina++;
+		posicion++;
+	}
+
+	if(fwrite(lista_procesos,sizeof(t_list),1,swapFile) != 1){
+		puts("Error");
+	}else{
+		puts("Grabación exitosa");
+	}
+	fseek(swapFile,0,SEEK_SET);
+
+	t_list* listaLeida = malloc(sizeof(t_list));
+	t_control_swap* controlSwap2 = malloc(sizeof(t_control_swap));
+
+	fread(listaLeida,sizeof(t_control_swap),1,swapFile);
+
+	int i=0;
+	while(!list_is_empty(listaLeida)){
+		controlSwap2 = list_remove(listaLeida,i);
+		printf("Lee PID %d \n",controlSwap2->PId);
+		printf("Lee Página %d \n",controlSwap2->nroPagina);
+		printf("Lee Posición %d \n",controlSwap2->posicion);
+	}
+
+	//// FIN TEST LISTA Y GRABACIÓN ARCHIVO SWAP
 
 	// Inicializa la conexión y queda a espera de procesos UMC
 	int socketserver = crear_socket_escucha(config_swap->puerto_escucha);
@@ -56,7 +104,6 @@ int main(int argc, char** argv) {
 
 	config_destroy(config);
 
-	//printf("Se conectó el UMC con socket: %d \n",socket_memoria);
 	printf("Main - Socket memoria %d \n",socket_memoria);
 
 	while(true){
@@ -66,14 +113,10 @@ int main(int argc, char** argv) {
 
 		manejar_socket_umc(paquete);
 
-		 puts("Proceso recibido");
-		 printf("Codigo de operacion: %d\n",paquete->cod_op);
-		 printf("Tamano de los datos: %d\n",paquete->tamano_datos);
-		 printf("Datos: %s\n",(char*)paquete->datos);
-
 		destruir_paquete(paquete);
 	}
 
+	list_destroy(lista_procesos);
 	fclose(swapFile);
 	close(socketserver);
 	close (socket_memoria);

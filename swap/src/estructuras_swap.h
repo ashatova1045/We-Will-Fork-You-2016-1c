@@ -1,6 +1,8 @@
 #ifndef ESTRUCTURASSWAP_H_
 #define ESTRUCTURASSWAP_H_
 
+#include <stdbool.h>
+
 typedef struct{
 	int puerto_escucha;
 	char* nombre_swap;
@@ -12,7 +14,7 @@ typedef struct{
 typedef struct{
 	int PId;
 	int nroPagina;
-	int posicionSwap;
+	int posicion;
 }t_control_swap;
 
 #endif /* ESTRUCTURAS_SWAP_H_ */

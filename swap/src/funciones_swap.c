@@ -1,12 +1,13 @@
 #include "funciones_swap.h"
 
+#include <commons/bitarray.h>
 #include <commons/config.h>
-#include <commons/collections/list.h>
 #include <commons/log.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../../sockets/Sockets.h"
 #include "estructuras_swap.h"
@@ -17,6 +18,7 @@ int socket_memoria;
 
 extern char* prog;
 extern int tamanio;
+extern t_bitarray* bitarray;
 
 t_log* crearLog(){
 	t_log *logSwap = log_create("log.txt", "swap.c", false, LOG_LEVEL_INFO);
@@ -36,29 +38,28 @@ t_swapcfg* levantarConfiguracion(t_config* config){
 }
 
 FILE* inicializaSwapFile(t_swapcfg* config_swap){
-	FILE* swap = fopen(config_swap->nombre_swap, "ab+");
+	// Crea estructura bitmap
+	char* array = malloc(sizeof(tamanio));
+	int cantBytes = (config_swap->cantidad_paginas) / 8;
+
+	bitarray = bitarray_create(array, cantBytes);
+
+	// Crea archivo SWAP
+	char command[128];
 	size_t tamanio_swap = config_swap->tamanio_pagina * config_swap->cantidad_paginas;
 
-	//t_bitarray* arrayBits = bitarray_create("arrayBits", tamanio_swap);
+	snprintf(command, sizeof(command), "dd if=/dev/zero of=%s bs=%d count=1",config_swap->nombre_swap,tamanio_swap);
+	system(command);
+	FILE* swap = fopen("swap.dat","rb+");
 
-	int i;
-	char cero = '\0';
-	for (i = 0 ; i < tamanio_swap; i++){
-		fwrite(&cero, sizeof(char), 1, swap);
-		fseek(swap, 0, SEEK_SET);
-	}
 	return swap;
-
 }
 
 void manejar_socket_umc(t_paquete* paquete){
-	printf("Socket memoria %d \n",socket_memoria);
-	printf("Código Operación %d \n",paquete->cod_op);
-	t_control_swap* elementoInicial = malloc(sizeof(t_control_swap*));
 	switch(paquete->cod_op){
-	// Verificaciones
+	// Handshake
 	case HS_UMC_SWAP:
-		enviar(OK_HS_UMC,1,&socket_memoria,socket_memoria);
+		enviar(OK_HS_UMC,100,"Medio panqueque vomitado",socket_memoria);
 		printf("Handshake correcto! \n");
 		break;
 	case ERROR_COD_OP:
@@ -66,52 +67,55 @@ void manejar_socket_umc(t_paquete* paquete){
 		log_error(logSwap,"Recibio codigo de error");
 		exit(EXIT_FAILURE);
 		break;
+	default:
+		manejarOperaciones(paquete);
+		break;
+	}
+	 /*puts("Proceso recibido");
+	 printf("Codigo de operacion: %d\n",paquete->cod_op);
+	 printf("Tamano de los datos: %d\n",paquete->tamano_datos);
+	 printf("Datos: %s\n",(char*)paquete->datos);*/
+}
+
+void manejarOperaciones(t_paquete* paquete){
+	switch(paquete->cod_op){
 	// Operaciones
 	case NUEVO_PROGRAMA:
-		prog = malloc(paquete->tamano_datos);
-		tamanio = paquete->tamano_datos;
-		strcpy(prog,paquete->datos);
-		puts(prog);
-
-		/*int estadoSwap = controlEspacioSwap(cantPaginas);
-		switch(estadoSwap){
-			case 0:
-				compactarSwap();
-				cargarPrograma();
-				break;
-			case 1:
-				cargarPrograma();
-				break;
-			default:
-				log_error(logSwap,"No hay espacio disponible");
-				break;
-		}*/
-
+		inicializarNuevoPrograma(paquete);
 		break;
-	case 50:
-		enviar(50,tamanio,prog,socket_memoria);
+	case LECTURA_PAGINA:
+		leerPagina(paquete);
 		break;
-	default:
+	case ESCRITURA_PAGINA:
+		escribirPagina(paquete);
 		break;
-	}
-
-}
-
-void cargarPrograma(int PID, int cantPaginas){
-	int i;
-	for(i=0;i<cantPaginas;i++){
-		//int posicion = obtenerPosicion();
-		//t_pag_swap* pagina = setearPagina();
-		//cargarPagina(swapFile, pagina);
+	case FINALIZA_PROGRAMA:
+		finalizarPrograma(paquete);
+		break;
 	}
 }
 
-//todo: Administrar espacio libre - Control de Bitmap
+void inicializarNuevoPrograma(t_paquete* paquete){
+	//todo: Administrar espacio libre - Control de Bitmap
+	//todo: Asignar tamaño necesario para el proceso en caso de solicitarse
+	//todo: Compactar partición en caso de fragmentación
+	prog = malloc(paquete->tamano_datos);
+	tamanio = paquete->tamano_datos;
+	strcpy(prog,paquete->datos);
+	puts(prog);
+}
 
-//todo: Asignar tamaño necesario para el proceso en caso de solicitarse
+void leerPagina(t_paquete* paquete){
+	//todo: Devolver página
+	puts("LEER PAGINA");
+}
 
-//todo: Compactar partición en caso de fragmentación
+void escribirPagina(t_paquete* paquete){
+	//todo: Sobreescribir página
+	puts("ESCRIBE PAGINA");
+}
 
-//todo: Devolver página / Sobreescribir página
-
-//todo: Liberar espacio en caso que se finalice el proceso
+void finalizarPrograma(t_paquete* paquete){
+	//todo: Liberar espacio en caso que se finalice el proceso
+	puts("FINALIZA PROGRAMA");
+}
