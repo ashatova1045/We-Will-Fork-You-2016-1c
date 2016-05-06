@@ -4,12 +4,15 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../src/estados.c \
 ../src/nucleo.c 
 
 OBJS += \
+./src/estados.o \
 ./src/nucleo.o 
 
 C_DEPS += \
+./src/estados.d \
 ./src/nucleo.d 
 
 
