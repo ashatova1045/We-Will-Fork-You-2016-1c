@@ -30,11 +30,16 @@ typedef struct {
 } registro_indice_stack;
 
 typedef struct {
+	char* etiq; //Este es el id de una funcion o etiqueta de programa
+	t_posMemoria pos_real; // La posicion que debe tomar el PC para arrancar a ejecutar la funicion o etiqueta del programa
+} t_indice_etiq;
+
+typedef struct {
 	int32_t pid;
 	int32_t pc;
 	int32_t pag_codigo;
-	t_intructions* indice_codigo;
-	int32_t indice_etiquetas;
+	t_posMemoria* indice_codigo;
+	t_indice_etiq* indice_etiquetas;
 	int32_t cant_etiquetas;
 	int32_t fin_stack;
 	u_int32_t cant_instrucciones;
