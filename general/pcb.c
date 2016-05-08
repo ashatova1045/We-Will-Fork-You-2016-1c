@@ -61,8 +61,7 @@ int agregar(char *to,int32_t tamano, void* from){
 	return tamano;
 }
 
-t_pcb_serializado serializar(t_pcb pcb)
-{
+t_pcb_serializado serializar(t_pcb pcb){
 	t_pcb_serializado pcb_serializado;
 	pcb_serializado.tamanio = tamanio_pcb(pcb);
 	pcb_serializado.contenido_pcb = malloc(pcb_serializado.tamanio);
@@ -109,11 +108,88 @@ t_pcb_serializado serializar(t_pcb pcb)
 	return pcb_serializado;
 }
 
-destruir_pcb_serializado(t_pcb_serializado pcbs){
-	free(pcbs.contenido_pcb);
+t_pcb* deserializar(t_pcb_serializado pcbs)
+{
+	int i;
+	t_pcb *pcb = malloc(sizeof(t_pcb));
+
+	int offset = 0;
+
+	pcb->pid = pcbs[offset];
+	offset += sizeof(pcb->pid);
+
+	pcb->pc = pcbs[offset];
+	offset += sizeof(pcb->pc);
+
+	pcb->cant_pags_totales = pcbs[offset];
+	offset += sizeof(pcb->cant_pags_totales);
+
+	pcb->fin_stack = pcbs[offset];
+	offset += sizeof(pcb->fin_stack);
+
+	pcb->cant_instrucciones = pcbs[offset];
+	offset += sizeof(pcb->cant_instrucciones);
+
+	pcb->indice_codigo = malloc(pcb->cant_instrucciones*sizeof(t_posMemoria));
+	for(i=0;i < pcb->cant_instrucciones;i++){
+		pcb->indice_codigo[i] = ((t_posMemoria*)pcbs)[offset];
+		offset += sizeof(t_posMemoria);
+	}
+
+	pcb->cant_etiquetas = pcbs[offset];
+	offset += sizeof(pcb->cant_etiquetas);
+
+	pcb->indice_etiquetas = malloc(sizeof(t_indice_etiq) * pcb->cant_etiquetas);
+	for(i=0;i<pcb->cant_etiquetas;i++){
+		pcb->indice_etiquetas[i].tamano_etiqueta = pcbs[offset];
+		offset += sizeof(pcb->indice_etiquetas->tamano_etiqueta);
+
+		pcb->indice_etiquetas[i].pos_real= ((t_posMemoria*)pcbs)[offset];
+		offset += sizeof(pcb->indice_etiquetas->pos_real);
+
+		pcb->indice_etiquetas[i].etiq = malloc(sizeof(char)*pcb->indice_etiquetas[i].tamano_etiqueta);
+		*pcb->indice_etiquetas[i].etiq = pcbs[offset];
+		offset += pcb->indice_etiquetas[i].tamano_etiqueta;
+	}
+
+	pcb->cant_entradas_indice_stack = pcbs[offset];
+	offset += sizeof(pcb->cant_entradas_indice_stack);
+
+	pcb->indice_stack = malloc(pcb->cant_entradas_indice_stack * sizeof(registro_indice_stack));
+	for(i=0;i<pcb->cant_entradas_indice_stack;i++){
+		int j;
+		pcb->indice_stack[i].posicion = pcbs[offset];
+		offset += sizeof(pcb->indice_stack->posicion);
+
+		pcb->indice_stack[i].cant_argumentos = pcbs[offset];
+		offset += sizeof(pcb->indice_stack->cant_argumentos);
+
+		pcb->indice_stack[i].argumentos = malloc(sizeof(t_posMemoria)*pcb->indice_stack[i].cant_argumentos);
+		for(j=0;j<pcb->indice_stack[i].cant_argumentos;j++){
+			pcb->indice_stack[i].argumentos[j] = ((t_posMemoria*)pcbs)[offset];
+			offset +=sizeof(t_posMemoria);
+		}
+
+		pcb->indice_stack[i].cant_variables = pcbs[offset];
+		offset += sizeof(pcb->indice_stack->cant_variables);
+
+		pcb->indice_stack[i].variables = malloc(sizeof(t_variable) * pcb->indice_stack[i].cant_variables);
+		for(j=0;j<pcb->indice_stack[i].cant_variables;j++){
+			pcb->indice_stack[i].variables[j] = ((t_variable*)pcbs)[offset];
+			offset +=sizeof(t_variable);
+		}
+
+		pcb->indice_stack[i].pos_retorno = pcbs[offset];
+		offset += sizeof(pcb->indice_stack->pos_retorno);
+
+		pcb->indice_stack[i].pos_var_retorno = pcbs[offset];
+		offset += sizeof(pcb->indice_stack->pos_var_retorno);
+	}
+
+	return pcb_serializado;
 }
 
-void deserializar(t_pcb pcb)
-{
 
+destruir_pcb_serializado(t_pcb_serializado pcbs){
+	free(pcbs.contenido_pcb);
 }
