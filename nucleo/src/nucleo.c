@@ -1,14 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <parser/metadata_program.h>
 #include "../../sockets/Sockets.h"
 #include <commons/string.h>
-#include <commons/collections/list.h>
 #include <pthread.h>
 #include <commons/log.h>
 #include <errno.h>
 #include <commons/config.h>
-#include "../../general/general.h"
+#include "estados.h"
 
 
 typedef struct {

@@ -6,7 +6,6 @@
  */
 
 #include "estados.h"
-#include "commons/log.h"
 
 t_queue *colaNew, *colaReady, *colaExec, *colaBlocked, *colaExit;
 t_log *logNucleo_estados;

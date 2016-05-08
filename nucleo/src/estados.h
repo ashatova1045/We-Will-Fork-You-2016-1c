@@ -8,11 +8,12 @@
 #ifndef ESTADOS_H_
 #define ESTADOS_H_
 
-#include "commons/collections/queue.h"
-#include "../../general/general.h"
-
+#include <commons/collections/queue.h>
+#include "../../general/pcb.h"
+#include <commons/log.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 /* link referencia http://stackoverflow.com/questions/1433204/how-do-i-use-extern-to-share-variables-between-source-files-in-c
  *
