@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../../sockets/Sockets.h"
-#include "../../general/general.h"
+#include "../../general/estructura_variable.h"
 #include <pthread.h>
 #include <unistd.h>
 #include <commons/config.h>
