@@ -4,12 +4,15 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../src/estructuras_umc.c \
 ../src/umc.c 
 
 OBJS += \
+./src/estructuras_umc.o \
 ./src/umc.o 
 
 C_DEPS += \
+./src/estructuras_umc.d \
 ./src/umc.d 
 
 

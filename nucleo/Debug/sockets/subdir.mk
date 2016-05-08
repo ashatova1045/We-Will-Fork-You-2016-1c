@@ -4,20 +4,17 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../src/estados.c \
-../src/nucleo.c 
+/home/utnso/workspace/tp-2016-1c-We-Will-Fork-You/sockets/Sockets.c 
 
 OBJS += \
-./src/estados.o \
-./src/nucleo.o 
+./sockets/Sockets.o 
 
 C_DEPS += \
-./src/estados.d \
-./src/nucleo.d 
+./sockets/Sockets.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
-src/%.o: ../src/%.c
+sockets/Sockets.o: /home/utnso/workspace/tp-2016-1c-We-Will-Fork-You/sockets/Sockets.c
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C Compiler'
 	gcc -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o "$@" "$<"

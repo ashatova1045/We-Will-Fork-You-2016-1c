@@ -1,16 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <parser/metadata_program.h>
-#include "../../sockets/Sockets.c"
+#include "../../sockets/Sockets.h"
 #include <commons/string.h>
-#include <commons/collections/list.h>
 #include <pthread.h>
 #include <commons/log.h>
 #include <errno.h>
 #include <commons/config.h>
-#include "../../general/general.h"
+#include "estados.h"
 
-int socket_umc;
 
 typedef struct {
 	int puerto;
@@ -47,9 +43,12 @@ usando el atoi dentro de un while*/
 
 int cpu;
 int consola;
+int socket_umc;
+int pidActual=0;
+t_log *logNucleo;
 
 t_log* crearLog(){
-	t_log *logNucleo = log_create("logNucleo.log", "nucleo.c", false, LOG_LEVEL_INFO);
+	t_log *logNucleo = log_create("logNucleo.log", "nucleo.c", false, LOG_LEVEL_TRACE);
 	return logNucleo;
 }
 
@@ -76,6 +75,32 @@ t_nucleoConfig* cargarConfiguracion(t_config* config){
 		}												\
 		free(nucleo_param)								\
 		*/
+
+
+void armar_nuevo_pcb (t_paquete paquete){
+
+	log_debug(logNucleo,"Armando pcb para programa:\n%s\ntamano: %d",paquete.datos,paquete.tamano_datos);
+	t_metadata_program* metadata;
+	metadata = metadata_desde_literal(paquete.datos);
+
+	t_pcb* nvopcb = malloc(sizeof(t_pcb));
+	nvopcb->pid=++pidActual;
+	nvopcb->pc=0;
+	nvopcb->cant_instrucciones=metadata->instrucciones_size;
+
+	int tamano_instrucciones = sizeof(t_intructions)*nvopcb->cant_instrucciones;
+	log_debug(logNucleo,"Tamano de las instrucciones %d",tamano_instrucciones);
+	nvopcb->indice_codigo=malloc(tamano_instrucciones);
+	memcpy(nvopcb->indice_codigo,metadata->instrucciones_serializado,tamano_instrucciones);
+
+	registro_indice_stack * indice_stack= malloc(sizeof(registro_indice_stack));
+	indice_stack->posicion=0;
+	nvopcb->indice_stack=indice_stack;
+	//nvopcb.cant_etiquetas=metadata->cantidad_de_etiquetas;
+	log_debug(logNucleo,"PCB armado para programa:\n%s\ntamano: %d",paquete.datos,paquete.tamano_datos);
+
+}
+
 
 void destruirNucleoConfig(t_nucleoConfig* datosADestruir){
 	int i=0;
@@ -112,25 +137,33 @@ void destruirNucleoConfig(t_nucleoConfig* datosADestruir){
 //#undef DESTRUIR_PP solo lo puedo usar hasta aca, si lo uso en otro lado no existe
 
 void manejar_socket_consola(int socket,t_paquete paquete){
+	log_debug(logNucleo,"Llego un mensaje del socketConsola  %d. codop %d",socket,paquete.cod_op);
 	switch (paquete.cod_op) {
 		case HS_CONSOLA_NUCLEO:
+			log_debug(logNucleo,"El socket consola %d pidio handshake",socket);
 			enviar(OK_HS_CONSOLA,1,&socket,socket);
+			log_debug(logNucleo,"Se respondio hanshake a socket consola %d",socket);
 			//TODO agregar a lista de consolas conectadas dupla cosola-procesid
 			break;
 		case NUEVO_PROGRAMA:
-			printf("Llego un pedido de conexion del socketConsola  %d\n",socket);
+			printf("Llego un nuevo programa del socketConsola  %d\n",socket);
 			printf("El socket %d dice:\n",socket);
+
+			armar_nuevo_pcb(paquete);
+
 			//TODO crear PCB
 			//TODO pedir espacio a UMC y enviar codigo del programa y paginas, y luego almacenar estructuras.
 			//t_metadata_program * metadata;
 			//metadata= metadata_desde_literal(paquete.datos);
 			//Recibir codigo fuente del programa
 			//crear pcb para programa (PID,PC,SP)
-			//crear nuevo stack, pedir umc paginas para el codigo del programa y paginas para almacenar stack
+			//crear nuevo stack,
+			//pedir umc paginas para el codigo del programa y paginas para almacenar stack
 			//recibir paginas donde almacenar
 			//almacenar estructuras si no puede porque no hay espacio: rechazar acceso, informar al procPrograma
+
 			puts(paquete.datos); //no pasa los datos
-			enviar(NUEVO_PROGRAMA,paquete.tamano_datos,paquete.datos,socket_umc);
+		//	enviar(NUEVO_PROGRAMA,paquete.tamano_datos,paquete.datos,socket_umc);
 			break;
 		default:
 			break;
@@ -144,6 +177,7 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 
 void cerrar_socket_consola(int socket){
 	printf("Se cerro %d\n",socket);
+	log_debug(logNucleo, "Se cerro %d\n",socket);
 	//TODO manejar el cierre de socket de la consola
 }
 
@@ -187,8 +221,11 @@ void nueva_conexion_cpu(int socket){
 void funcion_hilo_servidor(t_estructura_server *conf_server){
 	fd_set set_de_fds;
 	int* fdmax = malloc(sizeof(int));
+	log_debug(logNucleo,"Creando hilo servidor");
 	int socketserver = crear_server_multiconexion(&set_de_fds,conf_server->puerto,fdmax);
 	printf("Se creo un socket multiconexion. Su fd es: %d \n",socketserver);
+	log_info(logNucleo,"Se creo un socket multiconexion. Su fd es: %d \n",socketserver);
+
 	puts("Escuchando conexiones y corriendo!");
 	correr_server_multiconexion(fdmax,&set_de_fds,socketserver,conf_server->manejar_pedido,conf_server->socket_cerrado,conf_server->conexion_nueva_aceptada);
 	close(socketserver);
@@ -203,7 +240,7 @@ int main(int argc, char **argv){
 	t_estructura_cliente conf_umc;
 
 //Crea archivo de log
-	t_log* logNucleo = crearLog();
+	logNucleo = crearLog();
 	log_info(logNucleo, "Ejecucion del Proceso NUCLEO");
 
 //Levanta archivo de config del proceso Nucleo
@@ -233,12 +270,12 @@ int main(int argc, char **argv){
 
 //Creacion hilos para atender conexiones desde cpu/consola/ umc?
 
-	 if( (socket_umc = conectar(conf_umc.direccion, conf_umc.puerto)) == -1){
+/*	 if( (socket_umc = conectar(conf_umc.direccion, conf_umc.puerto)) == -1){
 		perror("Error al crear socket de conexion con el proceso umc");
 		exit(EXIT_FAILURE);
-	}
 	log_info(logNucleo, "Me pude conectar con proc_umc");
 	handshake(socket_umc,HS_NUCLEO_UMC,OK_HS_NUCLEO);
+	}*/
 
 	if (pthread_create(&thread_cpu, NULL, (void*)funcion_hilo_servidor, &conf_cpu)){
 	        perror("Error el crear el thread cpu.");
