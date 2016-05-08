@@ -1,14 +1,7 @@
-#ifndef GENERAL_H_
-#define GENERAL_H_
+#ifndef PCB_H_
+#define PCB_H_
 
 #include <sys/types.h>
-#include <parser/metadata_program.h>
-
-typedef struct
-{
-	char nombre;
-	int32_t valor;
-}t_variable_completa;
 
 typedef struct {
 	int32_t pag;
@@ -48,4 +41,4 @@ typedef struct {
 
 
 
-#endif /* GENERAL_H_ */
+#endif /* PCB_H_ */
