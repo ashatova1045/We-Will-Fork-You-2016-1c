@@ -1,9 +1,3 @@
-/*
- * pcb.c
- *
- *  Created on: 8/5/2016
- *      Author: utnso
- */
 #include "pcb.h"
 #include <stdlib.h>
 
@@ -66,10 +60,8 @@ t_pcb_serializado serializar(t_pcb pcb){
 	t_pcb_serializado pcb_serializado;
 	pcb_serializado.tamanio = tamanio_pcb(pcb);
 	pcb_serializado.contenido_pcb = malloc(pcb_serializado.tamanio);
-
 	int i;
 	int offset=0;
-	int32_t proximo_tamano_a_serializar;
 
 	offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.pid),&pcb.pid);
 	offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.pc),&pcb.pc);
@@ -78,13 +70,13 @@ t_pcb_serializado serializar(t_pcb pcb){
 
 	offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.cant_instrucciones),&pcb.cant_instrucciones);
 	for(i=0;i<pcb.cant_instrucciones;i++)
-		offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(t_posMemoria) ,pcb.indice_codigo+i);
+		offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(t_posMemoria) ,&pcb.indice_codigo[i]);
 
 	offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.cant_etiquetas),&pcb.cant_etiquetas);
 	for(i=0;i<pcb.cant_etiquetas;i++){
 		offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.indice_etiquetas->tamano_etiqueta),&pcb.indice_etiquetas[i].tamano_etiqueta);
 		offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.indice_etiquetas->pos_real),&pcb.indice_etiquetas[i].pos_real);
-		offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.indice_etiquetas[i].tamano_etiqueta),pcb.indice_etiquetas[i].etiq);
+		offset+=agregar(pcb_serializado.contenido_pcb+offset,pcb.indice_etiquetas[i].tamano_etiqueta,pcb.indice_etiquetas[i].etiq);
 	}
 
 	offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.cant_entradas_indice_stack),&pcb.cant_entradas_indice_stack);
@@ -133,7 +125,7 @@ t_pcb* deserializar(char* pcbs)
 
 	pcb->indice_codigo = malloc(pcb->cant_instrucciones*sizeof(t_posMemoria));
 	for(i=0;i < pcb->cant_instrucciones;i++){
-		pcb->indice_codigo[i] = ((t_posMemoria*)pcbs)[offset];
+		pcb->indice_codigo[i] = *((t_posMemoria*)(pcbs+offset));
 		offset += sizeof(t_posMemoria);
 	}
 
@@ -144,12 +136,11 @@ t_pcb* deserializar(char* pcbs)
 	for(i=0;i<pcb->cant_etiquetas;i++){
 		pcb->indice_etiquetas[i].tamano_etiqueta = pcbs[offset];
 		offset += sizeof(pcb->indice_etiquetas->tamano_etiqueta);
-
-		pcb->indice_etiquetas[i].pos_real= ((t_posMemoria*)pcbs)[offset];
+		pcb->indice_etiquetas[i].pos_real= *((t_posMemoria*)(pcbs+offset));
 		offset += sizeof(pcb->indice_etiquetas->pos_real);
 
 		pcb->indice_etiquetas[i].etiq = malloc(sizeof(char)*pcb->indice_etiquetas[i].tamano_etiqueta);
-		*(pcb->indice_etiquetas[i].etiq) = pcbs[offset];
+		memcpy(pcb->indice_etiquetas[i].etiq,pcbs+offset,pcb->indice_etiquetas[i].tamano_etiqueta);
 		offset += pcb->indice_etiquetas[i].tamano_etiqueta;
 	}
 
@@ -167,7 +158,7 @@ t_pcb* deserializar(char* pcbs)
 
 		pcb->indice_stack[i].argumentos = malloc(sizeof(t_posMemoria)*pcb->indice_stack[i].cant_argumentos);
 		for(j=0;j<pcb->indice_stack[i].cant_argumentos;j++){
-			pcb->indice_stack[i].argumentos[j] = ((t_posMemoria*)pcbs)[offset];
+			pcb->indice_stack[i].argumentos[j] = *((t_posMemoria*)(pcbs+offset));
 			offset +=sizeof(t_posMemoria);
 		}
 
@@ -176,14 +167,14 @@ t_pcb* deserializar(char* pcbs)
 
 		pcb->indice_stack[i].variables = malloc(sizeof(t_variable) * pcb->indice_stack[i].cant_variables);
 		for(j=0;j<pcb->indice_stack[i].cant_variables;j++){
-			pcb->indice_stack[i].variables[j] = ((t_variable*)pcbs)[offset];
+			pcb->indice_stack[i].variables[j] = *((t_variable*)(pcbs+offset));
 			offset +=sizeof(t_variable);
 		}
 
 		pcb->indice_stack[i].pos_retorno = pcbs[offset];
 		offset += sizeof(pcb->indice_stack->pos_retorno);
 
-		pcb->indice_stack[i].pos_var_retorno = ((t_posMemoria* )pcbs)[offset];
+		pcb->indice_stack[i].pos_var_retorno = *((t_posMemoria*)(pcbs+offset));
 		offset += sizeof(pcb->indice_stack->pos_var_retorno);
 	}
 
