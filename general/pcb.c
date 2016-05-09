@@ -5,6 +5,7 @@
  *      Author: utnso
  */
 #include "pcb.h"
+#include <stdlib.h>
 
 int32_t tamano_etiqueta(t_indice_etiq etiqueta){
 	return sizeof(etiqueta.pos_real)+
@@ -92,12 +93,12 @@ t_pcb_serializado serializar(t_pcb pcb){
 		offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.indice_stack->posicion),&pcb.indice_stack[i].posicion);
 
 		offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.indice_stack->cant_argumentos),&pcb.indice_stack[i].cant_argumentos);
-		for(j=0;j<pcb.indice_stack->cant_argumentos;j++){
+		for(j=0;j<pcb.indice_stack[i].cant_argumentos;j++){
 			offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(t_posMemoria),&pcb.indice_stack[i].argumentos[j]);
 		}
 
 		offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.indice_stack->cant_variables),&pcb.indice_stack[i].cant_variables);
-		for(j=0;j<pcb.indice_stack->cant_variables;j++){
+		for(j=0;j<pcb.indice_stack[i].cant_variables;j++){
 			offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(t_variable),&pcb.indice_stack[i].variables[j]);
 		}
 
@@ -108,7 +109,7 @@ t_pcb_serializado serializar(t_pcb pcb){
 	return pcb_serializado;
 }
 
-t_pcb* deserializar(t_pcb_serializado pcbs)
+t_pcb* deserializar(char* pcbs)
 {
 	int i;
 	t_pcb *pcb = malloc(sizeof(t_pcb));
@@ -148,7 +149,7 @@ t_pcb* deserializar(t_pcb_serializado pcbs)
 		offset += sizeof(pcb->indice_etiquetas->pos_real);
 
 		pcb->indice_etiquetas[i].etiq = malloc(sizeof(char)*pcb->indice_etiquetas[i].tamano_etiqueta);
-		*pcb->indice_etiquetas[i].etiq = pcbs[offset];
+		*(pcb->indice_etiquetas[i].etiq) = pcbs[offset];
 		offset += pcb->indice_etiquetas[i].tamano_etiqueta;
 	}
 
@@ -182,14 +183,10 @@ t_pcb* deserializar(t_pcb_serializado pcbs)
 		pcb->indice_stack[i].pos_retorno = pcbs[offset];
 		offset += sizeof(pcb->indice_stack->pos_retorno);
 
-		pcb->indice_stack[i].pos_var_retorno = pcbs[offset];
+		pcb->indice_stack[i].pos_var_retorno = ((t_posMemoria* )pcbs)[offset];
 		offset += sizeof(pcb->indice_stack->pos_var_retorno);
 	}
 
-	return pcb_serializado;
+	return pcb;
 }
 
-
-destruir_pcb_serializado(t_pcb_serializado pcbs){
-	free(pcbs.contenido_pcb);
-}

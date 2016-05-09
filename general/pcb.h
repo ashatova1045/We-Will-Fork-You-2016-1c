@@ -2,6 +2,8 @@
 #define PCB_H_
 
 #include <sys/types.h>
+#include <stdlib.h>
+#include <string.h>
 
 typedef struct{
 	char* contenido_pcb;
@@ -53,6 +55,9 @@ typedef struct {
 	u_int32_t cant_entradas_indice_stack;
 	registro_indice_stack* indice_stack;
 }t_pcb;
+
+t_pcb_serializado serializar(t_pcb pcb);
+t_pcb* deserializar(char* pcbs);
 
 
 
