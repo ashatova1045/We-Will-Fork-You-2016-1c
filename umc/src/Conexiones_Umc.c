@@ -71,22 +71,23 @@ void atender_conexion(int* socket_conexion){
 }
 
 int crear_hilo_conexion(int socket){
-	int* socket_actual =malloc(sizeof(int));
+	int* socket_actual = malloc(sizeof(int));
 	*socket_actual=socket;
-	//pthread_attr_init(&datosConexion->attr);
-	//pthread_attr_setdetachstate(&datosConexion->attr,PTHREAD_CREATE_DETACHED);
-	pthread_t threadAux;
 
-	int hilo_create = pthread_create(&threadAux,NULL,(void*)atender_conexion,socket_actual);
+	pthread_t threadAux;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
+
+	int hilo_create = pthread_create(&threadAux,&attr,(void*)atender_conexion,socket_actual);
 	if(hilo_create==0){
 		log_trace(logUMC,"Se creo el hilo para las conexion %d",socket);
 	}else{
 		log_error(logUMC,"No se pudo crear el hilo para las conexiones");
 	}
 
+	pthread_attr_destroy(&attr);
 	return hilo_create;
-
-	//TODO agregar pthread_attr_destroy(&attr);
 }
 
 
