@@ -12,12 +12,32 @@ void atender_conexion(t_datosConexion* datos){
 
 		//Me llega un pedido
 		pedido = recibir_paquete(datos->datosSocket);
-
 		log_info(logUMC,"Se recibio un pedido");
 
 		switch(pedido->cod_op){
 			case NUEVO_PROGRAMA:
-				//TODO Crear estructuras para el nuevo proceso
+				//TODO Llega mensaje de un nuevo programa con la cantidad de páginas que necesita
+
+				//Le envío al swap la cantidad de páginas que debe reservar
+				log_info(logUMC,"Llego nuevo programa a la umc");
+
+				enviar(NUEVO_PROGRAMA,pedido->tamano_datos,pedido->datos,socketswap);
+				log_info(logUMC,"Se le envia la cantidad de paginas al swap");
+
+				t_paquete *paquete=recibir_paquete(socketswap);
+				log_info(logUMC,"Recibi respuesta de cantidad de páginas del swap");
+				if(paquete->cod_op=="NO_OK"){
+					log_info(logUMC,"No hay espacio sufuciente para el nuevo programa");
+					char* mensaje= "No se pudo reservar memoria";
+					enviar(NO_OK,sizeof(mensaje),mensaje,datos->datosSocket);
+					log_info(logUMC,"Se informó a nucleo de que no hay espacio para el nuevo programa");
+				}else{
+					char* mensaje= "Memoria reservada para el programa";
+					enviar(OK,sizeof(mensaje),mensaje,datos->datosSocket);
+					log_info(logUMC,"Se informo al kernel que hay paginas para el programa");
+				}
+
+				//TODO Crear estructuras para el nuevo proceso (?
 				//TODO Informar la creación de un nuevo proceso al swap con la cantidad de paginas a usar
 				break;
 
@@ -37,19 +57,40 @@ void atender_conexion(t_datosConexion* datos){
 				//TODO Eliminar estructuras usadas para administrar programa
 				//TODO Informar de fin de un programa al swap
 				break;
+			case 100:
+				printf("El swap mando mensaje");
+				puts(pedido->datos);
+				break;
 		}
 	}
 }
 
 int crear_hilo_conexion(t_datosConexion* datosConexion){
 
-	return pthread_create(&datosConexion->thread, NULL,(void*)atender_conexion,datosConexion);
+	//pthread_attr_init(&datosConexion->attr);
+	//pthread_attr_setdetachstate(&datosConexion->attr,PTHREAD_CREATE_DETACHED);
+	pthread_t threadAux=pthread_create(&datosConexion->thread,NULL,(void*)atender_conexion,datosConexion);
+	if(threadAux==NULL){
+		log_error(logUMC,"No se pudo crear el hilo para las conexiones");
+	}else{
+		log_info(logUMC,"Se creo el hilo para las conexiones");
+	}
+
+	return threadAux;
+
+	//TODO agregar pthread_attr_destroy(&attr);
 }
 
 
 //Función para manejar los mensajes
 void manejar_paquete(int socket,t_paquete paq){
 	log_info(logUMC,"Llego un paquete");
+
+	log_debug(logUMC,"Llego un pedido de conexion de %d\n",socket);
+
+	log_debug(logUMC,"El socket %d dice:\n",socket);
+
+	log_debug(logUMC,"Datos recibidos: %s",paq.datos);
 	//Comprueba el codigo de operacion
 	switch (paq.cod_op) {
 		//Handshake con cpu
@@ -60,7 +101,7 @@ void manejar_paquete(int socket,t_paquete paq){
 
 			//Creo el hilo para la conexion con una cpu
 			if(crear_hilo_conexion(crear_estructura_conexion(socket))){
-				perror("Error al crear el hilo de la conexion");
+				//perror("Error al crear el hilo de la conexion");
 				log_error(logUMC,"Error al crear el hilo para la conexion de CPU con socket %d",socket);
 			}
 
@@ -68,25 +109,30 @@ void manejar_paquete(int socket,t_paquete paq){
 			enviar(OK_HS_CPU,1,&socket,socket);
 
 			log_debug(logUMC,"Handshake con CPU exitoso");
+			log_info(logUMC,"El socket %d es de una cpu",socket);
 
 			break;
 
 		//Handshake con nucleo
 		case HS_NUCLEO_UMC:
+			log_info(logUMC,"El nucleo pidio handshake");
 
 			//Borro el descriptor de archivos para usar los hilos en lugar de los select
 			FD_CLR(socket,&set_de_fds);
 
 			//Creo el hilo para la conexion con el nucleo
 			if(crear_hilo_conexion(crear_estructura_conexion(socket))){
-				perror("Error al crear el hilo de la conexion");
+				//perror("Error al crear el hilo de la conexion");
 				log_error(logUMC,"Error al crear el hilo para la conexion de nucleo con socket %d",socket);
+			}else{
+				log_info(logUMC,"Se creo el hilo para la conexion con el nucleo");
 			}
 
 			//Respondo al handshake del nucleo
-			enviar(OK_HS_NUCLEO,1,&socket,socket);
+			enviar(OK_HS_NUCLEO,sizeof(int),config_umc->marco_size,socket);
 
 			log_debug(logUMC,"Handshake con nucleo exitoso");
+			log_info(logUMC,"El socket %d es del nucleo",socket);
 
 			break;
 
@@ -96,7 +142,7 @@ void manejar_paquete(int socket,t_paquete paq){
 			exit(EXIT_FAILURE);
 
 		//Llega un nuevo programa y lo reenvio al swap
-		case NUEVO_PROGRAMA:
+		/*case NUEVO_PROGRAMA:
 
 			log_debug(logUMC,"Llegaron los datos %d",paq.datos);
 
@@ -120,18 +166,11 @@ void manejar_paquete(int socket,t_paquete paq){
 			log_info(logUMC,"Paquete reenviado a la CPU");
 			break;
 		default:
-			break;
+			break;*/
 	}
 
-	//printf("Llego un pedido de conexion de %d\n",socket);
-	log_debug(logUMC,"Llego un pedido de conexion de %d\n",socket);
-
-	printf("El socket %d dice:\n",socket);
-
-	puts(paq.datos);
-
 	//Envío datos recibidos al área de swap
-	enviar(1,paq.tamano_datos,paq.datos,socketswap);
+	//enviar(1,paq.tamano_datos,paq.datos,socketswap);
 }
 
 //Cerrar puerto de socket conectado
@@ -161,11 +200,13 @@ void servidor_pedidos(){
 	if(socketServerPedido ==-1){
 		log_error(logUMC,"Error al crear el server");
 		exit(EXIT_FAILURE);
+	}else{
+		log_info(logUMC,"Se creo el server");
 	}
 
 	//Mensajes de conexión exitosa
-	printf("Se creo un socket multiconexion. Su fd es: %d \n",socketServerPedido);
-	puts("Escuchando conexiones y corriendo!");
+	log_info(logUMC,"Se creo un socket multiconexion. Su fd es: %d \n",socketServerPedido);
+	log_info(logUMC,"Escuchando conexiones y corriendo!");
 
 	//correr_server_multiconexion(fdmax,&set_de_fds,socketServer,manejar_paquete,cerrar_conexion,nueva_conexion);
 	correr_server_multiconexion(&fdmax,&set_de_fds,socketServerPedido,manejar_paquete,cerrar_conexion,nueva_conexion);

@@ -43,7 +43,10 @@ enum cod_op{ // Si se persisten en algun lado,agregar los cod_ops al final
 	LECTURA_PAGINA=15,
 	ESCRITURA_PAGINA=16,
 	CAMBIO_PROCESO_ACTIVO=17,
-	FINALIZA_PROGRAMA=18
+	FINALIZA_PROGRAMA=18,
+	TAMANIO_PAGINA=19,
+	NO_OK=20,
+	OK=21
 };
 
 int enviar(uint16_t cod_op, int tamano_datos_en_bytes, void* datos, int destino_fd);

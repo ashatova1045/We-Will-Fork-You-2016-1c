@@ -27,10 +27,18 @@ int main(int argc, char **argv){
 
 	//Creo el archivo log
 	logUMC = crearLog();
+	if(logUMC==NULL){
+		log_error(logUMC,"No se pudo crear el log de la umc");
+	}
 	log_info(logUMC,"Ejecución del proceso UMC");
 
 	//Creo el archivo de configuración
 	t_config* config = config_create("../umc/umc.cfg");
+	if(config==NULL){
+	log_error(logUMC,"No se pudo crear la config de la umc");
+	}else{
+		log_info(logUMC,"Se creo el config de la umc");
+	}
 
 	//Leo la configuración de la memoria
 	config_umc = leerConfiguracion(config);
@@ -43,25 +51,43 @@ int main(int argc, char **argv){
 
 	//Me conecto al área de swap y hago handshake
 	socketswap = conectar(config_umc->ip_swap,config_umc->puerto_swap);
-	if(socketswap == -1)
-		puts("No se pudo conectar\n");
+	if(socketswap == -1){
+		log_error(logUMC,"No se pudo conectar");
+	}else{
+		log_info(logUMC,"Conectado al swap");
+	}
+
 
 	if(handshake(socketswap,HS_UMC_SWAP,OK_HS_UMC) ==-1 ){
-		puts("Swap no respondio al handshake");
+		log_error(logUMC,"Swap no respondio al handshake");
+	}else{
+	log_info(logUMC,"Handshake Swap correcto");
 	}
-	printf("Handshake Swap correcto");
+
+	//Creo el hilo para la conexion con el swap
+	/*if(crear_hilo_conexion(crear_estructura_conexion(socketswap))){
+		perror("Error al crear el hilo de la conexion");
+		log_error(logUMC,"Error al crear el hilo para la conexion de CPU con socket %d",socket);
+	}*/
+
+	int frames= config_umc->marco_size;
+	enviar(TAMANIO_PAGINA,sizeof(int),&frames,socketswap);
+	log_info(logUMC,"Se envió el tamaño de la página al swap");
+
+
 
 
 	//Creo el hilo de pedidos
 	log_debug(logUMC,"Creando el hilo para recibir pedidos");
 	if(pthread_create(&pedidosThread,NULL,(void*)servidor_pedidos,NULL)){
-		perror("Error al crear el hilo de la cpu");
+		log_error(logUMC,"Error al crear el hilo de la cpu");
 		exit(EXIT_FAILURE);
+	}else{
+		log_info(logUMC,"Se creo el hilo para recibir pedidos");
 	}
 
 	ejecutoConsola();
 
-	//TODO mensajes faltantes a Swap
 
 	//Cierro el puerto y libero la memoria del socket
 	close(socketServerPedido);
