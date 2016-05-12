@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <commons/config.h>
 #include "estados.h"
+#include "../../general/pcb.h"
 
 
 typedef struct {
@@ -53,7 +54,6 @@ t_log* crearLog(){
 }
 
 t_nucleoConfig* cargarConfiguracion(t_config* config){
-
 	t_nucleoConfig* datosNucleo = (t_nucleoConfig*)malloc(sizeof(t_nucleoConfig));
 	datosNucleo->puerto_prog=config_get_int_value(config,"PUERTO_PROG");
 	datosNucleo->puerto_cpu=config_get_int_value(config,"PUERTO_CPU");
