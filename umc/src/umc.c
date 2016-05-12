@@ -53,6 +53,7 @@ int main(int argc, char **argv){
 	socketswap = conectar(config_umc->ip_swap,config_umc->puerto_swap);
 	if(socketswap == -1){
 		log_error(logUMC,"No se pudo conectar");
+		exit(EXIT_FAILURE);
 	}else{
 		log_info(logUMC,"Conectado al swap");
 	}
@@ -60,8 +61,9 @@ int main(int argc, char **argv){
 
 	if(handshake(socketswap,HS_UMC_SWAP,OK_HS_UMC) ==-1 ){
 		log_error(logUMC,"Swap no respondio al handshake");
+		exit(EXIT_FAILURE);
 	}else{
-	log_info(logUMC,"Handshake Swap correcto");
+		log_info(logUMC,"Handshake Swap correcto");
 	}
 
 	//Creo el hilo para la conexion con el swap
@@ -70,8 +72,8 @@ int main(int argc, char **argv){
 		log_error(logUMC,"Error al crear el hilo para la conexion de CPU con socket %d",socket);
 	}*/
 
-	int frames= config_umc->marco_size;
-	enviar(TAMANIO_PAGINA,sizeof(int),&frames,socketswap);
+	int32_t frames= config_umc->marco_size;
+	enviar(TAMANIO_PAGINA,sizeof(int32_t),&frames,socketswap);
 	log_info(logUMC,"Se envió el tamaño de la página al swap");
 
 
@@ -80,7 +82,7 @@ int main(int argc, char **argv){
 	//Creo el hilo de pedidos
 	log_debug(logUMC,"Creando el hilo para recibir pedidos");
 	if(pthread_create(&pedidosThread,NULL,(void*)servidor_pedidos,NULL)){
-		log_error(logUMC,"Error al crear el hilo de la cpu");
+		log_error(logUMC,"Error al crear el hilo de los pedidos");
 		exit(EXIT_FAILURE);
 	}else{
 		log_info(logUMC,"Se creo el hilo para recibir pedidos");

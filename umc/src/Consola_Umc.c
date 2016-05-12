@@ -171,7 +171,7 @@ void ejecutoConsola(){
 	size_t len=0;
 
 	//While para ejecutar el menu de la consola
-	while(1){
+	while(true){
 
 		//Limpio el valor del comando ingresado
 		comando=NULL;
