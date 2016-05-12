@@ -93,13 +93,9 @@ int crear_hilo_conexion(int socket){
 
 //Función para manejar los mensajes
 void manejar_paquete(int socket,t_paquete paq){
-	log_info(logUMC,"Llego un paquete");
 
-	log_debug(logUMC,"Llego un pedido de conexion de %d\n",socket);
+	log_debug(logUMC,"Llego un pedido de %d\n",socket);
 
-	log_debug(logUMC,"El socket %d dice:\n",socket);
-
-	log_debug(logUMC,"Datos recibidos: %s",paq.datos);
 	//Comprueba el codigo de operacion
 	switch (paq.cod_op) {
 		//Handshake con cpu
@@ -150,48 +146,18 @@ void manejar_paquete(int socket,t_paquete paq){
 		//Llega código de error
 		case ERROR_COD_OP:
 			log_error(logUMC,"Llego el codigo de error");
-
-
-		//Llega un nuevo programa y lo reenvio al swap
-		/*case NUEVO_PROGRAMA:
-
-			log_debug(logUMC,"Llegaron los datos %d",paq.datos);
-
-			//Le reenvio el programa al swap
-			enviar(paq.cod_op,paq.tamano_datos,paq.datos,socketswap);
-
-			log_info(logUMC,"Paquete mandado a swap");
-
 			break;
-
-		//Si llega el codigo 50 de pedido de paquete de CPU
-		case 50:
-			puts("Llego 50");
-			//Le pido el paquete al swap
-			enviar(50,1,&socketswap,socketswap);
-			//El swap me manda el paquete pedido
-			t_paquete* nuevo_paq=recibir_paquete(socketswap);
-			log_info(logUMC,"Pedido de paquete al swap");
-			//Reenvio paquete a la CPU
-			enviar(50,nuevo_paq->tamano_datos,nuevo_paq->datos,socket);
-			log_info(logUMC,"Paquete reenviado a la CPU");
-			break;
-		default:
-			break;*/
 	}
-
-	//Envío datos recibidos al área de swap
-	//enviar(1,paq.tamano_datos,paq.datos,socketswap);
 }
 
 //Cerrar puerto de socket conectado
 void cerrar_conexion(int socket){
-	printf("Se cerro %d\n",socket);
+	log_debug(logUMC,"Se cerro %d\n",socket);
 }
 
 //Recibe nuevas conexiones
 void nueva_conexion(int socket){
-	printf("Se conecto %d\n",socket);
+	log_debug(logUMC,"Se conecto %d\n",socket);
 }
 
 //------------------------------------------------------------------------------------------------------

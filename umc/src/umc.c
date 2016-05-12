@@ -22,8 +22,6 @@
 
 int main(int argc, char **argv){
 
-	//Defino el hilo para el socket servidor
-	pthread_t  pedidosThread;
 
 	//Creo el archivo log
 	logUMC = crearLog();
@@ -66,27 +64,29 @@ int main(int argc, char **argv){
 		log_info(logUMC,"Handshake Swap correcto");
 	}
 
-	//Creo el hilo para la conexion con el swap
-	/*if(crear_hilo_conexion(crear_estructura_conexion(socketswap))){
-		perror("Error al crear el hilo de la conexion");
-		log_error(logUMC,"Error al crear el hilo para la conexion de CPU con socket %d",socket);
-	}*/
-
 	int32_t frames= config_umc->marco_size;
 	enviar(TAMANIO_PAGINA,sizeof(int32_t),&frames,socketswap);
 	log_info(logUMC,"Se envió el tamaño de la página al swap");
 
 
 
+	//Defino el hilo para el socket servidor
+	pthread_t  pedidosThread;
 
 	//Creo el hilo de pedidos
 	log_debug(logUMC,"Creando el hilo para recibir pedidos");
-	if(pthread_create(&pedidosThread,NULL,(void*)servidor_pedidos,NULL)){
+
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
+
+	if(pthread_create(&pedidosThread,&attr,(void*)servidor_pedidos,NULL)){
 		log_error(logUMC,"Error al crear el hilo de los pedidos");
 		exit(EXIT_FAILURE);
 	}else{
 		log_info(logUMC,"Se creo el hilo para recibir pedidos");
 	}
+	pthread_attr_destroy(&attr);
 
 	ejecutoConsola();
 
