@@ -58,7 +58,7 @@ typedef struct {
 
 t_pcb_serializado serializar(t_pcb pcb);
 t_pcb* deserializar(char* pcbs);
-
+void destruir_pcb (t_pcb* pcbADestruir);
 
 
 #endif /* PCB_H_ */

@@ -99,6 +99,8 @@ void armar_nuevo_pcb (t_paquete paquete){
 	//nvopcb.cant_etiquetas=metadata->cantidad_de_etiquetas;
 	log_debug(logNucleo,"PCB armado para programa:\n%s\ntamano: %d",paquete.datos,paquete.tamano_datos);
 
+
+	//falta liberar todos los malloc
 }
 
 

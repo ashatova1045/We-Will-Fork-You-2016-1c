@@ -106,6 +106,7 @@ puts("a punto de serializar");
 			for(j=0;j<nuevo->indice_stack[i].cant_variables;j++)
 				printf("variable %c. pag %d offset %d size %d  \n",nuevo->indice_stack[i].variables[j].id,nuevo->indice_stack[i].variables[j].posicionVar.pag,nuevo->indice_stack[i].variables[j].posicionVar.offset,nuevo->indice_stack[i].variables[j].posicionVar.size);
 		}
-
+destruir_pcb(nuevo);
+puts("ejecute destruir_pcb");
 	return EXIT_SUCCESS;
 }
