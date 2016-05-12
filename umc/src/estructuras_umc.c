@@ -4,26 +4,6 @@
 #include "../../sockets/Sockets.h"
 #include <stdlib.h>
 
-t_datosConexion* crear_estructura_conexion(int socket){
-
-	//pthread_attr_t attr;
-
-	t_datosConexion* datosAEnviar=malloc(sizeof(t_datosConexion));
-	if(datosAEnviar==NULL){
-	log_error(logUMC,"No se pudo reservar espacio para la estructura de conexion");
-	}else{
-	log_info(logUMC,"Se reservo espacio para la estructura de conexion");
-	}
-
-
-	datosAEnviar->datosSocket=socket;
-	//datosAEnviar->attr=attr;
-
-
-	return datosAEnviar;
-
-}
-
 void crear_estructuras(){
 	//creo la memoria_principal
 	int espacio_total = config_umc->cant_marcos*config_umc->marco_size;

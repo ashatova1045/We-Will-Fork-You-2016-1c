@@ -17,8 +17,6 @@
 #include <pthread.h>
 #include "estructuras_umc.h"
 
-t_paquete* pedido;
-
 //Creo el entero para referenciar al socket del swap
 int socketServerPedido, socketswap;
 char* codigo; //fixme
