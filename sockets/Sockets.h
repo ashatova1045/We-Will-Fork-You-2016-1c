@@ -46,7 +46,8 @@ enum cod_op{ // Si se persisten en algun lado,agregar los cod_ops al final
 	FINALIZA_PROGRAMA=18,
 	TAMANIO_PAGINA=19,
 	NO_OK=20,
-	OK=21
+	OK=21,
+	BUFFER_LEIDO=22
 };
 
 int enviar(uint16_t cod_op, int tamano_datos_en_bytes, void* datos, int destino_fd);

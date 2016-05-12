@@ -7,7 +7,6 @@
 #include <pthread.h>
 #include <commons/log.h>//Incluyo commons
 #include <commons/string.h>//Incluyo funciones de strings
-#include <parser/metadata_program.h>//Incluyo el parser
 #include "../../sockets/Sockets.h"
 #include <stdbool.h>
 #include <unistd.h>

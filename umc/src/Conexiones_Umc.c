@@ -8,6 +8,8 @@
 //Funcion para manejar los pedidos de las cpu
 
 void atender_conexion(int* socket_conexion){
+	int32_t proceso_activo;
+
 	bool se_cerro = false;
 	while(!se_cerro){
 
@@ -41,6 +43,19 @@ void atender_conexion(int* socket_conexion){
 				break;
 
 			case LECTURA_PAGINA:
+
+				log_info(logUMC,"Llego un pedido de lectura de página");
+				t_pedido_solicitarBytes solicitud=*((t_pedido_solicitarBytes*)pedido->datos);
+				t_pedido_leer_swap pedidoASwap;
+				pedidoASwap.pid=proceso_activo;
+				pedidoASwap.nroPagina=solicitud.nroPagina;
+				enviar(LECTURA_PAGINA,sizeof(pedidoASwap),&pedidoASwap,socketswap);
+
+				t_paquete *paqueteLectura=recibir_paquete(socketswap);
+				log_info(logUMC,"Recibi pagina del swap");
+				enviar(BUFFER_LEIDO,solicitud.tamanioDatos,paqueteLectura->datos+solicitud.offset,*socket_conexion);
+
+				destruir_paquete(paqueteLectura);
 				//TODO Traducir página a frame y devolver contenido
 				//TODO Si no se encuentra la pagina se la pide al swap (algoritmo?)
 				break;
@@ -49,6 +64,7 @@ void atender_conexion(int* socket_conexion){
 				//TODO Si no encuentra la pagina se la pide al swap (algoritmo?)
 				break;
 			case CAMBIO_PROCESO_ACTIVO:
+				proceso_activo=*((int32_t*)pedido->datos);
 				//TODO Guardar datos del proceso actual
 				//TODO Buscar y devolver estructuras del nuevo proceso
 				break;
