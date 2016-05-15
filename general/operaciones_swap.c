@@ -1,8 +1,6 @@
 #include "operaciones_swap.h"
 
-extern int tamano_pagina;
-
-t_pedido_almacenar_swap_serializado* serializar_pedido_almacenar_swap(t_pedido_almacenar_swap *pedido){
+t_pedido_almacenar_swap_serializado* serializar_pedido_almacenar_swap(t_pedido_almacenar_swap *pedido,int tamano_pagina){
 	int tamano_nroPagina = sizeof(pedido->nroPagina);
 	int tamano_pid = sizeof(pedido->pid);
 
@@ -21,7 +19,7 @@ t_pedido_almacenar_swap_serializado* serializar_pedido_almacenar_swap(t_pedido_a
 	return respuesta;
 }
 
-t_pedido_almacenar_swap* deserializar_pedido_almacenar_swap(char *pedido_serializado){
+t_pedido_almacenar_swap* deserializar_pedido_almacenar_swap(char *pedido_serializado,int tamano_pagina){
 	t_pedido_almacenar_swap *respuesta = malloc(sizeof(t_pedido_almacenar_swap));
 
 	respuesta->nroPagina =*pedido_serializado;
