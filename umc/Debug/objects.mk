@@ -4,5 +4,5 @@
 
 USER_OBJS := ../../sockets/Sockets.c
 
-LIBS := -lparser-ansisop -lpthread -lcommons
+LIBS := -lpthread -lcommons
 

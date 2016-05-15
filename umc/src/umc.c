@@ -7,7 +7,6 @@
 #include <pthread.h>
 #include <commons/log.h>//Incluyo commons
 #include <commons/string.h>//Incluyo funciones de strings
-#include <parser/metadata_program.h>//Incluyo el parser
 #include "../../sockets/Sockets.h"
 #include <stdbool.h>
 #include <unistd.h>
@@ -22,15 +21,21 @@
 
 int main(int argc, char **argv){
 
-	//Defino el hilo para el socket servidor
-	pthread_t  pedidosThread;
 
 	//Creo el archivo log
 	logUMC = crearLog();
+	if(logUMC==NULL){
+		log_error(logUMC,"No se pudo crear el log de la umc");
+	}
 	log_info(logUMC,"Ejecución del proceso UMC");
 
 	//Creo el archivo de configuración
 	t_config* config = config_create("../umc/umc.cfg");
+	if(config==NULL){
+	log_error(logUMC,"No se pudo crear la config de la umc");
+	}else{
+		log_info(logUMC,"Se creo el config de la umc");
+	}
 
 	//Leo la configuración de la memoria
 	config_umc = leerConfiguracion(config);
@@ -43,25 +48,47 @@ int main(int argc, char **argv){
 
 	//Me conecto al área de swap y hago handshake
 	socketswap = conectar(config_umc->ip_swap,config_umc->puerto_swap);
-	if(socketswap == -1)
-		puts("No se pudo conectar\n");
+	if(socketswap == -1){
+		log_error(logUMC,"No se pudo conectar");
+		exit(EXIT_FAILURE);
+	}else{
+		log_info(logUMC,"Conectado al swap");
+	}
+
 
 	if(handshake(socketswap,HS_UMC_SWAP,OK_HS_UMC) ==-1 ){
-		puts("Swap no respondio al handshake");
+		log_error(logUMC,"Swap no respondio al handshake");
+		exit(EXIT_FAILURE);
+	}else{
+		log_info(logUMC,"Handshake Swap correcto");
 	}
-	printf("Handshake Swap correcto");
 
+	int32_t frames= config_umc->marco_size;
+	enviar(TAMANIO_PAGINA,sizeof(int32_t),&frames,socketswap);
+	log_info(logUMC,"Se envió el tamaño de la página al swap");
+
+
+
+	//Defino el hilo para el socket servidor
+	pthread_t  pedidosThread;
 
 	//Creo el hilo de pedidos
 	log_debug(logUMC,"Creando el hilo para recibir pedidos");
-	if(pthread_create(&pedidosThread,NULL,(void*)servidor_pedidos,NULL)){
-		perror("Error al crear el hilo de la cpu");
+
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
+
+	if(pthread_create(&pedidosThread,&attr,(void*)servidor_pedidos,NULL)){
+		log_error(logUMC,"Error al crear el hilo de los pedidos");
 		exit(EXIT_FAILURE);
+	}else{
+		log_info(logUMC,"Se creo el hilo para recibir pedidos");
 	}
+	pthread_attr_destroy(&attr);
 
 	ejecutoConsola();
 
-	//TODO mensajes faltantes a Swap
 
 	//Cierro el puerto y libero la memoria del socket
 	close(socketServerPedido);

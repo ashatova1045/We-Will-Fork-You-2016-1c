@@ -38,6 +38,7 @@
 **/Debug/consola
 **/Debug/umc
 
+*.dat
 *.log
 .settings
 *.d

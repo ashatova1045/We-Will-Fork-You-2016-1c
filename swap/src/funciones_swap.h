@@ -2,9 +2,22 @@
 #define FUNCIONES_SWAP_H_
 
 #include "estructuras_swap.h"
-#include <commons/log.h>
-#include <commons/config.h>
+
 #include <stdint.h>
+
+#include "../../general/Operaciones_umc.h"
+#include "../../general/operaciones_swap.h"
+
+#include <commons/bitarray.h>
+#include <commons/collections/list.h>
+#include <commons/config.h>
+#include <commons/log.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+
 #include "../../sockets/Sockets.h"
 
 t_log* crearLog();

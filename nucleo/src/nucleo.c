@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <commons/config.h>
 #include "estados.h"
+#include "../../general/pcb.h"
 
 
 typedef struct {
@@ -53,7 +54,6 @@ t_log* crearLog(){
 }
 
 t_nucleoConfig* cargarConfiguracion(t_config* config){
-
 	t_nucleoConfig* datosNucleo = (t_nucleoConfig*)malloc(sizeof(t_nucleoConfig));
 	datosNucleo->puerto_prog=config_get_int_value(config,"PUERTO_PROG");
 	datosNucleo->puerto_cpu=config_get_int_value(config,"PUERTO_CPU");
@@ -99,6 +99,8 @@ void armar_nuevo_pcb (t_paquete paquete){
 	//nvopcb.cant_etiquetas=metadata->cantidad_de_etiquetas;
 	log_debug(logNucleo,"PCB armado para programa:\n%s\ntamano: %d",paquete.datos,paquete.tamano_datos);
 
+
+	//falta liberar todos los malloc
 }
 
 
@@ -146,6 +148,7 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			//TODO agregar a lista de consolas conectadas dupla cosola-procesid
 			break;
 		case NUEVO_PROGRAMA:
+	//		log_debug(logNucleo,"Se envio el nuevo programa a la umc con codop NUEVO_PROGRAMA");
 			printf("Llego un nuevo programa del socketConsola  %d\n",socket);
 			printf("El socket %d dice:\n",socket);
 
@@ -162,8 +165,9 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			//recibir paginas donde almacenar
 			//almacenar estructuras si no puede porque no hay espacio: rechazar acceso, informar al procPrograma
 
-			puts(paquete.datos); //no pasa los datos
-		//	enviar(NUEVO_PROGRAMA,paquete.tamano_datos,paquete.datos,socket_umc);
+		//	puts(paquete.datos); //no pasa los datos
+			enviar(NUEVO_PROGRAMA,paquete.tamano_datos,paquete.datos,socket_umc);
+			log_debug(logNucleo,"Se envio el nuevo programa a la umc con codop NUEVO_PROGRAMA");
 			break;
 		default:
 			break;
@@ -270,12 +274,13 @@ int main(int argc, char **argv){
 
 //Creacion hilos para atender conexiones desde cpu/consola/ umc?
 
-/*	 if( (socket_umc = conectar(conf_umc.direccion, conf_umc.puerto)) == -1){
+	if( (socket_umc = conectar(conf_umc.direccion, conf_umc.puerto)) == -1){
 		perror("Error al crear socket de conexion con el proceso umc");
 		exit(EXIT_FAILURE);
+	}
 	log_info(logNucleo, "Me pude conectar con proc_umc");
 	handshake(socket_umc,HS_NUCLEO_UMC,OK_HS_NUCLEO);
-	}*/
+
 
 	if (pthread_create(&thread_cpu, NULL, (void*)funcion_hilo_servidor, &conf_cpu)){
 	        perror("Error el crear el thread cpu.");

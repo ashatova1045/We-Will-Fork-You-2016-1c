@@ -16,8 +16,8 @@
 #include <errno.h>
 #include <pthread.h>
 #include "estructuras_umc.h"
-
-t_paquete* pedido;
+#include "../../general/Operaciones_umc.h"
+#include "../../general/operaciones_swap.h"
 
 //Creo el entero para referenciar al socket del swap
 int socketServerPedido, socketswap;

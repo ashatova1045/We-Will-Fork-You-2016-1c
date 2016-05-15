@@ -13,7 +13,7 @@ typedef struct{
 
 typedef struct{
 	int PId;
-	int nroPagina;
+	int cantPaginas;
 	int posicion;
 }t_control_swap;
 
