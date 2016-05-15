@@ -1,24 +1,16 @@
 #include "funciones_swap.h"
-
-#include <commons/bitarray.h>
-#include <commons/config.h>
-#include <commons/log.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "../../sockets/Sockets.h"
 #include "estructuras_swap.h"
+
+int tamanioPagina;
 
 t_log* logSwap;
 t_swapcfg* config_swap;
-int socket_memoria;
+extern int socket_memoria;
+extern t_list* lista_procesos;
 
-extern char* prog;
 extern int tamanio;
 extern t_bitarray* bitarray;
+
 
 t_log* crearLog(){
 	t_log *logSwap = log_create("log.txt", "swap.c", false, LOG_LEVEL_INFO);
@@ -59,7 +51,7 @@ void manejar_socket_umc(t_paquete* paquete){
 	switch(paquete->cod_op){
 	// Handshake
 	case HS_UMC_SWAP:
-		enviar(OK_HS_UMC,100,"Medio panqueque vomitado",socket_memoria);
+		enviar(OK_HS_UMC,100,"Recibido",socket_memoria);
 		printf("Handshake correcto! \n");
 		break;
 	case ERROR_COD_OP:
@@ -67,14 +59,18 @@ void manejar_socket_umc(t_paquete* paquete){
 		log_error(logSwap,"Recibio codigo de error");
 		exit(EXIT_FAILURE);
 		break;
+	case TAMANIO_PAGINA:
+		 puts("Proceso recibido");
+		 printf("Codigo de operacion: %d\n",paquete->cod_op);
+		 printf("Tamano de los datos: %d\n",paquete->tamano_datos);
+		 printf("Tamaño de los frames: %d\n",*((int*)paquete->datos));
+		 tamanioPagina = *((int*)paquete->datos);
+		 enviar(100,3,"OK",socket_memoria);
+		 break;
 	default:
 		manejarOperaciones(paquete);
 		break;
 	}
-	 /*puts("Proceso recibido");
-	 printf("Codigo de operacion: %d\n",paquete->cod_op);
-	 printf("Tamano de los datos: %d\n",paquete->tamano_datos);
-	 printf("Datos: %s\n",(char*)paquete->datos);*/
 }
 
 void manejarOperaciones(t_paquete* paquete){
@@ -96,26 +92,166 @@ void manejarOperaciones(t_paquete* paquete){
 }
 
 void inicializarNuevoPrograma(t_paquete* paquete){
-	//todo: Administrar espacio libre - Control de Bitmap
-	//todo: Asignar tamaño necesario para el proceso en caso de solicitarse
 	//todo: Compactar partición en caso de fragmentación
-	prog = malloc(paquete->tamano_datos);
-	tamanio = paquete->tamano_datos;
-	strcpy(prog,paquete->datos);
-	puts(prog);
+
+	log_info(logSwap,"Inicio de proceso de inicialización de un nuevo programa");
+	puts("INICIALIZAR NUEVO PROGRAMA");
+	t_pedido_inicializar_swap* pedido = (t_pedido_inicializar_swap*)paquete->datos;
+
+	printf("ProcessID: %d\n",pedido->idPrograma);
+	printf("Cantidad de Paginas: %d\n",pedido->pagRequeridas);
+
+	int paginasPendientes = pedido->pagRequeridas;
+	int cantidadPaginas = pedido->pagRequeridas;
+	int i, posicion = -1;
+	int max = bitarray_get_max_bit(bitarray);
+	int codOp = NO_OK;
+
+	// Revisar el bitmap si hay lugar para el proceso
+	// Establece como ocupado los bitmaps que ocupa el proceso si hay disponibilidad
+	for(i=0;i<max;i++){
+		if(bitarray_test_bit(bitarray,i) == false){
+			if(posicion == -1){
+				posicion = i;
+			}
+			paginasPendientes--;
+		}
+	}
+
+	//si hay lugar armar t_control_swap y sumarlo a la lista de procesos
+	if(paginasPendientes == 0){
+
+		int posAux = posicion;
+		for(i=0;i<cantidadPaginas;i++){
+			bitarray_set_bit(bitarray,posAux);
+			posAux++;
+		}
+
+		t_control_swap* controlSwap = malloc(sizeof(t_control_swap));
+		controlSwap->PId = pedido->idPrograma;
+		controlSwap->cantPaginas = pedido->pagRequeridas;
+		controlSwap->posicion = posicion;
+
+		list_add(lista_procesos,controlSwap);
+		codOp = OK;
+	}
+	enviar(codOp,1,"OK",socket_memoria);
 }
 
 void leerPagina(t_paquete* paquete){
 	//todo: Devolver página
+
+	log_info(logSwap,"Inicia proceso de lectura de página");
 	puts("LEER PAGINA");
+	FILE* swapFile;
+
+	t_pedido_leer_swap* pedido = (t_pedido_leer_swap*)paquete->datos;
+
+	int pid_enviado = pedido->pid;
+	int offset = (pedido->nroPagina) * tamanioPagina;
+	int i;
+	char* buffer;
+
+	//leer la estructura
+	int codOp = NO_OK;
+	for(i=0;i<list_size(lista_procesos);i++){
+		t_control_swap* controlSwap = list_get(lista_procesos,i);
+		if(controlSwap->PId == pid_enviado){
+			int pos = (controlSwap->posicion * tamanioPagina) + offset;
+			fseek(swapFile,pos,SEEK_SET);
+			if(fread(buffer,tamanioPagina,1,swapFile) < 1){
+				log_error(logSwap,"Error en la lectura de la página");
+			}else{
+				codOp = BUFFER_LEIDO;
+			}
+			break;
+		}
+	}
+	// Responde a la UMC el resultado de la operación
+	// Sin serializar - manda buffer
+	enviar(codOp,1,buffer,socket_memoria);
 }
 
 void escribirPagina(t_paquete* paquete){
+	//todo: Deserializar el paquete
 	//todo: Sobreescribir página
+
+	log_info(logSwap,"Inicia proceso de escritura de página");
 	puts("ESCRIBE PAGINA");
+	FILE* swapFile;
+
+	t_pedido_almacenar_swap* pedido = (t_pedido_almacenar_swap*)paquete->datos;
+
+	int pid_enviado = pedido->pid;
+	int pagina_a_leer = pedido->nroPagina;
+	char* buffer = malloc(sizeof(pedido->buffer));
+	buffer = pedido->buffer;
+
+	// Grabar y mandar resultado a la umc
+	fseek(swapFile,EOF,SEEK_SET);
+	int codOp = NO_OK;
+	if(fwrite(buffer,tamanioPagina,1,swapFile) != 1){
+		log_error(logSwap, "No se pudo grabar la página en el archivo");
+		puts("No se pudo grabar la página en el archivo");
+	}else{
+		codOp = OK;
+		log_info(logSwap,"Grabación exitosa de la página en el archivo");
+		puts("Grabación exitosa");
+	}
+
+	// Responde a la UMC el resultado de la operación
+	enviar(codOp,3,"OK",socket_memoria);
+
 }
 
 void finalizarPrograma(t_paquete* paquete){
 	//todo: Liberar espacio en caso que se finalice el proceso
+	log_info(logSwap,"Inicia proceso de finalización de programa");
 	puts("FINALIZA PROGRAMA");
+	FILE* swapFile;
+
+	t_pedido_finalizar_swap* pedido = (t_pedido_finalizar_swap*)paquete->datos;
+
+	int pid_enviado = pedido->idPrograma;
+	int i;
+	int encuentraProceso = 0;
+
+	for(i=0;i<list_size(lista_procesos);i++){
+		t_control_swap* controlSwap = list_get(lista_procesos,i);
+		if(controlSwap->PId == pid_enviado){
+			int posicionSwap = controlSwap->posicion * tamanioPagina;
+			int posAux = controlSwap->posicion;
+			int cantidadPaginas = controlSwap->cantPaginas;
+			fseek(swapFile,posicionSwap,SEEK_SET);
+			if(fwrite('\0',tamanioPagina,cantidadPaginas,swapFile) != 1){
+				log_error(logSwap,"No se pudo borrar el proceso en el archivo");
+				puts("No se pudo borrar el proceso el archivo");
+			}else{
+				log_error(logSwap,"Se ha borrado el proceso en el archivo");
+				puts("No se pudo borrar el proceso el archivo");
+
+				// Establece como libre los bitmaps que ocupó el proceso
+				for(i=0;i<cantidadPaginas;i++){
+					bitarray_clean_bit(bitarray,posAux);
+					posAux++;
+				}
+
+				free(list_remove(lista_procesos,i));
+				encuentraProceso = 1;
+				break;
+			}
+		}
+	}
+	int codOp;
+	if(encuentraProceso == 1){
+		codOp = TERMINO_BIEN_PROGRAMA;
+		log_info(logSwap,"Finalización del programa exitosa");
+		puts("Finalización del programa exitosa");
+	}else{
+		codOp = TERMINO_MAL_PROGRAMA;
+		log_error(logSwap,"La finalización del programa ha fallado");
+		puts("La finalización del programa ha fallado");
+	}
+	// Responde a la UMC el resultado de la operación
+	enviar(codOp,3,"OK",socket_memoria);
 }
