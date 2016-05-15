@@ -7,7 +7,7 @@ t_log* logSwap;
 t_swapcfg* config_swap;
 extern int socket_memoria;
 extern t_list* lista_procesos;
-
+int tamano_Pagina;
 extern int tamanio;
 extern t_bitarray* bitarray;
 
@@ -51,7 +51,7 @@ void manejar_socket_umc(t_paquete* paquete){
 	switch(paquete->cod_op){
 	// Handshake
 	case HS_UMC_SWAP:
-		enviar(OK_HS_UMC,100,"Recibido",socket_memoria);
+		enviar(OK_HS_UMC,1,&socket_memoria,socket_memoria);
 		printf("Handshake correcto! \n");
 		break;
 	case ERROR_COD_OP:
@@ -65,7 +65,6 @@ void manejar_socket_umc(t_paquete* paquete){
 		 printf("Tamano de los datos: %d\n",paquete->tamano_datos);
 		 printf("Tamaño de los frames: %d\n",*((int*)paquete->datos));
 		 tamanioPagina = *((int*)paquete->datos);
-		 enviar(100,3,"OK",socket_memoria);
 		 break;
 	default:
 		manejarOperaciones(paquete);
@@ -115,6 +114,9 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 				posicion = i;
 			}
 			paginasPendientes--;
+			if(paginasPendientes == 0){
+				break;
+			}
 		}
 	}
 
@@ -133,9 +135,12 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 		controlSwap->posicion = posicion;
 
 		list_add(lista_procesos,controlSwap);
+
 		codOp = OK;
 	}
+	//printf("%d %d \n",codOp,socket_memoria);
 	enviar(codOp,1,"OK",socket_memoria);
+	puts("Envia respuesta a la UMC");
 }
 
 void leerPagina(t_paquete* paquete){
@@ -180,12 +185,13 @@ void escribirPagina(t_paquete* paquete){
 	puts("ESCRIBE PAGINA");
 	FILE* swapFile;
 
-	t_pedido_almacenar_swap* pedido = (t_pedido_almacenar_swap*)paquete->datos;
+	t_pedido_almacenar_swap* pedido= (t_pedido_almacenar_swap*)paquete->datos;
 
 	int pid_enviado = pedido->pid;
 	int pagina_a_leer = pedido->nroPagina;
 	char* buffer = malloc(sizeof(pedido->buffer));
 	buffer = pedido->buffer;
+	//t_pedido_almacenar_swap* pedidoS = deserializar_pedido_almacenar_swap(buffer);
 
 	// Grabar y mandar resultado a la umc
 	fseek(swapFile,EOF,SEEK_SET);
