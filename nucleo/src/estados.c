@@ -44,6 +44,11 @@ t_pcb *sacar_pcb_por_pid(t_list *listaAct, uint32_t pidBuscado)
 	return list_remove_by_condition(listaAct, matchPID);
 }
 
+void moverA_colaNew(t_pcb *pcb)
+{
+	queue_push(colaNew, pcb);
+	log_debug(logNucleo_estados, "El PCB: %d paso a la cola New",pcb->pid);
+}
 
 void moverA_colaExit(t_pcb *pcb)
 {

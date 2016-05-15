@@ -31,6 +31,7 @@ void destruir_colas();
 
 t_pcb *sacar_pcb_por_pid(t_list *listaAct, uint32_t pidBuscado);
 
+void moverA_colaNew(t_pcb *pcb);
 void moverA_colaExit(t_pcb *pcb);
 void moverA_colaBlocked(t_pcb *pcb);
 void moverA_colaExec(t_pcb *pcb);
