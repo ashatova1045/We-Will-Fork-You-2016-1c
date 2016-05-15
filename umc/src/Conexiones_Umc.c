@@ -58,8 +58,14 @@ void atender_conexion(int* socket_conexion){
 				destruir_paquete(paqueteLectura);
 				//TODO Traducir página a frame y devolver contenido
 				//TODO Si no se encuentra la pagina se la pide al swap (algoritmo?)
+
 				break;
 			case ESCRITURA_PAGINA:
+				//TODO Descerializar lo que recibe(pedido_almacenar)
+				//Todo Serializar escritura a swap(con descerializar)
+				//TODO Ver si respondio ok en el enviar(No debería dar error) destruyo lo que me mandaron y le digo al que me pidio que lo haga ok
+
+
 				//TODO Traducir página a frame y actualizar contenido
 				//TODO Si no encuentra la pagina se la pide al swap (algoritmo?)
 				break;
@@ -69,12 +75,9 @@ void atender_conexion(int* socket_conexion){
 				//TODO Buscar y devolver estructuras del nuevo proceso
 				break;
 			case FINALIZA_PROGRAMA:
+				//TODO mandar mensaje de eliminar a swap
 				//TODO Eliminar estructuras usadas para administrar programa
 				//TODO Informar de fin de un programa al swap
-				break;
-			case 100:
-				printf("El swap mando mensaje");
-				puts(pedido->datos);
 				break;
 			case ERROR_COD_OP:
 				log_warning(logUMC,"Se desconecto el socket %d",*socket_conexion);

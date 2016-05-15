@@ -49,6 +49,8 @@ void conectar_cpu() {
 	puts("Handshake de nucleo correcto!");
 	log_info(logcpu,"Handshake de nucleo correcto!");
 
+	//TODO recibir al nucleo y si lo que vino tiene codop quantum asignarlo a var global
+
 	if(handshake(socket_umc,HS_CPU_UMC,OK_HS_CPU) == -1){
 		log_error(logcpu,"Handshake de umc incorrecto");
 		puts("No se pudo hacer un hansdhake con la umc");
@@ -86,7 +88,7 @@ int main() {
 	puts(paq->datos);
 
 
-	while(true){
+/*	while(true){
 		t_paquete* paquete_actual =recibir_paquete(socket_nucleo);
 		if(paquete_actual->cod_op == CORRER_PCB){
 			pthread_t hilo_ejecucion;
@@ -95,9 +97,59 @@ int main() {
 		}
 		destruir_paquete(paquete_actual);
 	}
+*/
 
+	bool se_cerro_nucleo = false;
+	pthread_t hilo_ejecucion;
+	//Mientras no se cierre la conexion con el nucleo
+	while(!se_cerro_nucleo){
 
+		//Recibo el paquete
+		t_paquete* paquete_actual =recibir_paquete(socket_nucleo);
+		log_info(logcpu,"Se recibio un pedido del socket %d",socket_nucleo);
 
+		//Trato el paquete segun el codigo de operacion
+		switch(paquete_actual->cod_op){
+			case CORRER_PCB:
+				pthread_create(&hilo_ejecucion,NULL,(void *) atender_pedido_nucleo,paquete_actual);
+				log_info(logcpu,"Se crea hilo para atender el pedido de correr un PCB");
+				break;
+			case FINALIZA_PROGRAMA:
+				//TODO Finalizar el programa en ejecución
+				break;
+			//En caso de que el paquete recibido sea de la umc y no del nucleo
+			default:
+				se_cerro_nucleo=true;
+				break;
+		}
+		destruir_paquete(paquete_actual);
+	}
+
+	bool se_cerro_umc = false;
+	while(!se_cerro_umc){
+
+		//Recibo el paquete
+		t_paquete* paquete_actual =recibir_paquete(socket_umc);
+		log_info(logcpu,"Se recibio un pedido del socket %d",socket_umc);
+
+		//Trato el paquete segun el codigo de operacion
+		switch(paquete_actual->cod_op){
+			case BUFFER_LEIDO:
+				//TODO Se leyo una pagina
+				break;
+			case OK:
+				//Respuesta a un pedido
+				break;
+			case NO_OK:
+				//Respuesta a un pedido
+				break;
+			default:
+				//En caso de que el paquete recibido sea del nucleo y no se la umc
+				se_cerro_umc=true;
+				break;
+		}
+		destruir_paquete(paquete_actual);
+	}
 
 
 	log_destroy(logcpu);
