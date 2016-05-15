@@ -39,6 +39,7 @@ int main(int argc, char** argv) {
 	lista_procesos = list_create();
 
 	//// TEST LISTA Y GRABACIÓN ARCHIVO SWAP
+	/*
 	int pid = 175;
 	int cantPags = 20;
 
@@ -52,7 +53,7 @@ int main(int argc, char** argv) {
 		//printf("Página %d - Posición %d \n",pagina,posicion);
 		t_control_swap* controlSwap = malloc(sizeof(t_control_swap));
 		controlSwap->PId = pid;
-		controlSwap->nroPagina = pagina;
+		controlSwap->cantPaginas = pagina;
 		controlSwap->posicion = posicion;
 
 		list_add(lista_procesos,controlSwap);
@@ -77,10 +78,10 @@ int main(int argc, char** argv) {
 	while(!list_is_empty(listaLeida)){
 		controlSwap2 = list_remove(listaLeida,i);
 		printf("Lee PID %d \n",controlSwap2->PId);
-		printf("Lee Página %d \n",controlSwap2->nroPagina);
+		printf("Lee Página %d \n",controlSwap2->cantPaginas);
 		printf("Lee Posición %d \n",controlSwap2->posicion);
 	}
-
+	*/
 	//// FIN TEST LISTA Y GRABACIÓN ARCHIVO SWAP
 
 	// Inicializa la conexión y queda a espera de procesos UMC
