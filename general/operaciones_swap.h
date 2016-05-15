@@ -2,6 +2,8 @@
 #define OPERACIONES_SWAP_H_
 
 #include <sys/types.h>
+#include <string.h>
+#include <stdlib.h>
 
 typedef struct
 {
@@ -26,5 +28,14 @@ typedef struct
 {
 	int32_t idPrograma;
 }t_pedido_finalizar_swap;
+
+typedef struct
+{
+	int32_t tamano;
+	char* pedido_serializado;
+}t_pedido_almacenar_swap_serializado;
+
+t_pedido_almacenar_swap_serializado* serializar_pedido_almacenar_swap(t_pedido_almacenar_swap *pedido);
+t_pedido_almacenar_swap* deserializar_pedido_almacenar_swap(char *pedido_serializado);
 
 #endif /* OPERACIONES_SWAP_H_ */

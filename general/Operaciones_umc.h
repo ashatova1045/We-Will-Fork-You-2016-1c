@@ -2,6 +2,8 @@
 #define OPERACIONES_UMC_H_
 
 #include <sys/types.h>
+#include <string.h>
+#include <stdlib.h>
 
 typedef struct
 {
@@ -29,6 +31,14 @@ typedef struct
 	int32_t idPrograma;
 }t_pedido_finalizar;
 
+typedef struct
+{
+	int32_t tamano;
+	char* pedido_serializado;
+}t_pedido_almacenarBytes_serializado;
 
+
+t_pedido_almacenarBytes* deserializar_pedido_almacenar(char *pedido_serializado);
+t_pedido_almacenarBytes_serializado* serializar_pedido_almacenar(t_pedido_almacenarBytes *pedido);
 
 #endif /* OPERACIONES_UMC_H_ */
