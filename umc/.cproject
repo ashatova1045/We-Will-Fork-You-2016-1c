@@ -39,6 +39,8 @@
 								<option id="gnu.c.link.option.paths.1805987833" name="Library search path (-L)" superClass="gnu.c.link.option.paths"/>
 								<option id="gnu.c.link.option.userobjs.17577510" name="Other objects" superClass="gnu.c.link.option.userobjs" valueType="userObjs">
 									<listOptionValue builtIn="false" value="../../sockets/Sockets.c"/>
+									<listOptionValue builtIn="false" value="/home/utnso/workspace/tp-2016-1c-We-Will-Fork-You/general/Operaciones_umc.c"/>
+									<listOptionValue builtIn="false" value="/home/utnso/workspace/tp-2016-1c-We-Will-Fork-You/general/operaciones_swap.c"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.386216520" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>

@@ -1,5 +1,7 @@
 #include "Conexiones_Umc.h"
 #include "../../sockets/Sockets.h"
+#include "../../general/Operaciones_umc.h"
+#include "../../general/operaciones_swap.h"
 //------------------------------------------------------------------------------------------------------
 //Sockets
 //------------------------------------------------------------------------------------------------------
@@ -24,7 +26,13 @@ void atender_conexion(int* socket_conexion){
 				//Le envío al swap la cantidad de páginas que debe reservar
 				log_info(logUMC,"Llego nuevo programa a la umc");
 
-				enviar(NUEVO_PROGRAMA,pedido->tamano_datos,pedido->datos,socketswap);
+				t_pedido_inicializar nuevo_programa=*((t_pedido_inicializar*)pedido->datos);
+				t_pedido_inicializar_swap nuevo_programa_swap;
+
+				nuevo_programa_swap.idPrograma=nuevo_programa.idPrograma;
+				nuevo_programa_swap.pagRequeridas=nuevo_programa.pagRequeridas;
+
+				enviar(NUEVO_PROGRAMA,sizeof(nuevo_programa_swap),&nuevo_programa_swap,socketswap);
 				log_info(logUMC,"Se le envia la cantidad de paginas al swap");
 
 				t_paquete *paquete=recibir_paquete(socketswap);
@@ -60,9 +68,23 @@ void atender_conexion(int* socket_conexion){
 				//TODO Si no se encuentra la pagina se la pide al swap (algoritmo?)
 
 				break;
-			case ESCRITURA_PAGINA:
+		/*	case ESCRITURA_PAGINA:
 				//TODO Descerializar lo que recibe(pedido_almacenar)
+				pedido_almacenar
+				deserializar_pedido_almacenar(pedido->datos);
+
 				//Todo Serializar escritura a swap(con descerializar)
+
+
+				serializar_pedido_almacenar(pedido->datos);
+				t_pedido_almacenarBytes solicitudEscritura=*((t_pedido_almacenarBytes*)pedido->datos);
+				t_pedido_almacenar_swap escribirEnSwap;
+				escribirEnSwap.pid=proceso_activo;
+				escribirEnSwap.nroPagina=solicitudEscritura.nroPagina;
+				escribirEnSwap.buffer
+
+				enviar(ESCRITURA_PAGINA,pedido->tamano_datos,)*/
+
 				//TODO Ver si respondio ok en el enviar(No debería dar error) destruyo lo que me mandaron y le digo al que me pidio que lo haga ok
 
 
