@@ -19,6 +19,8 @@
 #include "Conexiones_Umc.h"
 #include "Consola_Umc.h"
 
+//------------------------------------------------------------------------------------------------------
+
 int main(int argc, char **argv){
 
 
@@ -72,7 +74,7 @@ int main(int argc, char **argv){
 	//Defino el hilo para el socket servidor
 	pthread_t  pedidosThread;
 
-	//Creo el hilo de pedidos
+	//Creo el hilo de pedidos con formato datachable
 	log_debug(logUMC,"Creando el hilo para recibir pedidos");
 
 	pthread_attr_t attr;

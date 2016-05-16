@@ -1,5 +1,7 @@
+//------------------------------------------------------------------------------------------------------
+//Includes
+//------------------------------------------------------------------------------------------------------
 #include "Consola_Umc.h"
-
 #include "Config_Umc.h"
 
 //------------------------------------------------------------------------------------------------------
@@ -41,11 +43,9 @@ void ingresarRetardo(){
 	//Se ingresa por teclado el retardo
 	scanf("%d",&milisegundos);
 
-	//Actualizo los milisegundos en la estructura de la umc
+	config_umc->retardo=milisegundos;
 
-
-
-	printf("\nSe actualizo el retardo\n");
+	printf("\nSe actualizo el retardo, el nuevo retardo es de %d milisegundos\n");
 	getchar();
 }
 
