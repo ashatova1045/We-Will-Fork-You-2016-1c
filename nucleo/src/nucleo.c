@@ -208,17 +208,13 @@ int enviar_codigo(t_pcb* nuevo_pcb,char* codigo,t_metadata_program* metadata){
 	enviar(CAMBIO_PROCESO_ACTIVO,sizeof(int32_t),&nuevo_pcb->pid,socket_umc);
 
 	int i;
-	int offset_codigo = 0;
 
 	for(i=0;i < nuevo_pcb->cant_instrucciones;i++){
 		t_pedido_almacenarBytes pedido;
 		pedido.nroPagina = nuevo_pcb->indice_codigo[i].pag;
 		pedido.offset = nuevo_pcb->indice_codigo[i].offset;
 		pedido.tamanioDatos = nuevo_pcb->indice_codigo[i].size;
-		pedido.buffer = codigo+(metadata->instrucciones_serializado+i)->start;
-		puts(codigo+(metadata->instrucciones_serializado+i)->start); //fixme
-		printf("buffeeeeeerrrrrrr %*.s FIN\n",pedido.tamanioDatos,pedido.buffer); //fixme
-		offset_codigo += pedido.tamanioDatos;
+		pedido.buffer = codigo+metadata->instrucciones_serializado[i].start;
 
 		t_pedido_almacenarBytes_serializado *ser = serializar_pedido_almacenar(&pedido);
 		enviar(ESCRITURA_PAGINA,ser->tamano,ser->pedido_serializado,socket_umc);
@@ -458,7 +454,7 @@ int main(int argc, char **argv){
 	conf_cpu.socket_cerrado=cerrar_socket_cpu;
 	conf_cpu.puerto= config_nucleo->puerto_cpu;
 
-	//TODO conectarme con UMC
+
 	conf_umc.puerto=config_nucleo->puerto_umc;
 	conf_umc.direccion=config_nucleo->ip_umc;
 

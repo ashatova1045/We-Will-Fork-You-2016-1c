@@ -36,7 +36,7 @@ void inicializaSwapFile(t_swapcfg* config_swap){
 
 	snprintf(command, sizeof(command), "dd if=/dev/zero of=%s bs=%d count=1",config_swap->nombre_swap,tamanio_swap);
 	system(command);
-	swapFile = fopen("swap.dat","a+");
+	swapFile = fopen(config_swap->nombre_swap,"r+");
 
 	/*char* bufferAux = malloc(sizeof("\0"));
 	int posicionSwap = 0;
@@ -135,39 +135,42 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 	puts("Envia respuesta a la UMC");
 }
 
+int encontrar_posicion(int pid_enviado, int pagina){
+	bool matchPID(void* controlSwap){
+		return ((t_control_swap*)controlSwap)->PId == pid_enviado;
+	}
+	t_control_swap* controlSwap = list_find(lista_procesos,matchPID);
+	if(controlSwap != NULL)
+			return (controlSwap->posicion+pagina) * tamanioPagina;
+
+	return -1;
+}
 
 void leerPagina(t_paquete* paquete){
-	//todo: Devolver página
-
 	log_info(logSwap,"Inicia proceso de lectura de página");
 	puts("LEER PAGINA");
 
 	t_pedido_leer_swap* pedido = (t_pedido_leer_swap*)paquete->datos;
 
 	int pid_enviado = pedido->pid;
+	int pagina = pedido->nroPagina;
 	char* buffer = malloc(tamanioPagina);
 
 
 	//Buscar el proceso en la lista
 	int codOp = NO_OK;
-	bool matchPID(void* controlSwap){
-		return ((t_control_swap*)controlSwap)->PId == pid_enviado;
-	}
-	t_control_swap* controlSwap = list_find(lista_procesos,matchPID);
+	int posicion_posta = encontrar_posicion(pid_enviado,pagina);
 
-	if(controlSwap != NULL){
-		int pos = (controlSwap->posicion * tamanioPagina);
-		printf("Posición: %d \n",controlSwap->posicion);
-		log_info(logSwap,"Posición: %d \n",controlSwap->posicion);
-		fseek(swapFile,pos,SEEK_SET);
+	if(posicion_posta != -1){
+		printf("Posición: %d \n",posicion_posta);
+		log_info(logSwap,"Posición: %d \n",posicion_posta);
+		fseek(swapFile,posicion_posta,SEEK_SET);
 		sleep(datosSwap->retardo_compactacion);
 		if(fread(buffer,tamanioPagina,1,swapFile) < 1){
 			puts("Error en la lectura de la página");
 			log_error(logSwap,"Error en la lectura de la página");
 		}else{
-			printf("Posición: %d \n",posicion);
-			log_info(logSwap,"pid: %d \n",pid_enviado);
-			log_info(logSwap,"Buffer %*.s",tamanioPagina,buffer);
+			log_info(logSwap,"Buffer\n%.*s",tamanioPagina,buffer);
 
 			codOp = BUFFER_LEIDO;
 			puts("Lectura de la página exitosa");
@@ -180,48 +183,40 @@ void leerPagina(t_paquete* paquete){
 
 	// Responde a la UMC el resultado de la operación
 	// Sin serializar - manda buffer
-	enviar(codOp,1,buffer,socket_memoria);
+	enviar(codOp,tamanioPagina,buffer,socket_memoria);
 }
 
 void escribirPagina(t_paquete* paquete){
-	//todo: Deserializar el paquete
-	//todo: Sobreescribir página
-
 	log_info(logSwap,"Inicia proceso de escritura de página");
 	puts("ESCRIBE PAGINA");
 
 	t_pedido_almacenar_swap* pedido = deserializar_pedido_almacenar_swap(paquete->datos,tamanioPagina);
 
 	int pid_enviado = pedido->pid;
-	//int pagina = pedido->nroPagina;
+	int pagina = pedido->nroPagina;
+	int posicion_posta = encontrar_posicion(pid_enviado,pagina);
 
-	char* buffer = malloc(sizeof(pedido->buffer));
-	buffer = pedido->buffer;
-
-	printf("Posición: %d \n",posicion);
+	printf("Posición: %d \n",posicion_posta);
 	log_info(logSwap,"pid: %d \n",pid_enviado);
-	log_info(logSwap,"Buffer %*.s",tamanioPagina,buffer);
+	log_info(logSwap,"Buffer %.*s",tamanioPagina,pedido->buffer);
 
 	// Grabar y mandar resultado a la umc
-	fseek(swapFile,posicion,SEEK_SET);
+	fseek(swapFile,posicion_posta,SEEK_SET);
 
 	int codOp = NO_OK;
-//	if(fseek(swapFile,1,SEEK_SET) == 0){
-		if(fwrite(buffer,tamanioPagina,1,swapFile) != 1){
-			log_error(logSwap, "No se pudo grabar la página en el archivo");
-			puts("No se pudo grabar la página en el archivo");
-		}else{
-			codOp = OK;
-			log_info(logSwap,"Grabación exitosa de la página en el archivo");
-			puts("Grabación exitosa");
-		}
-	/*}else{
-		puts("Error al setear la posición en el archivo_");
-		log_error(logSwap,"Error al setear la posición en el archivo_");
-	}*/
+
+	if(fwrite(pedido->buffer,tamanioPagina,1,swapFile) != 1){
+		log_error(logSwap, "No se pudo grabar la página en el archivo");
+		puts("No se pudo grabar la página en el archivo");
+	}else{
+		codOp = OK;
+		log_info(logSwap,"Grabación exitosa de la página en el archivo");
+		puts("Grabación exitosa");
+	}
+
 
 	// Responde a la UMC el resultado de la operación
-	enviar(codOp,3,&socket_memoria,socket_memoria);
+	enviar(codOp,1,&socket_memoria,socket_memoria);
 
 }
 
@@ -265,7 +260,7 @@ void finalizarPrograma(t_paquete* paquete){
 		puts("La finalización del programa ha fallado");
 	}
 	// Responde a la UMC el resultado de la operación
-	enviar(codOp,3,"OK",socket_memoria);
+	enviar(codOp,1,&socket_memoria,socket_memoria);
 }
 
 int verificarPaginasLibres(int cantidadPaginas) {

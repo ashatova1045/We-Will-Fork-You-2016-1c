@@ -108,7 +108,7 @@ void atender_conexion(int* socket_conexion){
 
 				//Si el swap tiene la pagina me la pasa y le paso los bytes pedidos a la cpu
 				if(paqueteLectura->cod_op==BUFFER_LEIDO){
-					log_info(logUMC,"Leido: %*.s",solicitud.tamanioDatos,paqueteLectura->datos+solicitud.offset);
+					log_info(logUMC,"Leido: %.*s",solicitud.tamanioDatos,paqueteLectura->datos+solicitud.offset);
 					enviar(BUFFER_LEIDO,solicitud.tamanioDatos,paqueteLectura->datos+solicitud.offset,*socket_conexion);
 					log_info(logUMC,"Se le envio el contenido de la pagina a la cpu");
 				//Si el swap no tiene la pagina le aviso a la cpu que hubo un error
@@ -147,15 +147,27 @@ void atender_conexion(int* socket_conexion){
 
 				//Descerializo el paquete que me llego
 				t_pedido_almacenarBytes *pedido_almacenar;
-				pedido_almacenar=(deserializar_pedido_almacenar(pedido->datos));
-				log_info(logUMC,"Se pidio escribir en la pagina %d con el offset %d la cantidad de bytes %d. Se pidio escribir buffer: %*.s",pedido_almacenar->nroPagina,pedido_almacenar->offset,pedido_almacenar->tamanioDatos,pedido_almacenar->tamanioDatos,pedido_almacenar->buffer);
+				pedido_almacenar=deserializar_pedido_almacenar(pedido->datos);
+				log_info(logUMC,"Se pidio escribir en la pagina %d con el offset %d la cantidad de bytes %d. Se pidio escribir buffer: %.*s",pedido_almacenar->nroPagina,pedido_almacenar->offset,pedido_almacenar->tamanioDatos,pedido_almacenar->tamanioDatos,pedido_almacenar->buffer);
+
+				//pido la pagina como estaba antes. si no lo hago, la nueva escritura sobreescribiria la vieja
+				t_pedido_leer_swap pedido_leer;
+				pedido_leer.nroPagina = pedido_almacenar->nroPagina;
+				pedido_leer.pid = proceso_activo;
+				enviar(LECTURA_PAGINA,sizeof(pedido_leer),&pedido_leer,socketswap);
+				t_paquete *lectura_intermedia = recibir_paquete(socketswap);
+
 
 				//Armo la estructura para pedirle la pagina al swap
 				t_pedido_almacenar_swap pedido_almacenar_swap;
+				pedido_almacenar_swap.buffer = malloc(config_umc->marco_size);
+				memcpy(pedido_almacenar_swap.buffer,lectura_intermedia->datos,config_umc->marco_size);
+				destruir_paquete(lectura_intermedia);
+				log_debug(logUMC,"LECTURA INTERMEDIA PARA ESCRIBIR PAGINA %s",pedido_almacenar_swap.buffer);
+
 				pedido_almacenar_swap.pid=proceso_activo;
 				pedido_almacenar_swap.nroPagina=pedido_almacenar->nroPagina;
-				pedido_almacenar_swap.buffer=pedido_almacenar->buffer;
-
+				memcpy((pedido_almacenar_swap.buffer)+(pedido_almacenar->offset),pedido_almacenar->buffer,pedido_almacenar->tamanioDatos);
 
 				//Serializo estructura para mandarsela al swap
 				t_pedido_almacenar_swap_serializado *pedido_almacenar_swap_serializado;
@@ -165,6 +177,7 @@ void atender_conexion(int* socket_conexion){
 				//Envio el pedido de escritura serializado al swap
 				enviar(ESCRITURA_PAGINA,pedido_almacenar_swap_serializado->tamano,pedido_almacenar_swap_serializado->pedido_serializado,socketswap);
 				log_info(logUMC,"Se le mando el pedido de escritura al swap");
+				log_debug(logUMC,"Pagina a escribir\n%.*s",config_umc->marco_size,pedido_almacenar_swap.buffer);
 
 				//Recibo la respuesta del swap
 				t_paquete *paqueteEscritura=recibir_paquete(socketswap);
@@ -189,12 +202,9 @@ void atender_conexion(int* socket_conexion){
 			case CAMBIO_PROCESO_ACTIVO:
 				proceso_activo=*((int32_t*)pedido->datos);
 				log_info(logUMC,"Se informo que el pid del programa es: %d",proceso_activo);
-				//TODO Guardar datos del proceso actual
 				//TODO Buscar y devolver estructuras del nuevo proceso
 				break;
 			case FINALIZA_PROGRAMA:
-				//TODO Eliminar estructuras usadas para administrar programa
-
 				log_info(logUMC,"Llego un pedido para finalizar un programa");
 
 				//Recibo el id del programa a finalizar

@@ -35,7 +35,6 @@ void agregarNuevoProceso(int posicion,int cantidadPaginas,t_pedido_inicializar_s
 
 t_bitarray* bitarray;
 FILE* swapFile;
-int posicion;
 t_log* logSwap;
 t_swapcfg* config_swap;
 int tamanioPagina;
