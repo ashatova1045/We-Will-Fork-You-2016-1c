@@ -12,13 +12,12 @@
 #include <commons/bitarray.h>
 
 char* prog;
-int tamanio;
 
 t_log* logSwap;
 t_swapcfg* config_swap;
 t_list* lista_procesos;
 int socket_memoria;
-t_bitarray* bitarray;
+
 
 int main(int argc, char** argv) {
 
@@ -34,7 +33,7 @@ int main(int argc, char** argv) {
 	log_info(logSwap, "Se conecta al puerto");
 
 	// Inicializa archivo Swap
-	FILE* swapFile = inicializaSwapFile(config_swap);
+	inicializaSwapFile(config_swap);
 
 	lista_procesos = list_create();
 
