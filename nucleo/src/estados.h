@@ -25,6 +25,10 @@ extern t_queue *colaReady;
 extern t_queue *colaExec;
 extern t_queue *colaBlocked;
 extern t_queue *colaExit;
+t_list *lista_programas_actuales;
+t_list *lista_cpus_conectadas;
+t_list *lista_relacion;
+
 
 void crear_colas();
 void destruir_colas();

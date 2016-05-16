@@ -5,6 +5,7 @@
 #include <commons/log.h>
 #include <errno.h>
 #include <commons/config.h>
+#include <stdbool.h>
 #include "estados.h"
 #include "../../general/pcb.h"
 #include "../../general/Operaciones_umc.h"
@@ -23,7 +24,6 @@ int socket_umc;
 int pidActual=0;
 t_log *logNucleo;
 int tamano_pag_umc;
-//int tamano_stack; //FIXME
 t_nucleoConfig* config_nucleo;
 
 
@@ -31,6 +31,39 @@ int roundup(x, y){
    int a = (x -1)/y +1;
 
    return a;
+}
+
+void cargar_cpu(int32_t socket){
+	log_trace(logNucleo,"Cargando nueva CPU con socket %d",socket);
+	t_cpu *cpu_nuevo;
+	cpu_nuevo=malloc(sizeof(t_cpu));
+	cpu_nuevo->socket=socket;
+	cpu_nuevo->corriendo=false;
+	list_add(lista_cpus_conectadas,cpu_nuevo);
+	log_debug(logNucleo,"se agrego a la lista el cpu con socket %d", socket);
+}
+
+void cargar_programa(int32_t socket, int pid){
+	t_consola *programa_nuevo;
+	programa_nuevo=malloc(sizeof(t_consola));
+	programa_nuevo->socket=socket;
+	programa_nuevo->corriendo=false;
+	programa_nuevo->pid=pid;
+	list_add(lista_programas_actuales,programa_nuevo);
+	log_debug(logNucleo,"se agrego a la lista el programa con socket %d, pid: %d", socket, programa_nuevo->pid);
+}
+
+void relacionar_cpu_programa(t_cpu *cpu, t_consola *programa, t_pcb *pcb){
+	t_relacion *nueva_relacion;
+	nueva_relacion=malloc(sizeof(t_relacion));
+	cpu->corriendo=true;
+	programa->corriendo=true;
+	nueva_relacion->cpu=cpu;
+	nueva_relacion->programa=programa;
+	list_add(lista_relacion,nueva_relacion);
+	log_info(logNucleo,"Se agrego la relacion entre cpu del socket: %d y el programa del socket: %d",cpu->socket, programa->socket);
+	moverA_colaExec(pcb);
+	log_debug(logNucleo, "Movi a la cola Exec el pcb con pid: %d", pcb->pid);
 }
 
 t_log* crearLog(){
@@ -98,15 +131,15 @@ void destruirNucleoConfig(t_nucleoConfig* datosADestruir){
 //#undef DESTRUIR_PP solo lo puedo usar hasta aca, si lo uso en otro lado no existe
 
 
-t_pcb* armar_nuevo_pcb (t_paquete paquete){
+t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 	int i;
 	log_debug(logNucleo,"Armando pcb para programa:\n%s\ntamano: %d",paquete.datos,paquete.tamano_datos);
-	t_metadata_program* metadata;
-	metadata = metadata_desde_literal(paquete.datos);
 
 	t_pcb* nvopcb = malloc(sizeof(t_pcb));
 	nvopcb->pid=++pidActual;
 	nvopcb->pc=0;
+	nvopcb->cant_etiquetas=0; //fixme
+	nvopcb->cant_entradas_indice_stack=0; //fixme
 	nvopcb->cant_instrucciones=metadata->instrucciones_size;
 
 	int tamano_instrucciones = sizeof(t_posMemoria)*(nvopcb->cant_instrucciones);
@@ -114,19 +147,18 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete){
 	log_debug(logNucleo,"Tamano de las instrucciones %d",tamano_instrucciones);
 
 	nvopcb->indice_codigo=malloc(tamano_instrucciones);
-	memcpy(nvopcb->indice_codigo,metadata->instrucciones_serializado,tamano_instrucciones);
 
 	int pagina_actual = 0;
 	int offset_actual = 0;
 	int tamano_pagina_restante = tamano_pag_umc;
 	for(i=0;i<(metadata->instrucciones_size);i++){
-		int tamano_instruccion = (metadata->instrucciones_serializado+i)->offset;
+		int tamano_instruccion = metadata->instrucciones_serializado[i].offset;
 
 		t_posMemoria posicion_nueva_instruccion;
 		posicion_nueva_instruccion.pag = pagina_actual;
 		posicion_nueva_instruccion.offset= offset_actual;
 		posicion_nueva_instruccion.size = tamano_instruccion;
-		*(nvopcb->indice_codigo+i) = posicion_nueva_instruccion;
+		nvopcb->indice_codigo[i] = posicion_nueva_instruccion;
 
 		if((tamano_instruccion/tamano_pagina_restante)<=1){
 			offset_actual += tamano_instruccion;
@@ -168,13 +200,11 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete){
 	//nvopcb.cant_etiquetas=metadata->cantidad_de_etiquetas;
 	log_debug(logNucleo,"PCB armado para programa:\n%s\ntamano: %d",paquete.datos,paquete.tamano_datos);
 
-	metadata_destruir(metadata);
-
 	return nvopcb;
 }
 	//falta liberar todos los malloc todo
 
-int enviar_codigo(t_pcb* nuevo_pcb,char* codigo){
+int enviar_codigo(t_pcb* nuevo_pcb,char* codigo,t_metadata_program* metadata){
 	enviar(CAMBIO_PROCESO_ACTIVO,sizeof(int32_t),&nuevo_pcb->pid,socket_umc);
 
 	int i;
@@ -185,12 +215,14 @@ int enviar_codigo(t_pcb* nuevo_pcb,char* codigo){
 		pedido.nroPagina = nuevo_pcb->indice_codigo[i].pag;
 		pedido.offset = nuevo_pcb->indice_codigo[i].offset;
 		pedido.tamanioDatos = nuevo_pcb->indice_codigo[i].size;
-		pedido.buffer = codigo+offset_codigo;
+		pedido.buffer = codigo+(metadata->instrucciones_serializado+i)->start;
+		puts(codigo+(metadata->instrucciones_serializado+i)->start); //fixme
+		printf("buffeeeeeerrrrrrr %*.s FIN\n",pedido.tamanioDatos,pedido.buffer); //fixme
 		offset_codigo += pedido.tamanioDatos;
 
 		t_pedido_almacenarBytes_serializado *ser = serializar_pedido_almacenar(&pedido);
 		enviar(ESCRITURA_PAGINA,ser->tamano,ser->pedido_serializado,socket_umc);
-		log_info(logNucleo,"Se envio el pedido de escritura pag %d offset %d cant %d\n Instruccion %d de %d",pedido.nroPagina,pedido.offset,pedido.tamanioDatos,i,nuevo_pcb->cant_instrucciones-1);
+		log_info(logNucleo,"Se envio el pedido de escritura pag %d offset %d cant %d\n Instruccion %d de %d \n buffer: %*.s",pedido.nroPagina,pedido.offset,pedido.tamanioDatos,i,nuevo_pcb->cant_instrucciones-1,pedido.tamanioDatos, pedido.buffer);
 		log_debug(logNucleo,"Esperando respuesta de la UMC...");
 
 		t_paquete *paquete_escritura = recibir_paquete(socket_umc);
@@ -202,7 +234,7 @@ int enviar_codigo(t_pcb* nuevo_pcb,char* codigo){
 			case NO_OK:
 				puts("Escritura incorrecta");
 				log_warning(logNucleo,"Escritura incorrecta. UMC envio NO_OK");
-				continue;
+				return -1;
 				break;
 			case ERROR_COD_OP:
 				puts("Se desconecto la umc");
@@ -218,6 +250,41 @@ int enviar_codigo(t_pcb* nuevo_pcb,char* codigo){
 	return 1;
 }
 
+bool esta_libre(void * unaCpu){
+	return !(((t_cpu*)unaCpu)->corriendo);
+}
+
+void enviar_a_cpu(){
+	t_cpu *cpu_libre = list_find(lista_cpus_conectadas,esta_libre);
+	if(!cpu_libre){
+		return;
+	}
+
+	t_pcb *pcb_ready;
+	pcb_ready=queue_pop(colaReady);
+
+	log_info(logNucleo, "Se levanto el pcb con id %d", pcb_ready->pid);
+
+	bool matchPID(void *programa) {
+		return ((t_consola*)programa)->pid == pcb_ready->pid;
+	}
+
+	t_consola *programa_alpedo = list_find(lista_programas_actuales, matchPID);
+	if(!programa_alpedo){
+		return;
+	}
+
+	log_debug(logNucleo,"Corriendo el PCB (PID %d) del programa (socket %d)en el CPU (socket %d)",pcb_ready->pid,programa_alpedo->socket,cpu_libre->socket);
+	relacionar_cpu_programa(cpu_libre,programa_alpedo,pcb_ready);
+	log_info(logNucleo, "Pude relacionar cpu con programa");
+
+	t_pcb_serializado serializado = serializar(*pcb_ready);
+	log_trace(logNucleo,"Se serializo un pcb");
+	enviar(CORRER_PCB,serializado.tamanio,serializado.contenido_pcb,cpu_libre->socket);
+	log_info(logNucleo,"Se envio un pcb a correr en la cpu %d",cpu_libre->socket);
+}
+
+
 
 void manejar_socket_consola(int socket,t_paquete paquete){
 	log_debug(logNucleo,"Llego un mensaje del socketConsola  %d. codop %d",socket,paquete.cod_op);
@@ -226,7 +293,6 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			log_debug(logNucleo,"El socket consola %d pidio handshake",socket);
 			enviar(OK_HS_CONSOLA,1,&socket,socket);
 			log_debug(logNucleo,"Se respondio hanshake a socket consola %d",socket);
-			//TODO agregar a lista de consolas conectadas dupla cosola-procesid
 			break;
 
 		case NUEVO_PROGRAMA:
@@ -234,15 +300,20 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			printf("Llego un nuevo programa del socketConsola  %d\n",socket);
 			printf("El socket %d dice:\n",socket);
 
+			t_metadata_program* metadata;
+			metadata = metadata_desde_literal(paquete.datos);
+
 			t_pcb *nuevo_pcb;
-			nuevo_pcb = armar_nuevo_pcb(paquete);
+			nuevo_pcb = armar_nuevo_pcb(paquete,metadata);
 			log_debug(logNucleo, "Se armo el nuevo pcb, su id es: %d", nuevo_pcb->pid);
-	//		moverA_colaNew(nuevo_pcb); fixme
+			moverA_colaNew(nuevo_pcb);
 
 			//Creo el pcb y lo agrego a la cola new
 			t_pedido_inicializar pedido_inicializar;
+
 			pedido_inicializar.idPrograma = nuevo_pcb->pid;
 			pedido_inicializar.pagRequeridas = nuevo_pcb->cant_pags_totales;
+
 			enviar(NUEVO_PROGRAMA,sizeof(pedido_inicializar),&pedido_inicializar,socket_umc);
 			log_debug(logNucleo,"Pedido inicializar enviado.PID %d,paginas %d",pedido_inicializar.idPrograma,pedido_inicializar.pagRequeridas);
 
@@ -270,11 +341,18 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 					break;
 			}
 
-			enviar_codigo(nuevo_pcb,paquete.datos);
+			enviar_codigo(nuevo_pcb,paquete.datos,metadata);
+			metadata_destruir(metadata);
 
 			log_debug(logNucleo,"Codigo programa ansisop enviado para escritura");
-	//		moverA_colaReady(nuevo_pcb);
 
+
+			cargar_programa(socket,nuevo_pcb->pid);
+
+			moverA_colaReady(nuevo_pcb);
+
+
+			enviar_a_cpu();
 			log_debug(logNucleo,"Termino la inicializacion del programa");
 			break;
 		default:
@@ -304,15 +382,11 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				enviar(OK_HS_CPU,1,&socket,socket);
 				enviar(QUANTUM,sizeof(int32_t),&config_nucleo->quantum, socket);
 				puts("Handshake exitoso");
-				break;
-			case NUEVO_PROGRAMA:
-				printf("Llego un pedido de conexion del socketCPU  %d\n",socket);
-				printf("El socket %d dice:\n",socket);
+				log_debug(logNucleo,"Handshake exitoso con cpu de socket %d",socket);
 
-				//puts(paquete.datos); //no pasa los datos
-
-				//
+				cargar_cpu(socket);
 				break;
+
 			default:
 				break;
 		}
@@ -322,6 +396,7 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 
 void cerrar_socket_cpu(int socket){
 	printf("Se cerro %d\n",socket);
+	list_remove(lista_cpus_conectadas,socket);
 	//TODO manejar desconexion de un cpu
 }
 
@@ -353,6 +428,9 @@ int main(int argc, char **argv){
 	t_estructura_server conf_consola, conf_cpu;
 	t_estructura_cliente conf_umc;
 	t_paquete * paquete_umc;
+
+//Inicializacion de listas
+	crear_colas();
 
 //Crea archivo de log
 	logNucleo = crearLog();
