@@ -14,10 +14,9 @@
 char* prog;
 
 t_log* logSwap;
-t_swapcfg* config_swap;
 t_list* lista_procesos;
 int socket_memoria;
-
+t_swapcfg* datosSwap;
 
 int main(int argc, char** argv) {
 
@@ -27,13 +26,13 @@ int main(int argc, char** argv) {
 
 	// Levanta la configuración del Swap
 	t_config* config = config_create("../swap/swap.cfg");
-	config_swap = levantarConfiguracion(config);
+	levantarConfiguracion(config);
 
-	printf("Se conecta al puerto %d \n",config_swap->puerto_escucha);
+	printf("Se conecta al puerto %d \n",datosSwap->puerto_escucha);
 	log_info(logSwap, "Se conecta al puerto");
 
 	// Inicializa archivo Swap
-	inicializaSwapFile(config_swap);
+	inicializaSwapFile(datosSwap);
 
 	lista_procesos = list_create();
 
@@ -84,7 +83,7 @@ int main(int argc, char** argv) {
 	//// FIN TEST LISTA Y GRABACIÓN ARCHIVO SWAP
 
 	// Inicializa la conexión y queda a espera de procesos UMC
-	int socketserver = crear_socket_escucha(config_swap->puerto_escucha);
+	int socketserver = crear_socket_escucha(datosSwap->puerto_escucha);
 
 	if (socketserver == -1)
 		exit(EXIT_FAILURE);
