@@ -165,7 +165,7 @@ void leerPagina(t_paquete* paquete){
 		printf("Posición: %d \n",posicion_posta);
 		log_info(logSwap,"Posición: %d \n",posicion_posta);
 		fseek(swapFile,posicion_posta,SEEK_SET);
-		sleep(datosSwap->retardo_compactacion);
+		//sleep(datosSwap->retardo_compactacion);
 		if(fread(buffer,tamanioPagina,1,swapFile) < 1){
 			puts("Error en la lectura de la página");
 			log_error(logSwap,"Error en la lectura de la página");
@@ -311,4 +311,79 @@ void agregarNuevoProceso(int posicion, int cantidadPaginas, t_pedido_inicializar
 	list_add(lista_procesos,controlSwap);
 	log_info(logSwap,"Se inicializó el espacio necesario");
 
+}
+
+void compactar(){
+	//todo:Recordar ajustar tiempo de retardo desde milisegundos
+	//todo:Agregar logs de error
+
+	log_info(logSwap,"Comienza proceso de compactación");
+	log_info(logSwap,"Compactando...");
+	sleep(datosSwap->retardo_compactacion);
+	char* array = malloc(sizeof(tamanioPagina));
+	int cantBytes = (datosSwap->cantidad_paginas) / 8;
+
+	bitarray_aux = bitarray_create(array, cantBytes);
+
+	//primerPosicionVacia = encontrarPrimerVacio();
+	primerPosicionVacia = 0;
+	list_iterate(lista_procesos,moverProcesos);
+
+	log_info(logSwap,"Compactación finalizada");
+}
+
+void moverProcesos(void *proceso){
+	t_control_swap* procesoACorrer = (t_control_swap*)proceso;
+
+	//Inicializar varaibles
+	int posProc = procesoACorrer->posicion;
+	int cantPags = procesoACorrer->cantPaginas;
+	char* buffer = malloc(sizeof(tamanioPagina*cantPags));
+
+	//Leer buffer del proceso
+	fseek(swapFile,posProc*cantPags,SEEK_SET);
+	fread(buffer,tamanioPagina,cantPags,swapFile);
+
+	//Actualiza lista de procesos
+	procesoACorrer->posicion = primerPosicionVacia;
+
+	//Actualiza archivo
+	fseek(swapFile,primerPosicionVacia*tamanioPagina,SEEK_SET);
+	fwrite(buffer,tamanioPagina,cantPags,swapFile);
+
+	free(buffer);
+
+	//Actualiza Bitmap + primerPosicionVacia
+	actualizarBitMap(cantPags);
+}
+
+int encontrarPrimerVacio(){
+	int i, max = bitarray_get_max_bit(bitarray);
+	for (i = 0; i < max; i++) {
+		if (bitarray_test_bit(bitarray, i) == false) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+t_control_swap* buscarProcesoACorrer(int primerPosicionVacia){
+	int i = 0;
+	while(!list_is_empty(lista_procesos)){
+		t_control_swap* procesoACorrer = malloc(sizeof(t_control_swap));
+		procesoACorrer = list_get(lista_procesos,i);
+		if(procesoACorrer->posicion>primerPosicionVacia){
+			return procesoACorrer;
+		}
+		i++;
+	}
+	return NULL;
+}
+
+void actualizarBitMap(int cantPags){
+	while(cantPags>0){
+		bitarray_set_bit(bitarray_aux,primerPosicionVacia);
+		primerPosicionVacia++;
+		cantPags--;
+	}
 }

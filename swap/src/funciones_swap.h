@@ -32,11 +32,18 @@ void finalizarPrograma(t_paquete* paquete);
 int verificarPaginasLibres(int cantidadPaginas);
 int encontrar_espacio(int cantidadPaginas);
 void agregarNuevoProceso(int posicion,int cantidadPaginas,t_pedido_inicializar_swap* pedido);
+void compactar();
+int encontrarPrimerVacio();
+t_control_swap* buscarProcesoACorrer(int primerPosicionVacia);
+void moverProcesos(void *proceso);
+void actualizarBitMap(int cantPags);
 
 t_bitarray* bitarray;
+t_bitarray* bitarray_aux;
 FILE* swapFile;
 t_log* logSwap;
 t_swapcfg* config_swap;
 int tamanioPagina;
+int primerPosicionVacia;
 
 #endif /* FUNCIONES_SWAP_H_ */
