@@ -25,7 +25,7 @@ t_swapcfg* levantarConfiguracion(t_config* config){
 
 void inicializaSwapFile(t_swapcfg* config_swap){
 	// Crea estructura bitmap
-	char* array = malloc(sizeof(tamanioPagina));
+	char* array = malloc(tamanioPagina);
 	int cantBytes = (config_swap->cantidad_paginas) / 8;
 
 	bitarray = bitarray_create(array, cantBytes);
@@ -320,14 +320,21 @@ void compactar(){
 	log_info(logSwap,"Comienza proceso de compactación");
 	log_info(logSwap,"Compactando...");
 	sleep(datosSwap->retardo_compactacion);
-	char* array = malloc(sizeof(tamanioPagina));
+
+	//Crea bitmap auxiliar
+	char* array = malloc(tamanioPagina);
 	int cantBytes = (datosSwap->cantidad_paginas) / 8;
 
 	bitarray_aux = bitarray_create(array, cantBytes);
 
-	//primerPosicionVacia = encontrarPrimerVacio();
+	//Ordena lista por posicion
+	list_sort(lista_procesos,ordenarPorPosicion);
+
 	primerPosicionVacia = 0;
 	list_iterate(lista_procesos,moverProcesos);
+
+	//Reemplaza el bitmap fragmentado por el compactado
+	bitarray = bitarray_aux;
 
 	log_info(logSwap,"Compactación finalizada");
 }
@@ -338,7 +345,7 @@ void moverProcesos(void *proceso){
 	//Inicializar varaibles
 	int posProc = procesoACorrer->posicion;
 	int cantPags = procesoACorrer->cantPaginas;
-	char* buffer = malloc(sizeof(tamanioPagina*cantPags));
+	char* buffer = malloc(tamanioPagina*cantPags);
 
 	//Leer buffer del proceso
 	fseek(swapFile,posProc*cantPags,SEEK_SET);
@@ -386,4 +393,11 @@ void actualizarBitMap(int cantPags){
 		primerPosicionVacia++;
 		cantPags--;
 	}
+}
+
+bool ordenarPorPosicion(void *p1, void *p2){
+	t_control_swap* proceso1 = (t_control_swap*)p1;
+	t_control_swap* proceso2 = (t_control_swap*)p2;
+
+	return (proceso1->posicion)<(proceso2->posicion);
 }

@@ -37,6 +37,7 @@ int encontrarPrimerVacio();
 t_control_swap* buscarProcesoACorrer(int primerPosicionVacia);
 void moverProcesos(void *proceso);
 void actualizarBitMap(int cantPags);
+bool ordenarPorPosicion(void *p1, void *p2);
 
 t_bitarray* bitarray;
 t_bitarray* bitarray_aux;
