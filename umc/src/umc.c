@@ -41,7 +41,7 @@ int main(int argc, char **argv){
 
 	//Leo la configuración de la memoria
 	config_umc = leerConfiguracion(config);
-	printf("Puerto de conexion %d\n",config_umc->puerto);
+	log_debug(logUMC,"Puerto de conexion %d\n",config_umc->puerto);
 
 	log_info(logUMC,"Se cargo la configuracion");
 
