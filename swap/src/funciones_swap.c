@@ -219,30 +219,30 @@ void finalizarPrograma(t_paquete* paquete){
 	int pid_enviado = pedido->idPrograma;
 	int i,codOp = TERMINO_MAL_PROGRAMA;
 
-	//Buscar el proceso en la lista
-	bool matchPID(void* controlSwap){
-		return ((t_control_swap*)controlSwap)->PId == pid_enviado;
-	}
-	t_control_swap* controlSwap = list_find(lista_procesos,matchPID);
+	for(i=0;i<list_size(lista_procesos);i++){
+		t_control_swap* controlSwap = list_get(lista_procesos,i);
 
-	if(controlSwap != NULL){
-		int posAux = controlSwap->posicion;
-		int cantidadPaginas = controlSwap->cantPaginas;
+		if(controlSwap->PId == pid_enviado){
 
-		// Establece como libre los bitmaps que ocupó el proceso
-		for(i=0;i<cantidadPaginas;i++){
-			bitarray_clean_bit(bitarray,posAux);
-			posAux++;
+			int posAux = controlSwap->posicion;
+			int cantidadPaginas = controlSwap->cantPaginas;
+
+			// Establece como libre los bitmaps que ocupó el proceso
+			for(i=0;i<cantidadPaginas;i++){
+				bitarray_clean_bit(bitarray,posAux);
+				posAux++;
+			}
+
+			free(list_remove(lista_procesos,i));
+
+			codOp = TERMINO_BIEN_PROGRAMA;
+			log_info(logSwap,"Finalización del programa exitosa");
+			puts("Finalización del programa exitosa");
+		}else{
+			log_error(logSwap,"La finalización del programa ha fallado");
+			puts("La finalización del programa ha fallado");
 		}
 
-		free(list_remove(lista_procesos,i));
-
-		codOp = TERMINO_BIEN_PROGRAMA;
-		log_info(logSwap,"Finalización del programa exitosa");
-		puts("Finalización del programa exitosa");
-	}else{
-		log_error(logSwap,"La finalización del programa ha fallado");
-		puts("La finalización del programa ha fallado");
 	}
 
 	// Responde a la UMC el resultado de la operación
