@@ -10,15 +10,14 @@
 //------------------------------------------------------------------------------------------------------
 
 //Variables globales
-
-int32_t proceso_activo;
-bool se_cerro = false;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 //Función para atender las conexiones de las cpus y el núcleo
 
 void atender_conexion(int* socket_conexion){
-
+	
+	int32_t proceso_activo;
+	bool se_cerro = false;
 
 	while(!se_cerro){
 
