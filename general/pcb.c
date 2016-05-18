@@ -117,7 +117,7 @@ t_pcb* deserializar(char* pcbs)
 	pcb->cant_pags_totales = pcbs[offset];
 	offset += sizeof(pcb->cant_pags_totales);
 
-	pcb->fin_stack = pcbs[offset];
+	pcb->fin_stack = *((t_posMemoria*)(pcbs+offset));
 	offset += sizeof(pcb->fin_stack);
 
 	pcb->cant_instrucciones = pcbs[offset];
