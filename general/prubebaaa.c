@@ -60,7 +60,7 @@ int main(int argc, char **argv){
 		pcb_prueba.pid=1;
 		pcb_prueba.pc=0;
 		pcb_prueba.cant_pags_totales=15;
-		pcb_prueba.fin_stack=0;
+		pcb_prueba.fin_stack=indice_codigo_prueba;
 
 		pcb_prueba.indice_codigo[0]=indice_codigo_prueba;
 		pcb_prueba.indice_codigo[1]=indice_codigo_prueba2;

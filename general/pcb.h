@@ -44,7 +44,7 @@ typedef struct {
 	int32_t pid;
 	int32_t pc;
 	int32_t cant_pags_totales; //total de paginas que pidio codigo+stack
-	int32_t fin_stack;
+	t_posMemoria fin_stack;
 
 	u_int32_t cant_instrucciones;
 	t_posMemoria* indice_codigo;
