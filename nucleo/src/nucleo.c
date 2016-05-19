@@ -351,6 +351,10 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			enviar_a_cpu();
 			log_debug(logNucleo,"Termino la inicializacion del programa");
 			break;
+		case TERMINO_BIEN_PROGRAMA:
+			break;
+		case TERMINO_MAL_PROGRAMA:
+					break;
 		default:
 			break;
 	}
@@ -379,10 +383,53 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				enviar(QUANTUM,sizeof(int32_t),&config_nucleo->quantum, socket);
 				puts("Handshake exitoso");
 				log_debug(logNucleo,"Handshake exitoso con cpu de socket %d",socket);
-
 				cargar_cpu(socket);
 				break;
 
+			case FIN_QUANTUM:
+				{
+			//	t_pcb_serializado * pcb_serializado = paquete.datos;
+				log_debug(logNucleo,"Fin quantum, recibi pcb serializado del socket: %d",socket);
+				t_pcb *pcb_devuelto = deserializar(paquete.datos);
+				log_debug(logNucleo,"PCB deserializado");
+				moverA_colaReady(pcb_devuelto);
+				log_debug(logNucleo,"Movi pcb de pid: %d a la cola Ready", pcb_devuelto->pid);
+				}
+				break;
+
+			case IMPRIMIR_VARIABLE:
+				log_info(logNucleo, "Recibi orden de imprimir variable");
+
+				enviar(IMPRIMIR_VARIABLE,paquete.tamano_datos,paquete.datos,consola);
+				log_debug(logNucleo,"Enviando imprimir variable a la consola");
+				break;
+			case IMPRIMIR_TEXTO:
+				//consola_responsable=list_find(lista_relacion); esto va? nose como deberia buscar la consola a la qe corresponde
+				enviar(IMPRIMIR_TEXTO,paquete.tamano_datos,paquete.datos,consola);
+				log_debug(logNucleo,"Enviando imprimir texto a la consola");
+				break;
+			case OBTENER_VALOR:
+				break;
+			case GRABAR_VALOR:
+				break;
+			case FINALIZA_PROGRAMA:
+			{
+				log_debug(logNucleo,"Fin programa, recibi pcb serializado del socket: %d",socket);
+
+				t_pcb *pcb_devuelto = deserializar(paquete.datos);
+				enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(pcb_devuelto->pid),socket_umc);
+				log_debug(logNucleo,"Envie a la umc el codigo de que finalizo el programa con el pid: %d", pcb_devuelto->pid );
+				moverA_colaExit(pcb_devuelto);
+				log_debug(logNucleo,"Movi pcb de pid: %d a la cola Exit", pcb_devuelto->pid);
+				//avisar a la umc que finalizo
+			}
+				break;
+			case WAIT:
+				break;
+			case SIGNAL:
+				break;
+			case ENTRADA_SALIDA:
+				break;
 			default:
 				break;
 		}
