@@ -21,9 +21,9 @@
 #include "../../sockets/Sockets.h"
 
 t_log* crearLog();
-t_swapcfg* levantarConfiguracion(t_config*);
+void levantarConfiguracion(t_config*);
 void manejar_socket_umc(t_paquete*);
-void inicializaSwapFile(t_swapcfg*);
+void inicializaSwapFile();
 void manejarOperaciones(t_paquete* paquete);
 void inicializarNuevoPrograma(t_paquete* paquete);
 void leerPagina(t_paquete* paquete);
@@ -32,11 +32,21 @@ void finalizarPrograma(t_paquete* paquete);
 int verificarPaginasLibres(int cantidadPaginas);
 int encontrar_espacio(int cantidadPaginas);
 void agregarNuevoProceso(int posicion,int cantidadPaginas,t_pedido_inicializar_swap* pedido);
+void compactar();
+int encontrarPrimerVacio();
+t_control_swap* buscarProcesoACorrer(int primerPosicionVacia);
+void moverProcesos(void *proceso);
+void actualizarBitMap(int cantPags);
+bool ordenarPorPosicion(void *p1, void *p2);
+void loggearBitmap();
+void limpiarBitmapAuxiliar();
 
 t_bitarray* bitarray;
+t_bitarray* bitarray_aux;
 FILE* swapFile;
 t_log* logSwap;
-t_swapcfg* config_swap;
+t_swapcfg* datosSwap;
 int tamanioPagina;
+int primerPosicionVacia;
 
 #endif /* FUNCIONES_SWAP_H_ */

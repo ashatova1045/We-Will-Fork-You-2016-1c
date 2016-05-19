@@ -49,14 +49,12 @@ enum cod_op{ // Si se persisten en algun lado,agregar los cod_ops al final
 	OK=21,
 	BUFFER_LEIDO=22,
 	QUANTUM=23,
-	FIN_QUANTUM=24,
+	FIN_QUANTUM=24, //la cpu termino de correr la rafaga pero el programa no finalizo
 	OBTENER_VALOR=25,
 	GRABAR_VALOR=26,
 	WAIT=27,
 	SIGNAL=28,
 	ENTRADA_SALIDA=29
-
-
 };
 
 int enviar(uint16_t cod_op, int tamano_datos_en_bytes, void* datos, int destino_fd);

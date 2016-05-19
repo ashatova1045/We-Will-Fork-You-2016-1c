@@ -9,21 +9,19 @@
 //Sockets
 //------------------------------------------------------------------------------------------------------
 
-//Funcion para manejar los pedidos de las cpu
+//Variables globales
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-int32_t proceso_activo;
-bool se_cerro = false;
-
-/*void nuevo_programa(int* socket_conexion, t_paquete* pedido){
-
-}*/
+//Función para atender las conexiones de las cpus y el núcleo
 
 void atender_conexion(int* socket_conexion){
-
+	
+	int32_t proceso_activo;
+	bool se_cerro = false;
 
 	while(!se_cerro){
 
-		//Me llega un pedido
+		//Me llega un pedido de una cpu o del nucleo
 		t_paquete* pedido = recibir_paquete(*socket_conexion);
 		log_info(logUMC,"Se recibio un pedido del socket %d",*socket_conexion);
 
@@ -45,6 +43,9 @@ void atender_conexion(int* socket_conexion){
 				nuevo_programa_swap.idPrograma=nuevo_programa.idPrograma;
 				nuevo_programa_swap.pagRequeridas=nuevo_programa.pagRequeridas;
 
+				//Bloqueo la conexión con el swap
+				pthread_mutex_lock(&mutex);
+
 				//Le envío la estructura al swap para saber si tiene espacio para guardar el programa
 				enviar(NUEVO_PROGRAMA,sizeof(nuevo_programa_swap),&nuevo_programa_swap,socketswap);
 				log_info(logUMC,"Se le envio la cantidad de paginas al swap");
@@ -53,6 +54,10 @@ void atender_conexion(int* socket_conexion){
 				t_paquete *paquete=recibir_paquete(socketswap);
 				log_info(logUMC,"Recibi respuesta de cantidad de páginas del swap");
 
+				//Desbloqueo la conexión con el swap
+				pthread_mutex_unlock(&mutex);
+
+
 				//Si la respuesta es que no hay espacio
 				if(paquete->cod_op==NO_OK){
 					log_info(logUMC,"No hay espacio sufuciente para el nuevo programa");
@@ -60,12 +65,20 @@ void atender_conexion(int* socket_conexion){
 					//Le aviso al núcleo de que no hay espacio
 					enviar(NO_OK,1,socket_conexion,*socket_conexion);
 					log_debug(logUMC,"Se informó a nucleo de que no hay espacio para el nuevo programa");
-				}else{
+
+				//Si la respuesta es que hay espacio para el programa
+				}else if(paquete->cod_op==OK){
 					log_info(logUMC,"Hay espacio sufuciente para el nuevo programa");
 
 					//Le aviso al nucleo que hay espacio para el nuevo programa
 					enviar(OK,1,socket_conexion,*socket_conexion);
 					log_debug(logUMC,"Se informo al kernel que hay paginas para el programa");
+
+				//Si la respuesta es que se desconecto el socket
+				}else if(paquete->cod_op==ERROR_COD_OP){
+
+					log_warning(logUMC,"Se desconecto el socket %d",*socket_conexion);
+					se_cerro = true;
 				}
 
 				//TODO Crear estructuras para el nuevo proceso (Que estructuras creo yo?
@@ -98,6 +111,9 @@ void atender_conexion(int* socket_conexion){
 
 				log_info(logUMC,"Se pidio leer la pagina %d del proceso %d la cantidad de bytes %d con el offset %d",pedidoASwap.nroPagina,pedidoASwap.pid,solicitud.tamanioDatos,solicitud.offset);
 
+				//Bloqueo la conexión con el swap
+				pthread_mutex_lock(&mutex);
+
 				//Le envío al swap el pedido de lectura
 				enviar(LECTURA_PAGINA,sizeof(pedidoASwap),&pedidoASwap,socketswap);
 				log_info(logUMC,"Se pidio pagina al swap");
@@ -106,16 +122,28 @@ void atender_conexion(int* socket_conexion){
 				t_paquete *paqueteLectura=recibir_paquete(socketswap);
 				log_info(logUMC,"Recibi respuesta del swap");
 
+				//Desbloqueo la conexión con el swap
+				pthread_mutex_unlock(&mutex);
+
 				//Si el swap tiene la pagina me la pasa y le paso los bytes pedidos a la cpu
 				if(paqueteLectura->cod_op==BUFFER_LEIDO){
+
 					log_info(logUMC,"Leido: %.*s",solicitud.tamanioDatos,paqueteLectura->datos+solicitud.offset);
 					enviar(BUFFER_LEIDO,solicitud.tamanioDatos,paqueteLectura->datos+solicitud.offset,*socket_conexion);
-					log_info(logUMC,"Se le envio el contenido de la pagina a la cpu");
+					log_info(logUMC,"Se le envio el contenido de la pagina a la cpu %d",*socket_conexion);
+
 				//Si el swap no tiene la pagina le aviso a la cpu que hubo un error
-				}else{
+				}else if(paqueteLectura->cod_op==NO_OK){
+
 					log_info(logUMC,"No se pudo leer la página");
 					enviar(NO_OK,1,&socket_conexion,*socket_conexion);
-					log_info(logUMC,"Se le informo a la cpu que no se pudo leer la pagina");
+					log_info(logUMC,"Se le informo a la cpu %d que no se pudo leer la pagina pedida",*socket_conexion);
+
+				//Si se desconecto el socket
+				}else if(paqueteLectura->cod_op==ERROR_COD_OP){
+
+					log_warning(logUMC,"Se desconecto el socket %d",*socket_conexion);
+					se_cerro = true;
 				}
 
 
@@ -150,12 +178,20 @@ void atender_conexion(int* socket_conexion){
 				pedido_almacenar=deserializar_pedido_almacenar(pedido->datos);
 				log_info(logUMC,"Se pidio escribir en la pagina %d con el offset %d la cantidad de bytes %d. Se pidio escribir buffer: %.*s",pedido_almacenar->nroPagina,pedido_almacenar->offset,pedido_almacenar->tamanioDatos,pedido_almacenar->tamanioDatos,pedido_almacenar->buffer);
 
-				//pido la pagina como estaba antes. si no lo hago, la nueva escritura sobreescribiria la vieja
+				//Pido la pagina como estaba antes. si no lo hago, la nueva escritura sobreescribiria la vieja
 				t_pedido_leer_swap pedido_leer;
 				pedido_leer.nroPagina = pedido_almacenar->nroPagina;
 				pedido_leer.pid = proceso_activo;
+
+				//Bloqueo la conexión con el swap
+				pthread_mutex_lock(&mutex);
+
+				//Le pido la página requerida al swap
 				enviar(LECTURA_PAGINA,sizeof(pedido_leer),&pedido_leer,socketswap);
 				t_paquete *lectura_intermedia = recibir_paquete(socketswap);
+
+				//Desbloqueo la conexión con el swap
+				pthread_mutex_unlock(&mutex);
 
 
 				//Armo la estructura para pedirle la pagina al swap
@@ -173,6 +209,8 @@ void atender_conexion(int* socket_conexion){
 				t_pedido_almacenar_swap_serializado *pedido_almacenar_swap_serializado;
 				pedido_almacenar_swap_serializado=serializar_pedido_almacenar_swap(&pedido_almacenar_swap,config_umc->marco_size);
 
+				//Bloqueo la conexión con el swap
+				pthread_mutex_lock(&mutex);
 
 				//Envio el pedido de escritura serializado al swap
 				enviar(ESCRITURA_PAGINA,pedido_almacenar_swap_serializado->tamano,pedido_almacenar_swap_serializado->pedido_serializado,socketswap);
@@ -183,16 +221,28 @@ void atender_conexion(int* socket_conexion){
 				t_paquete *paqueteEscritura=recibir_paquete(socketswap);
 				log_info(logUMC,"Recibi una respuesta del swap");
 
+				//Desbloqueo la conexión con el swap
+				pthread_mutex_unlock(&mutex);
+
 				//Si la respuesta del swap es que se pudo escribir la página
 				if(paqueteEscritura->cod_op==OK){
+
 					log_info(logUMC,"Se pudo escribir la pagina");
 					enviar(OK,1,&socket_conexion,*socket_conexion);
 					log_info(logUMC,"Se informo de que se escribio la pagina");
+
 				//Si la respuesta del swap es que no pudo escribir la página
-				}else{
+				}else if(paqueteEscritura->cod_op==NO_OK){
+
 					log_info(logUMC,"No se pudo escribir en la pagina");
 					enviar(NO_OK,1,&socket_conexion,*socket_conexion);
 					log_info(logUMC,"Se informo de que se no se pudo escribir la pagina");
+
+				//Si la respuesta del swap es que se desconecto el socket
+				}else if(paqueteEscritura->cod_op==ERROR_COD_OP){
+
+					log_warning(logUMC,"Se desconecto el socket %d",*socket_conexion);
+					se_cerro = true;
 				}
 
 				destruir_paquete(paqueteEscritura);
@@ -200,10 +250,12 @@ void atender_conexion(int* socket_conexion){
 				break;
 
 			case CAMBIO_PROCESO_ACTIVO:
+
 				proceso_activo=*((int32_t*)pedido->datos);
 				log_info(logUMC,"Se informo que el pid del programa es: %d",proceso_activo);
 				//TODO Buscar y devolver estructuras del nuevo proceso
 				break;
+
 			case FINALIZA_PROGRAMA:
 				log_info(logUMC,"Llego un pedido para finalizar un programa");
 
@@ -212,6 +264,9 @@ void atender_conexion(int* socket_conexion){
 
 				//TODO Eliminar estructuras usadas para administrar el programa
 
+				//Bloqueo la conexión con el swap
+				pthread_mutex_lock(&mutex);
+
 				//Le informo al swap que finalizo un programa y le paso el PID para que elimine las estructuas
 				enviar(FINALIZA_PROGRAMA,sizeof(int32_t),programaAFinalizar,socketswap);
 				log_info(logUMC,"Se le informo al swap que se elimino el proceso: %d",programaAFinalizar);
@@ -219,24 +274,39 @@ void atender_conexion(int* socket_conexion){
 				//Recibo la respuesta del swap
 				t_paquete *pedidoFinalizar=recibir_paquete(socketswap);
 
+				//Desbloqueo la conexión con el swap
+				pthread_mutex_unlock(&mutex);
+
 				//Si el swap me informa que el programa se elimino correctamente le aviso al nucleo
 				if(pedidoFinalizar->cod_op==OK){
+
 					log_info(logUMC,"Se elimino el programa correctamente");
 					enviar(OK,1,&socket_conexion,*socket_conexion);
 					log_info(logUMC,"Se informo al nucleo que se elimino el programa correctamente");
+
 				//Si el swap me informa que el programa no se pudo eliminar le aviso al nucleo
-				}else{
+				}else if(pedidoFinalizar->cod_op==NO_OK){
+
 					log_info(logUMC,"No  se pudo eliminar el programa");
 					enviar(NO_OK,1,&socket_conexion,*socket_conexion);
 					log_info(logUMC,"Se le informo al nucleo que no se pudo eliminar el programa");
+
+				//Si el swap me informa que se desconecto el socket
+				}else if(pedidoFinalizar->cod_op==ERROR_COD_OP){
+					log_warning(logUMC,"Se desconecto el socket %d",*socket_conexion);
+					se_cerro = true;
 				}
 
 				destruir_paquete(pedidoFinalizar);
 
 				break;
+
+			//Si me llega un codigo de error porque se desconecto el socket
 			case ERROR_COD_OP:
+
 				log_warning(logUMC,"Se desconecto el socket %d",*socket_conexion);
 				se_cerro = true;
+
 				break;
 		}
 		destruir_paquete(pedido);
@@ -304,9 +374,11 @@ void manejar_paquete(int socket,t_paquete paq){
 
 			//Creo el hilo para la conexion con el nucleo
 			if(crear_hilo_conexion(socket)){
+
 				log_error(logUMC,"Error al crear el hilo para la conexion de nucleo con socket %d",socket);
 				close(socket);
 				break;
+
 			}else{
 				log_info(logUMC,"Se creo el hilo para la conexion con el nucleo");
 			}
@@ -325,6 +397,7 @@ void manejar_paquete(int socket,t_paquete paq){
 
 		//Llega código de error
 		case ERROR_COD_OP:
+
 			log_error(logUMC,"Llego el codigo de error");
 			break;
 	}
