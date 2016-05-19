@@ -1,21 +1,11 @@
-/*
- * primitivas.c
- *
- *  Created on: 8/5/2016
- *      Author: utnso
- */
-/*
-#include <stdio.h>
-#include <string.h>
-#include <parser/parser.h>
-#include <parser/metadata_program.h>
-#include "../../general/pcb.h"
+#include "primitivas.h"
 
 extern int32_t quantumRestante;
 
 static const int CONTENIDO_VARIABLE = 20;
 static const int POSICION_MEMORIA = 0x10;
 
+/*
 t_puntero dummy_definirVariable(t_nombre_variable variable) {
 	uint32_t puntero = apilarVariable(variable);
 	printf("definir la variable %c\n", variable);
@@ -51,20 +41,22 @@ t_valor_variable dummy_dereferenciar(t_puntero puntero) {
 
 }
 
-/*void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
+void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
  printf("Asignando en %d el valor %d\n", puntero, variable);
  modificarVariable( (uint32_t) variable, (uint32_t) valor );
  log_trace(logcpu, "Llamada a asignar [ %d ] = %d ", variable, valor );
  }
 
- /*void dummy_imprimir(t_valor_variable valor) {
+ void dummy_imprimir(t_valor_variable valor) {
  printf("Imprimir %d\n", valor);
  }
 
  void dummy_imprimirTexto(char* texto) {
  printf("ImprimirTexto: %s", texto);
  }
- AnSISOP_funciones functions = {
+
+
+functions = {
  .AnSISOP_definirVariable = dummy_definirVariable,
  .AnSISOP_obtenerPosicionVariable = dummy_obtenerPosicionVariable,
  .AnSISOP_dereferenciar = dummy_dereferenciar, .AnSISOP_asignar =
@@ -72,8 +64,10 @@ t_valor_variable dummy_dereferenciar(t_puntero puntero) {
  .AnSISOP_imprimirTexto = dummy_imprimirTexto,
 
  };
- AnSISOP_kernel kernel_functions = { };*/
+
+kernel_functions = { };
 
 //	analizadorLinea("variables a", &functions, &kernel_functions);
 //	puts("hola!");
 
+*/
