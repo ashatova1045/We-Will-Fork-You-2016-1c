@@ -377,6 +377,7 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			break;
 
 		default:
+
 			break;
 	}
 
@@ -419,16 +420,6 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 
 				liberar_una_relacion(pcb_devuelto);
 
-				/*bool matchPID(void *relacion) {
-					return ((t_relacion*)relacion)->programa->pid == pcb_devuelto->pid;
-				}
-
-				t_relacion *rel = list_remove_by_condition(lista_relacion,matchPID);
-
-				rel->cpu->corriendo= false;
-				rel->programa->corriendo= false;
-
-				free(rel);*/
 				}
 				break;
 
@@ -464,26 +455,12 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				log_debug(logNucleo,"Envie a la umc el codigo de que finalizo el programa con el pid: %d", pcb_devuelto->pid );
 
 				liberar_una_relacion(pcb_devuelto);
-	/*			bool matchPID(void *relacion) {
-					return ((t_relacion*)relacion)->programa->pid == pcb_devuelto->pid;
-				}
-
-				t_relacion *rel = list_remove_by_condition(lista_relacion,matchPID);
-				rel->cpu->corriendo= false;
-				rel->programa->corriendo= false;
-				free(rel); */
 
 				moverA_colaExit(pcb_devuelto);
 				log_debug(logNucleo,"Movi pcb de pid: %d a la cola Exit", pcb_devuelto->pid);
 
 				t_consola* consola = matchear_consola(pcb_devuelto);
 
-				/*bool matchPID_Consola(void *consola) {
-									return ((t_consola*)consola)->pid == pcb_devuelto->pid;
-								}
-
-				t_consola * programa_terminado=list_remove_by_condition(lista_programas_actuales, matchPID_Consola);
-*/
 				enviar(TERMINO_BIEN_PROGRAMA,paquete.tamano_datos,paquete.datos,consola->socket);
 				//nose si va paquete datos aca pero tmpoco se qe hay que enviar a la consola
 				free(consola);
