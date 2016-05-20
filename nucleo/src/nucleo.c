@@ -388,12 +388,23 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 
 			case FIN_QUANTUM:
 				{
-			//	t_pcb_serializado * pcb_serializado = paquete.datos;
+
 				log_debug(logNucleo,"Fin quantum, recibi pcb serializado del socket: %d",socket);
 				t_pcb *pcb_devuelto = deserializar(paquete.datos);
 				log_debug(logNucleo,"PCB deserializado");
+
+				bool matchPID(void *relacion) {
+					return ((t_relacion*)relacion)->programa->pid == pcb_devuelto->pid;
+				}
+
+				t_relacion *rel = list_remove_by_condition(lista_relacion,matchPID);
+
+				rel->cpu->corriendo= false;
+				rel->programa->corriendo= false;
+
 				moverA_colaReady(pcb_devuelto);
 				log_debug(logNucleo,"Movi pcb de pid: %d a la cola Ready", pcb_devuelto->pid);
+				free(rel);
 				}
 				break;
 
@@ -419,8 +430,29 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				t_pcb *pcb_devuelto = deserializar(paquete.datos);
 				enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(pcb_devuelto->pid),socket_umc);
 				log_debug(logNucleo,"Envie a la umc el codigo de que finalizo el programa con el pid: %d", pcb_devuelto->pid );
+
+				bool matchPID(void *relacion) {
+					return ((t_relacion*)relacion)->programa->pid == pcb_devuelto->pid;
+				}
+
+				t_relacion *rel = list_remove_by_condition(lista_relacion,matchPID);
+
+				rel->cpu->corriendo= false;
+				rel->programa->corriendo= false;
+
+				moverA_colaReady(pcb_devuelto);
+				log_debug(logNucleo,"Movi pcb de pid: %d a la cola Ready", pcb_devuelto->pid);
+				free(rel);
+
 				moverA_colaExit(pcb_devuelto);
 				log_debug(logNucleo,"Movi pcb de pid: %d a la cola Exit", pcb_devuelto->pid);
+
+				bool matchPID_Consola(void *consola) {
+									return ((t_consola*)consola)->pid == pcb_devuelto->pid;
+								}
+
+				t_consola * programa_terminado=list_remove_by_condition(lista_programas_actuales, matchPID_Consola);
+				free(programa_terminado);
 				//avisar a la umc que finalizo
 			}
 				break;
