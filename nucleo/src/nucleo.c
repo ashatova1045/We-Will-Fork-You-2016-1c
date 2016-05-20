@@ -66,6 +66,30 @@ void relacionar_cpu_programa(t_cpu *cpu, t_consola *programa, t_pcb *pcb){
 	log_debug(logNucleo, "Movi a la cola Exec el pcb con pid: %d", pcb->pid);
 }
 
+void liberar_una_relacion(t_pcb *pcb_devuelto){
+
+	bool matchPID(void *relacion) {
+		return ((t_relacion*)relacion)->programa->pid == pcb_devuelto->pid;
+	}
+
+	t_relacion *rel = list_remove_by_condition(lista_relacion,matchPID);
+	rel->cpu->corriendo= false;
+	rel->programa->corriendo= false;
+	free(rel);
+
+}
+
+t_consola* matchear_consola(t_pcb * pcb_devuelto){
+
+	bool matchPID_Consola(void *consola) {
+						return ((t_consola*)consola)->pid == pcb_devuelto->pid;
+					}
+
+	t_consola * programa_terminado=list_remove_by_condition(lista_programas_actuales, matchPID_Consola);
+	return programa_terminado;
+}
+
+
 t_log* crearLog(){
 	t_log *logNucleo = log_create("logNucleo.log", "nucleo.c", false, LOG_LEVEL_TRACE);
 	return logNucleo;
@@ -351,10 +375,7 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			enviar_a_cpu();
 			log_debug(logNucleo,"Termino la inicializacion del programa");
 			break;
-		case TERMINO_BIEN_PROGRAMA:
-			break;
-		case TERMINO_MAL_PROGRAMA:
-					break;
+
 		default:
 			break;
 	}
@@ -393,7 +414,12 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				t_pcb *pcb_devuelto = deserializar(paquete.datos);
 				log_debug(logNucleo,"PCB deserializado");
 
-				bool matchPID(void *relacion) {
+				moverA_colaReady(pcb_devuelto);
+				log_debug(logNucleo,"Movi pcb de pid: %d a la cola Ready", pcb_devuelto->pid);
+
+				liberar_una_relacion(pcb_devuelto);
+
+				/*bool matchPID(void *relacion) {
 					return ((t_relacion*)relacion)->programa->pid == pcb_devuelto->pid;
 				}
 
@@ -402,22 +428,28 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				rel->cpu->corriendo= false;
 				rel->programa->corriendo= false;
 
-				moverA_colaReady(pcb_devuelto);
-				log_debug(logNucleo,"Movi pcb de pid: %d a la cola Ready", pcb_devuelto->pid);
-				free(rel);
+				free(rel);*/
 				}
 				break;
 
 			case IMPRIMIR_VARIABLE:
 				log_info(logNucleo, "Recibi orden de imprimir variable");
-
-				enviar(IMPRIMIR_VARIABLE,paquete.tamano_datos,paquete.datos,consola);
+				t_pcb * pcb_devuelto = deserializar(paquete.datos);
+				t_consola* consola = matchear_consola(pcb_devuelto);
+				enviar(IMPRIMIR_VARIABLE,paquete.tamano_datos,paquete.datos,consola->socket);
 				log_debug(logNucleo,"Enviando imprimir variable a la consola");
+				free(consola);
 				break;
+
 			case IMPRIMIR_TEXTO:
-				//consola_responsable=list_find(lista_relacion); esto va? nose como deberia buscar la consola a la qe corresponde
-				enviar(IMPRIMIR_TEXTO,paquete.tamano_datos,paquete.datos,consola);
+				{
+				log_info(logNucleo, "Recibi orden de imprimir texto");
+				t_pcb * pcb_devuelto = deserializar(paquete.datos);
+				t_consola* consola = matchear_consola(pcb_devuelto);
+				enviar(IMPRIMIR_TEXTO,paquete.tamano_datos,paquete.datos,consola->socket);
 				log_debug(logNucleo,"Enviando imprimir texto a la consola");
+				free(consola);
+				}
 				break;
 			case OBTENER_VALOR:
 				break;
@@ -431,29 +463,30 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(pcb_devuelto->pid),socket_umc);
 				log_debug(logNucleo,"Envie a la umc el codigo de que finalizo el programa con el pid: %d", pcb_devuelto->pid );
 
-				bool matchPID(void *relacion) {
+				liberar_una_relacion(pcb_devuelto);
+	/*			bool matchPID(void *relacion) {
 					return ((t_relacion*)relacion)->programa->pid == pcb_devuelto->pid;
 				}
 
 				t_relacion *rel = list_remove_by_condition(lista_relacion,matchPID);
-
 				rel->cpu->corriendo= false;
 				rel->programa->corriendo= false;
-
-				moverA_colaReady(pcb_devuelto);
-				log_debug(logNucleo,"Movi pcb de pid: %d a la cola Ready", pcb_devuelto->pid);
-				free(rel);
+				free(rel); */
 
 				moverA_colaExit(pcb_devuelto);
 				log_debug(logNucleo,"Movi pcb de pid: %d a la cola Exit", pcb_devuelto->pid);
 
-				bool matchPID_Consola(void *consola) {
+				t_consola* consola = matchear_consola(pcb_devuelto);
+
+				/*bool matchPID_Consola(void *consola) {
 									return ((t_consola*)consola)->pid == pcb_devuelto->pid;
 								}
 
 				t_consola * programa_terminado=list_remove_by_condition(lista_programas_actuales, matchPID_Consola);
-				free(programa_terminado);
-				//avisar a la umc que finalizo
+*/
+				enviar(TERMINO_BIEN_PROGRAMA,paquete.tamano_datos,paquete.datos,consola->socket);
+				//nose si va paquete datos aca pero tmpoco se qe hay que enviar a la consola
+				free(consola);
 			}
 				break;
 			case WAIT:
