@@ -1,11 +1,31 @@
 #include "primitivas.h"
 
-extern int32_t quantumRestante;
+void imprimirTexto(char* texto) {
+	log_info(logcpu,"Imprimiendo el texto:\n%s",texto);
+	enviar(IMPRIMIR_TEXTO,strlen(texto)+1,texto,socket_nucleo);
 
-static const int CONTENIDO_VARIABLE = 20;
-static const int POSICION_MEMORIA = 0x10;
+	t_paquete *respuesta_imprimir = recibir_paquete(socket_nucleo);
+	switch (respuesta_imprimir->cod_op) {
+		case OK:
+			log_debug(logcpu,"Impresion correcta de texto");
+			break;
+		case NO_OK:
+			log_error(logcpu,"El nucleo reporto un error al imprimir texto");
+			break;
+		default:
+			log_error(logcpu,"Se desconecto el nucleo!");
+			destruir_paquete(respuesta_imprimir);
+			exit(EXIT_FAILURE);
+			break;
+	}
+
+	destruir_paquete(respuesta_imprimir);
+}
 
 /*
+ void dummy_imprimir(t_valor_variable valor) {
+	 printf("Imprimir %d\n", valor);
+ }
 t_puntero dummy_definirVariable(t_nombre_variable variable) {
 	uint32_t puntero = apilarVariable(variable);
 	printf("definir la variable %c\n", variable);
@@ -47,27 +67,21 @@ void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
  log_trace(logcpu, "Llamada a asignar [ %d ] = %d ", variable, valor );
  }
 
- void dummy_imprimir(t_valor_variable valor) {
- printf("Imprimir %d\n", valor);
- }
-
- void dummy_imprimirTexto(char* texto) {
- printf("ImprimirTexto: %s", texto);
- }
-
-
-functions = {
- .AnSISOP_definirVariable = dummy_definirVariable,
- .AnSISOP_obtenerPosicionVariable = dummy_obtenerPosicionVariable,
- .AnSISOP_dereferenciar = dummy_dereferenciar, .AnSISOP_asignar =
- dummy_asignar, .AnSISOP_imprimir = dummy_imprimir,
- .AnSISOP_imprimirTexto = dummy_imprimirTexto,
-
- };
-
-kernel_functions = { };
-
-//	analizadorLinea("variables a", &functions, &kernel_functions);
-//	puts("hola!");
-
 */
+
+ void inicializar_primitivas(){
+
+	 functions = (AnSISOP_funciones) {
+		.AnSISOP_imprimirTexto = imprimirTexto,
+		// .AnSISOP_definirVariable = dummy_definirVariable,
+		// .AnSISOP_obtenerPosicionVariable = dummy_obtenerPosicionVariable,
+		// .AnSISOP_dereferenciar = dummy_dereferenciar, .AnSISOP_asignar =
+		// dummy_asignar, .AnSISOP_imprimir = dummy_imprimir,
+
+	};
+
+	kernel_functions =(AnSISOP_kernel) {
+
+	};
+ }
+
