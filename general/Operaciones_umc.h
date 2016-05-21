@@ -28,11 +28,6 @@ typedef struct
 
 typedef struct
 {
-	int32_t idPrograma;
-}t_pedido_finalizar;
-
-typedef struct
-{
 	int32_t tamano;
 	char* pedido_serializado;
 }t_pedido_almacenarBytes_serializado;

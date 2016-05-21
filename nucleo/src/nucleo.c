@@ -79,16 +79,44 @@ void liberar_una_relacion(t_pcb *pcb_devuelto){
 
 }
 
-t_consola* matchear_consola(t_pcb * pcb_devuelto){
+void liberar_una_relacion_porsocket_cpu(int socketcpu){
+
+	bool matchsocketcpu(void *relacion) {
+		return ((t_relacion*)relacion)->cpu->socket == socketcpu;
+	}
+
+	t_relacion *rel = list_remove_by_condition(lista_relacion,matchsocketcpu);
+	rel->cpu->corriendo= false;
+	rel->programa->corriendo= false;
+	free(rel);
+
+}
+
+t_consola* matchear_consola_por_pid(int pid){
 
 	bool matchPID_Consola(void *consola) {
-						return ((t_consola*)consola)->pid == pcb_devuelto->pid;
+						return ((t_consola*)consola)->pid == pid;
 					}
 
-	t_consola * programa_terminado=list_remove_by_condition(lista_programas_actuales, matchPID_Consola);
+	t_consola * programa_terminado=list_find(lista_programas_actuales, matchPID_Consola);
 	return programa_terminado;
 }
 
+t_relacion* matchear_relacion_por_socketcpu(int socket){
+	bool matchsocketcpurelacion(void *relacion) {
+						return ((t_relacion*)relacion)->cpu->socket == socket;
+					}
+
+	return list_find(lista_relacion, matchsocketcpurelacion);
+}
+
+void elminar_consola_por_socket(int socket){
+	bool matchconsola(void *consola) {
+						return ((t_consola*)consola)->socket == socket;
+					}
+
+	free(list_remove_by_condition(lista_programas_actuales,matchconsola));
+}
 
 t_log* crearLog(){
 	t_log *logNucleo = log_create("logNucleo.log", "nucleo.c", false, LOG_LEVEL_TRACE);
@@ -409,38 +437,28 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				break;
 
 			case FIN_QUANTUM:
-				{
-
 				log_debug(logNucleo,"Fin quantum, recibi pcb serializado del socket: %d",socket);
 				t_pcb *pcb_devuelto = deserializar(paquete.datos);
 				log_debug(logNucleo,"PCB deserializado");
 
 				moverA_colaReady(pcb_devuelto);
-				log_debug(logNucleo,"Movi pcb de pid: %d a la cola Ready", pcb_devuelto->pid);
 
 				liberar_una_relacion(pcb_devuelto);
-
-				}
+				enviar_a_cpu();
 				break;
 
 			case IMPRIMIR_VARIABLE:
 				log_info(logNucleo, "Recibi orden de imprimir variable");
-				t_pcb * pcb_devuelto = deserializar(paquete.datos);
-				t_consola* consola = matchear_consola(pcb_devuelto);
-				enviar(IMPRIMIR_VARIABLE,paquete.tamano_datos,paquete.datos,consola->socket);
+				t_relacion *relacion_imp_var = matchear_relacion_por_socketcpu(socket);
+				enviar(IMPRIMIR_VARIABLE,paquete.tamano_datos,paquete.datos,relacion_imp_var->programa->socket);
 				log_debug(logNucleo,"Enviando imprimir variable a la consola");
-				free(consola);
 				break;
 
 			case IMPRIMIR_TEXTO:
-				{
 				log_info(logNucleo, "Recibi orden de imprimir texto");
-				t_pcb * pcb_devuelto = deserializar(paquete.datos);
-				t_consola* consola = matchear_consola(pcb_devuelto);
-				enviar(IMPRIMIR_TEXTO,paquete.tamano_datos,paquete.datos,consola->socket);
+				t_relacion *relacion_imp_tex = matchear_relacion_por_socketcpu(socket);
+				enviar(IMPRIMIR_TEXTO,paquete.tamano_datos,paquete.datos,relacion_imp_tex->programa->socket);
 				log_debug(logNucleo,"Enviando imprimir texto a la consola");
-				free(consola);
-				}
 				break;
 			case OBTENER_VALOR:
 				break;
@@ -454,16 +472,14 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(pcb_devuelto->pid),socket_umc);
 				log_debug(logNucleo,"Envie a la umc el codigo de que finalizo el programa con el pid: %d", pcb_devuelto->pid );
 
+				moverA_colaExit(pcb_devuelto);
+
 				liberar_una_relacion(pcb_devuelto);
 
-				moverA_colaExit(pcb_devuelto);
-				log_debug(logNucleo,"Movi pcb de pid: %d a la cola Exit", pcb_devuelto->pid);
+				t_consola* consola = matchear_consola_por_pid(pcb_devuelto->pid);
 
-				t_consola* consola = matchear_consola(pcb_devuelto);
-
-				enviar(TERMINO_BIEN_PROGRAMA,paquete.tamano_datos,paquete.datos,consola->socket);
-				//nose si va paquete datos aca pero tmpoco se qe hay que enviar a la consola
-				free(consola);
+				enviar(TERMINO_BIEN_PROGRAMA,1,consola,consola->socket);
+				elminar_consola_por_socket(consola->socket);
 			}
 				break;
 			case WAIT:
@@ -480,9 +496,27 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 }
 
 void cerrar_socket_cpu(int socket){
-	printf("Se cerro %d\n",socket);
-	list_remove(lista_cpus_conectadas,socket);
-	//TODO manejar desconexion de un cpu
+	log_warning(logNucleo,"Se cerro el cpu %d\n",socket);
+	printf("Se cerro el cpu %d\n",socket);
+
+	bool matchSocket_Cpu(void *cpu) {
+						return ((t_cpu*)cpu)->socket == socket;
+					}
+
+	t_cpu* cpu = list_remove_by_condition(lista_cpus_conectadas,matchSocket_Cpu);
+
+	t_relacion* relacion = 	matchear_relacion_por_socketcpu(socket);
+
+	if (relacion){
+		log_warning(logNucleo,"El cpu que se cerro estaba corriendo el programa con PID %d",relacion->programa->pid);
+
+		enviar(TERMINO_MAL_PROGRAMA,1,cpu,relacion->programa->socket);
+
+		elminar_consola_por_socket(relacion->programa->socket);
+		liberar_una_relacion_porsocket_cpu(cpu->socket);
+	}
+
+	free(cpu);
 }
 
 

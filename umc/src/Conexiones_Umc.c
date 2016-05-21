@@ -269,7 +269,7 @@ void atender_conexion(int* socket_conexion){
 
 				//Le informo al swap que finalizo un programa y le paso el PID para que elimine las estructuas
 				enviar(FINALIZA_PROGRAMA,sizeof(int32_t),programaAFinalizar,socketswap);
-				log_info(logUMC,"Se le informo al swap que se elimino el proceso: %d",programaAFinalizar);
+				log_info(logUMC,"Se le informo al swap que se elimino el proceso: %d",*programaAFinalizar);
 
 				//Recibo la respuesta del swap
 				t_paquete *pedidoFinalizar=recibir_paquete(socketswap);

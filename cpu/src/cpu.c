@@ -110,8 +110,9 @@ void correr_pcb() {
 	log_debug(logcpu, "Se envio el cambio de proceso activo %d",
 			pcb_ejecutandose->pid);
 
+	termino_programa = false;
 	int quantum_actual;
-	for (quantum_actual = 1; quantum_actual <= quantumCpu; quantum_actual++) {
+	for (quantum_actual = 1; quantum_actual <= quantumCpu && !termino_programa; quantum_actual++) {
 		log_info(logcpu, "\n\n\n\nCorriendo instruccion %d de %d",
 				quantum_actual, quantumCpu);
 		t_posMemoria posicion_instruccion_actual =
@@ -138,8 +139,11 @@ void correr_pcb() {
 	}
 
 	t_pcb_serializado pcb_serializado = serializar(*pcb_ejecutandose);
-	enviar(FIN_QUANTUM, pcb_serializado.tamanio, pcb_serializado.contenido_pcb,
-			socket_nucleo);
+
+	int codigo_respuesta = FIN_QUANTUM;
+	if(termino_programa)
+		codigo_respuesta = FINALIZA_PROGRAMA;
+	enviar(codigo_respuesta, pcb_serializado.tamanio, pcb_serializado.contenido_pcb,socket_nucleo);
 
 	free(pcb_serializado.contenido_pcb);
 	destruir_pcb(pcb_ejecutandose);

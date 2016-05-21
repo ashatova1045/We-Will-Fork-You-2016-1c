@@ -1,6 +1,6 @@
 #!./../consola/Debug/consola
 begin
-	textPrint Hola!
-	textPrint Hola!
-	textPrint Hola!
+	textPrint Hola!1
+	textPrint Hola!2
+	textPrint Hola!3
 end

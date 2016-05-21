@@ -45,7 +45,7 @@ void ingresarRetardo(){
 
 	config_umc->retardo=milisegundos;
 
-	printf("\nSe actualizo el retardo, el nuevo retardo es de %d milisegundos\n");
+	printf("\nSe actualizo el retardo, el nuevo retardo es de %d milisegundos\n",config_umc->retardo);
 	getchar();
 }
 
