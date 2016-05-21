@@ -1,25 +1,15 @@
 #include "primitivas.h"
 
 void imprimirTexto(char* texto) {
-	log_info(logcpu,"Imprimiendo el texto:\n%s",texto);
+	log_info(logcpu,"PRIMITIVA: Imprimiendo el texto:\n%s",texto);
+
 	enviar(IMPRIMIR_TEXTO,strlen(texto)+1,texto,socket_nucleo);
+}
 
-	t_paquete *respuesta_imprimir = recibir_paquete(socket_nucleo);
-	switch (respuesta_imprimir->cod_op) {
-		case OK:
-			log_debug(logcpu,"Impresion correcta de texto");
-			break;
-		case NO_OK:
-			log_error(logcpu,"El nucleo reporto un error al imprimir texto");
-			break;
-		default:
-			log_error(logcpu,"Se desconecto el nucleo!");
-			destruir_paquete(respuesta_imprimir);
-			exit(EXIT_FAILURE);
-			break;
-	}
+void finalizar() {
+	termino_programa = true;
 
-	destruir_paquete(respuesta_imprimir);
+	log_info(logcpu,"PRIMITIVA: Fin");
 }
 
 /*
@@ -73,6 +63,7 @@ void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
 
 	 functions = (AnSISOP_funciones) {
 		.AnSISOP_imprimirTexto = imprimirTexto,
+		.AnSISOP_finalizar = finalizar,
 		// .AnSISOP_definirVariable = dummy_definirVariable,
 		// .AnSISOP_obtenerPosicionVariable = dummy_obtenerPosicionVariable,
 		// .AnSISOP_dereferenciar = dummy_dereferenciar, .AnSISOP_asignar =
@@ -83,5 +74,6 @@ void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
 	kernel_functions =(AnSISOP_kernel) {
 
 	};
+
  }
 

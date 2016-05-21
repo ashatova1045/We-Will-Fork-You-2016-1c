@@ -17,6 +17,7 @@
 int socket_umc, socket_nucleo;
 int32_t quantumCpu, tamPag;
 t_pcb* pcb_ejecutandose;
+bool termino_programa;
 t_log* logcpu;
 
 #endif /* CPU_H_ */

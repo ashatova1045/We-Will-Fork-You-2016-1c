@@ -210,13 +210,14 @@ void escribirPagina(t_paquete* paquete){
 }
 
 void finalizarPrograma(t_paquete* paquete){
+	int32_t* pedido = (int32_t*)paquete->datos;
+	int pid_enviado = *pedido;
+
 	//todo: Liberar espacio en caso que se finalice el proceso
-	log_info(logSwap,"Inicia proceso de finalización de programa");
+	log_info(logSwap,"Inicia proceso de finalización de programa %d",pid_enviado);
 	puts("FINALIZA PROGRAMA");
 
-	t_pedido_finalizar_swap* pedido = (t_pedido_finalizar_swap*)paquete->datos;
 
-	int pid_enviado = pedido->idPrograma;
 	int i,codOp = TERMINO_MAL_PROGRAMA;
 
 	for(i=0;i<list_size(lista_procesos);i++){
@@ -228,7 +229,8 @@ void finalizarPrograma(t_paquete* paquete){
 			int cantidadPaginas = controlSwap->cantPaginas;
 
 			// Establece como libre los bitmaps que ocupó el proceso
-			for(i=0;i<cantidadPaginas;i++){
+			int pagina_actual;
+			for(pagina_actual=0;pagina_actual<cantidadPaginas;pagina_actual++){
 				bitarray_clean_bit(bitarray,posAux);
 				posAux++;
 			}
