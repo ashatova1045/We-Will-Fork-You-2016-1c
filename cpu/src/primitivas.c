@@ -81,7 +81,7 @@ int grabar_valor(t_nombre_variable identificador_variable, void* valorGrabar){
 }
 
 
-t_posicion obtenerPosicionVariable(t_nombre_variable identificador_variable){
+t_posicion* obtenerPosicionVariable(t_nombre_variable identificador_variable){
 	t_posicion* posicion = malloc(sizeof(t_posicion));
 
 	log_info(logcpu,"Se solicita obtener la posición de %s\n", identificador_variable);
@@ -91,7 +91,7 @@ t_posicion obtenerPosicionVariable(t_nombre_variable identificador_variable){
 	t_paquete *respuesta_posicion = recibir_paquete(socket_nucleo);
 	switch (respuesta_posicion->cod_op) {
 		case OK:
-			posicion->offset = (int*)respuesta_posicion->datos;
+			posicion->offset = (int)respuesta_posicion->datos;
 			log_info(logcpu,"La petición de grabación ha sido realizada correctamente");
 			break;
 		case NO_OK:
@@ -200,7 +200,6 @@ int	signal(t_nombre_semaforo identificador_semaforo){
 
 t_puntero_instruccion irAlLabel(t_nombre_etiqueta etiqueta){
 	t_puntero_instruccion* instruccion = malloc(sizeof(t_puntero_instruccion));
-	int codResp;
 	log_info(logcpu,"Se solicita la primera instrucción ejecutable de %s\n", etiqueta);
 
 	enviar(OBTENER_INSTRUCCION,sizeof(t_nombre_etiqueta),etiqueta,socket_nucleo);
@@ -257,13 +256,13 @@ void asignar(t_posicion	direccion_variable,	t_valor_variable valor){
 
 }
 
-t_valor_variable dereferenciar(t_posicion direccion_variable){
+t_valor_variable dereferenciar(t_posicion* direccion_variable){
 
-	t_valor_variable* valorVariable = malloc(sizeof(t_valor_variable));
+	t_valor_variable valorVariable = malloc(sizeof(t_valor_variable));
 
 	log_info(logcpu,"Se solicita dereferenciar la dirección %d\n", direccion_variable);
 
-	enviar(DEREFERENCIAR,sizeof(t_posicion),direccion_variable,socket_nucleo);
+	enviar(DEREFERENCIAR,sizeof(t_nombre_variable),direccion_variable,socket_nucleo);
 
 	t_paquete *respuesta_deref = recibir_paquete(socket_nucleo);
 	switch (respuesta_deref->cod_op) {
@@ -287,7 +286,7 @@ t_valor_variable dereferenciar(t_posicion direccion_variable){
 
 }
 
-t_posicion definirVariable(t_nombre_variable identificador_variable){
+t_posicion* definirVariable(t_nombre_variable identificador_variable){
 
 	t_posicion* posicion = malloc(sizeof(t_posicion));
 
@@ -313,7 +312,7 @@ t_posicion definirVariable(t_nombre_variable identificador_variable){
 
 	destruir_paquete(respuesta_defVar);
 
-	return 0;
+	return posicion;
 
 }
 
