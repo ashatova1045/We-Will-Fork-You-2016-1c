@@ -54,7 +54,12 @@ enum cod_op{ // Si se persisten en algun lado,agregar los cod_ops al final
 	GRABAR_VALOR=26,
 	WAIT=27,
 	SIGNAL=28,
-	ENTRADA_SALIDA=29
+	ENTRADA_SALIDA=29,
+	OBTENER_POSICION=30,
+	OBTENER_INSTRUCCION=31,
+	ASIGNAR=32,
+	DEREFERENCIAR=33,
+	DEFINIR_VARIABLE=34;
 };
 
 int enviar(uint16_t cod_op, int tamano_datos_en_bytes, void* datos, int destino_fd);

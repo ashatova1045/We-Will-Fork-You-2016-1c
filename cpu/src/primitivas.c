@@ -12,10 +12,7 @@ void finalizar() {
 	log_info(logcpu,"PRIMITIVA: Fin");
 }
 
-typedef struct{
-	t_nombre_dispositivo* dispositivo;
-	int tiempo;
-}t_entrada_salida;
+
 
 int	entradaSalida(t_nombre_dispositivo dispositivo, int tiempo){
 	int codResp;
@@ -49,10 +46,6 @@ int	entradaSalida(t_nombre_dispositivo dispositivo, int tiempo){
 	return codResp;
 }
 
-typedef struct{
-	t_nombre_variable* variable;
-	void* valorGrabar;
-}t_grabar_valor;
 
 int grabar_valor(t_nombre_variable identificador_variable, void* valorGrabar){
 	int codResp;
@@ -87,10 +80,6 @@ int grabar_valor(t_nombre_variable identificador_variable, void* valorGrabar){
 	return codResp;
 }
 
-typedef struct{
-	int offset;
-}t_posicion;
-
 
 t_posicion obtenerPosicionVariable(t_nombre_variable identificador_variable){
 	t_posicion* posicion = malloc(sizeof(t_posicion));
@@ -102,7 +91,7 @@ t_posicion obtenerPosicionVariable(t_nombre_variable identificador_variable){
 	t_paquete *respuesta_posicion = recibir_paquete(socket_nucleo);
 	switch (respuesta_posicion->cod_op) {
 		case OK:
-			posicion->offset = (int*)respuesta_posicion->datos
+			posicion->offset = (int*)respuesta_posicion->datos;
 			log_info(logcpu,"La petición de grabación ha sido realizada correctamente");
 			break;
 		case NO_OK:
@@ -211,20 +200,20 @@ int	signal(t_nombre_semaforo identificador_semaforo){
 
 t_puntero_instruccion irAlLabel(t_nombre_etiqueta etiqueta){
 	t_puntero_instruccion* instruccion = malloc(sizeof(t_puntero_instruccion));
-
+	int codResp;
 	log_info(logcpu,"Se solicita la primera instrucción ejecutable de %s\n", etiqueta);
 
-	enviar(SIGNAL,sizeof(t_nombre_etiqueta),etiqueta,socket_nucleo);
+	enviar(OBTENER_INSTRUCCION,sizeof(t_nombre_etiqueta),etiqueta,socket_nucleo);
 
 	t_paquete *respuesta_label = recibir_paquete(socket_nucleo);
 	switch (respuesta_label->cod_op) {
 		case OK:
-			codResp = 0;
+			instruccion = (t_puntero_instruccion*)respuesta_label->datos;
 			log_info(logcpu,"Se ha obtenido la instrucción solicitada correctamente");
 			break;
 		case NO_OK:
-			codResp = -1;
-			log_error(logcpu,"El nucleo reportó un error al robtener la instrucción solicitada");
+			instruccion = -1;
+			log_error(logcpu,"El nucleo reportó un error al obtener la instrucción solicitada");
 			break;
 		default:
 			log_error(logcpu,"Se desconectó el núcleo!");
@@ -237,6 +226,98 @@ t_puntero_instruccion irAlLabel(t_nombre_etiqueta etiqueta){
 
 	return instruccion;
 }
+
+void asignar(t_posicion	direccion_variable,	t_valor_variable valor){
+
+	t_asignar* paquete_asignar = malloc(sizeof(t_asignar));
+
+	paquete_asignar->direccion_variable = direccion_variable;
+	paquete_asignar->valor = valor;
+
+	log_info(logcpu,"Se solicita asignar la dirección %d con el valor %s\n", direccion_variable,valor);
+
+	enviar(ASIGNAR,sizeof(t_asignar),paquete_asignar,socket_nucleo);
+
+	/*t_paquete *respuesta_asignar = recibir_paquete(socket_nucleo);
+	switch (respuesta_asignar->cod_op) {
+		case OK:
+			log_debug(logcpu,"Se ha asignado el valor correctamente");
+			break;
+		case NO_OK:
+			log_error(logcpu,"El nucleo reportó un error");
+			break;
+		default:
+			log_error(logcpu,"Se desconectó el núcleo!");
+			destruir_paquete(respuesta_asignar);
+			exit(EXIT_FAILURE);
+			break;
+	}
+
+	destruir_paquete(respuesta_label);*/
+
+}
+
+t_valor_variable dereferenciar(t_posicion direccion_variable){
+
+	t_valor_variable* valorVariable = malloc(sizeof(t_valor_variable));
+
+	log_info(logcpu,"Se solicita dereferenciar la dirección %d\n", direccion_variable);
+
+	enviar(DEREFERENCIAR,sizeof(t_posicion),direccion_variable,socket_nucleo);
+
+	t_paquete *respuesta_deref = recibir_paquete(socket_nucleo);
+	switch (respuesta_deref->cod_op) {
+		case OK:
+			valorVariable = (t_valor_variable*)respuesta_deref->datos;
+			log_debug(logcpu,"Se ha obtenido el valor correctamente");
+			break;
+		case NO_OK:
+			log_error(logcpu,"El nucleo reportó un error");
+			break;
+		default:
+			log_error(logcpu,"Se desconectó el núcleo!");
+			destruir_paquete(respuesta_deref);
+			exit(EXIT_FAILURE);
+			break;
+	}
+
+	destruir_paquete(respuesta_deref);
+
+	return valorVariable;
+
+}
+
+t_posicion definirVariable(t_nombre_variable identificador_variable){
+
+	t_posicion* posicion = malloc(sizeof(t_posicion));
+
+	log_info(logcpu,"Se solicita definir la variable %d\n", identificador_variable);
+
+	enviar(DEFINIR_VARIABLE,sizeof(t_nombre_variable),identificador_variable,socket_nucleo);
+
+	t_paquete *respuesta_defVar = recibir_paquete(socket_nucleo);
+	switch (respuesta_defVar->cod_op) {
+		case OK:
+			posicion = (t_posicion*)respuesta_defVar->datos;
+			log_debug(logcpu,"Se ha obtenido el valor correctamente");
+			break;
+		case NO_OK:
+			log_error(logcpu,"El nucleo reportó un error");
+			break;
+		default:
+			log_error(logcpu,"Se desconectó el núcleo!");
+			destruir_paquete(respuesta_defVar);
+			exit(EXIT_FAILURE);
+			break;
+	}
+
+	destruir_paquete(respuesta_defVar);
+
+	return 0;
+
+}
+
+
 
 
 
