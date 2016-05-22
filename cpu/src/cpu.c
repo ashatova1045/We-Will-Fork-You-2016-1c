@@ -103,6 +103,10 @@ char* pedir_lectura_de_umc(t_pedido_solicitarBytes pedido) {
 	return recibir_respuesta_lectura();
 }
 
+int min (int a,int b){
+	return a<a?a:b;
+}
+
 void correr_pcb() {
 	//Seteo proceso activo
 	enviar(CAMBIO_PROCESO_ACTIVO, sizeof(pcb_ejecutandose->pid),
@@ -118,15 +122,30 @@ void correr_pcb() {
 		t_posMemoria posicion_instruccion_actual =
 				pcb_ejecutandose->indice_codigo[pcb_ejecutandose->pc];
 
+		
 		//Pido instrucción a umc
+
+		int tamanoinstruccion_que_entra = min(tamPag-posicion_instruccion_actual.offset,posicion_instruccion_actual.size);
 
 		t_pedido_solicitarBytes pedido;
 		pedido.nroPagina = posicion_instruccion_actual.pag;
 		pedido.offset = posicion_instruccion_actual.offset;
-		pedido.tamanioDatos = posicion_instruccion_actual.size;
+		pedido.tamanioDatos = tamanoinstruccion_que_entra;
 
 		//Envío pedido a UMC
 		char* instruccion_actual = pedir_lectura_de_umc(pedido);
+
+		int tamanoinstruccionfaltante=posicion_instruccion_actual.size-tamanoinstruccion_que_entra;
+
+		if(tamanoinstruccionfaltante>0){
+			pedido.nroPagina++;
+			pedido.offset=0;
+			pedido.tamanioDatos = tamanoinstruccionfaltante;
+			char* instruccion_actual2 = pedir_lectura_de_umc(pedido);
+			instruccion_actual = realloc(instruccion_actual,tamanoinstruccion_que_entra+tamanoinstruccionfaltante);
+			memcpy(instruccion_actual+tamanoinstruccion_que_entra,instruccion_actual2,tamanoinstruccionfaltante);
+			free(instruccion_actual2);
+		}
 
 		//Parseo de la instruccion
 		analizadorLinea(instruccion_actual, &functions, &kernel_functions);
