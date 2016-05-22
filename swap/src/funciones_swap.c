@@ -86,12 +86,44 @@ void manejarOperaciones(t_paquete* paquete){
 	}
 }
 
+int encontrar_posicion(int pid_enviado, int pagina){
+	bool matchPID(void* controlSwap){
+		return ((t_control_swap*)controlSwap)->PId == pid_enviado;
+	}
+	t_control_swap* controlSwap = list_find(lista_procesos,matchPID);
+	if(controlSwap != NULL)
+			return (controlSwap->posicion+pagina) * tamanioPagina;
+
+	return -1;
+}
+
+int grabarArchivo(int posicion_posta, char* buffer){
+	fseek(swapFile,posicion_posta,SEEK_SET);
+
+	int codOp = NO_OK;
+
+	if(fwrite(buffer,tamanioPagina,1,swapFile) != 1){
+		log_error(logSwap, "No se pudo grabar la página en el archivo");
+		puts("No se pudo grabar la página en el archivo");
+	}else{
+		codOp = OK;
+		log_info(logSwap,"Grabación exitosa de la página en el archivo");
+		puts("Grabación exitosa");
+	}
+
+	return codOp;
+}
+
 void inicializarNuevoPrograma(t_paquete* paquete){
 	//todo: Compactar partición en caso de fragmentación
 
 	log_info(logSwap,"Inicio de proceso de inicialización de un nuevo programa");
 	puts("INICIALIZAR NUEVO PROGRAMA");
-	t_pedido_inicializar_swap* pedido = (t_pedido_inicializar_swap*)paquete->datos;
+
+	//t_pedido_inicializar_swap* pedido = (t_pedido_inicializar_swap*)paquete->datos;
+
+	t_pedido_inicializar_swap* pedido = deserializar_pedido_inicializar_swap(paquete->datos);
+
 
 	printf("ProcessID: %d\n",pedido->idPrograma);
 	printf("Cantidad de Paginas: %d\n",pedido->pagRequeridas);
@@ -100,6 +132,7 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 
 	log_info(logSwap,"Id Proceso: %d",pedido->idPrograma);
 	log_info(logSwap,"Cantidad de páginas requeridas: %d",cantidadPaginas);
+	log_info(logSwap,"Código recibido: %s",pedido->codigo);
 
 	int codOp = NO_OK;
 
@@ -113,26 +146,29 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 
 		//si hay lugar armar t_control_swap y sumarlo a la lista de procesos
 		agregarNuevoProceso(posicion,cantidadPaginas,pedido);
-		codOp = OK;
+
+		// Grabar
+		int pagscodigo = (strlen(pedido->codigo)+1)/tamanioPagina;
+		int i;
+		for(i=0;i<=pagscodigo;i++){
+			int posicion_posta = encontrar_posicion(pedido->idPrograma,i);
+			char* bufferCorrido = pedido->codigo+(i*tamanioPagina);
+			puts(bufferCorrido);
+			codOp = grabarArchivo(posicion_posta,bufferCorrido);
+			if(codOp == NO_OK)
+				break;
+		}
+
 	}else{
 		//fallar
 		log_info(logSwap,"No se ha podido asignar el espacio necesario");
 		puts("No se ha podido asignar el espacio necesario");
 	}
 
+	log_info(logSwap,"Envía respuesta a la UMC");
+
 	enviar(codOp,1,"OK",socket_memoria);
 	puts("Envia respuesta a la UMC");
-}
-
-int encontrar_posicion(int pid_enviado, int pagina){
-	bool matchPID(void* controlSwap){
-		return ((t_control_swap*)controlSwap)->PId == pid_enviado;
-	}
-	t_control_swap* controlSwap = list_find(lista_procesos,matchPID);
-	if(controlSwap != NULL)
-			return (controlSwap->posicion+pagina) * tamanioPagina;
-
-	return -1;
 }
 
 void leerPagina(t_paquete* paquete){
@@ -189,20 +225,8 @@ void escribirPagina(t_paquete* paquete){
 	log_info(logSwap,"pid: %d \n",pid_enviado);
 	log_info(logSwap,"Buffer %.*s",tamanioPagina,pedido->buffer);
 
-	// Grabar y mandar resultado a la umc
-	fseek(swapFile,posicion_posta,SEEK_SET);
-
-	int codOp = NO_OK;
-
-	if(fwrite(pedido->buffer,tamanioPagina,1,swapFile) != 1){
-		log_error(logSwap, "No se pudo grabar la página en el archivo");
-		puts("No se pudo grabar la página en el archivo");
-	}else{
-		codOp = OK;
-		log_info(logSwap,"Grabación exitosa de la página en el archivo");
-		puts("Grabación exitosa");
-	}
-
+	// Grabar
+	int codOp = grabarArchivo(posicion_posta,pedido->buffer);
 
 	// Responde a la UMC el resultado de la operación
 	enviar(codOp,1,&socket_memoria,socket_memoria);
