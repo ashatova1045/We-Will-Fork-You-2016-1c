@@ -7,7 +7,7 @@ extern t_bitarray* bitarray;
 extern t_swapcfg* datosSwap;
 
 t_log* crearLog(){
-	t_log *logSwap = log_create("log.txt", "swap.c", false, LOG_LEVEL_INFO);
+	t_log *logSwap = log_create("logSwap.log", "swap.c", false, LOG_LEVEL_INFO);
 	return logSwap;
 }
 
@@ -123,7 +123,6 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 	//t_pedido_inicializar_swap* pedido = (t_pedido_inicializar_swap*)paquete->datos;
 
 	t_pedido_inicializar_swap* pedido = deserializar_pedido_inicializar_swap(paquete->datos);
-
 
 	printf("ProcessID: %d\n",pedido->idPrograma);
 	printf("Cantidad de Paginas: %d\n",pedido->pagRequeridas);
