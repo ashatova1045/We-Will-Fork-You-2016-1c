@@ -33,21 +33,27 @@ void atender_conexion(int* socket_conexion){
 				//Simulo el tiempo de acceso a memoria con el tiempo de retardo ingresado en la configuracion
 				sleep(config_umc->retardo);
 
-				//Casteo el pedido como un pedido de inicializar
-				t_pedido_inicializar nuevo_programa=*((t_pedido_inicializar*)pedido->datos);
+				//Descerializo el programa
+				t_pedido_inicializar *pedido_inicializar=deserializar_pedido_inicializar(pedido->datos);
 
 				//Creo y cargo una estructura de lo que el swap tiene que recibir
 				t_pedido_inicializar_swap nuevo_programa_swap;
-				log_info(logUMC,"Cantidad de paginas pedidas: %d",nuevo_programa.pagRequeridas);
+				log_info(logUMC,"Cantidad de paginas pedidas: %d",pedido_inicializar->pagRequeridas);
 
-				nuevo_programa_swap.idPrograma=nuevo_programa.idPrograma;
-				nuevo_programa_swap.pagRequeridas=nuevo_programa.pagRequeridas;
+
+				nuevo_programa_swap.idPrograma=pedido_inicializar->idPrograma;
+				nuevo_programa_swap.pagRequeridas=pedido_inicializar->pagRequeridas;
+				strcpy(nuevo_programa_swap.codigo,pedido_inicializar->codigo);
+
+				//Serializo el pedido para mandarle al swap
+				t_pedido_inicializar_serializado_swap* pedido_inicializar_swap_serializado;
+				pedido_inicializar_swap_serializado = serializar_pedido_inicializar_swap(&nuevo_programa_swap);
 
 				//Bloqueo la conexión con el swap
 				pthread_mutex_lock(&mutex);
 
 				//Le envío la estructura al swap para saber si tiene espacio para guardar el programa
-				enviar(NUEVO_PROGRAMA,sizeof(nuevo_programa_swap),&nuevo_programa_swap,socketswap);
+				enviar(NUEVO_PROGRAMA,pedido_inicializar_swap_serializado->tamano,pedido_inicializar_swap_serializado->pedido_serializado,socketswap);
 				log_info(logUMC,"Se le envio la cantidad de paginas al swap");
 
 				//Recibo una respuesta del swap

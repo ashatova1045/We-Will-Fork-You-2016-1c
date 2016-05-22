@@ -45,11 +45,11 @@ t_pedido_inicializar* deserializar_pedido_inicializar(char *pedido_serializado){
 	t_pedido_inicializar *respuesta = malloc(sizeof(t_pedido_inicializar));
 
 	int offset = 0;
-	respuesta->idPrograma = *pedido_serializado;
+	respuesta->idPrograma = *((int32_t*)pedido_serializado);
 	offset += sizeof(respuesta->idPrograma);
-	respuesta->pagRequeridas = *(pedido_serializado+offset);
+	respuesta->pagRequeridas = *((int32_t*)(pedido_serializado+offset));
 	offset += sizeof(respuesta->pagRequeridas);
-	strcpy(respuesta->codigo,pedido_serializado+offset);
+	respuesta->codigo = strdup(pedido_serializado+offset);
 	
 	return respuesta;
 }
