@@ -14,6 +14,7 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 //Función para atender las conexiones de las cpus y el núcleo
 
+
 void atender_conexion(int* socket_conexion){
 	
 	int32_t proceso_activo;
@@ -43,7 +44,8 @@ void atender_conexion(int* socket_conexion){
 
 				nuevo_programa_swap.idPrograma=pedido_inicializar->idPrograma;
 				nuevo_programa_swap.pagRequeridas=pedido_inicializar->pagRequeridas;
-				strcpy(nuevo_programa_swap.codigo,pedido_inicializar->codigo);
+				nuevo_programa_swap.codigo=strdup(pedido_inicializar->codigo);
+				//strcpy(nuevo_programa_swap.codigo,pedido_inicializar->codigo);
 
 				//Serializo el pedido para mandarle al swap
 				t_pedido_inicializar_serializado_swap* pedido_inicializar_swap_serializado;
