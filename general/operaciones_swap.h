@@ -9,6 +9,7 @@ typedef struct
 {
 	int32_t idPrograma;
 	int32_t pagRequeridas;
+	char* codigo;
 }t_pedido_inicializar_swap;
 
 typedef struct
@@ -30,7 +31,16 @@ typedef struct
 	char* pedido_serializado;
 }t_pedido_almacenar_swap_serializado;
 
+typedef struct
+{
+	int32_t tamano;
+	char* pedido_serializado;
+}t_pedido_inicializar_serializado_swap;
+
 t_pedido_almacenar_swap_serializado* serializar_pedido_almacenar_swap(t_pedido_almacenar_swap *pedido,int tamano_pagina);
 t_pedido_almacenar_swap* deserializar_pedido_almacenar_swap(char *pedido_serializado,int tamano_pagina);
+t_pedido_inicializar_swap* deserializar_pedido_inicializar_swap(char *pedido_serializado);
+t_pedido_inicializar_serializado_swap* serializar_pedido_inicializar_swap(t_pedido_inicializar_swap *pedido);
+
 
 #endif /* OPERACIONES_SWAP_H_ */
