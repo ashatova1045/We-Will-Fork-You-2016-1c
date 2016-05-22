@@ -190,8 +190,8 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 	t_pcb* nvopcb = malloc(sizeof(t_pcb));
 	nvopcb->pid=++pidActual;
 	nvopcb->pc=0;
-	nvopcb->cant_etiquetas=0; //fixme
-	nvopcb->cant_entradas_indice_stack=0; //fixme
+
+//>>>>>>>>> Asignacion de cant de instrucciones, paginas totales e indice de codigo
 	nvopcb->cant_instrucciones=metadata->instrucciones_size;
 
 	int tamano_instrucciones = sizeof(t_posMemoria)*(nvopcb->cant_instrucciones);
@@ -227,34 +227,72 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 	}
 
 	int result_pag = roundup(paquete.tamano_datos, tamano_pag_umc);
-	nvopcb->cant_pags_totales=(result_pag + (config_nucleo->tamano_stack)); //incluye las variables propias del programa?
+	nvopcb->cant_pags_totales=(result_pag + (config_nucleo->tamano_stack));
 	log_debug(logNucleo,"Cant paginas totales: %ds",nvopcb->cant_pags_totales);
+//<<<<<<<<<<<<<<<fin
+
+//>>>>>>>>>>> Inicializacion de Etiquetas (cambios ana hoy)
+	nvopcb->cant_etiquetas=metadata->cantidad_de_etiquetas; //fixme
+	int tamano_etiquetas = sizeof(t_indice_etiq)*(nvopcb->cant_etiquetas);
+	log_debug(logNucleo,"Tamano de las etiquetas %d",tamano_etiquetas);
+	nvopcb->indice_etiquetas=malloc(tamano_etiquetas);
+
+	//tengo que ir levantando los strings de el serializado y copiandolos
+	char *c = metadata->etiquetas; //puntero que voy a ir moviendo en el serializado
+	for(i=0;i<nvopcb->cant_etiquetas;i++ ){
+		if(c > (metadata->etiquetas_size + metadata->etiquetas)){	//si c supera es por que me pase del largo de char serializado
+			//error se paso
+			log_error(logNucleo,"etiquetas mal serializadas");
+			break;
+		}
+		nvopcb->indice_etiquetas[i].tamano_etiqueta = strnlen(c, metadata->etiquetas_size - (c - metadata->etiquetas)) + 1;//para el null
+		nvopcb->indice_etiquetas[i].etiq = (char *)malloc(nvopcb->indice_etiquetas[i].tamano_etiqueta);
+		strncpy( nvopcb->indice_etiquetas[i].etiq, c, nvopcb->indice_etiquetas[i].tamano_etiqueta); //ahora reviso si esto esta bien o estoy tirando cualquiera
+		c += nvopcb->indice_etiquetas[i].tamano_etiqueta;
+
+		//falta pos_real
 
 
+	}
+//<<<<<<<<<< fin
+
+//>>>>>>> Inicializacion de indice de stack
+	nvopcb->cant_entradas_indice_stack=0; //fixme
+//	nvopcb->fin_stack=0;
+//<<<<<<<< fin
 
 	//registro_indice_stack * indice_stack= malloc(sizeof(registro_indice_stack));
 	//indice_stack->posicion=0;
 	//nvopcb->indice_stack=indice_stack;
 	//cant var y cant argumentos??
 /*
-	int32_t fin_stack;
+ * estructura del pcb
+ *
+typedef struct {
+	int32_t pid; ++
+	int32_t pc; ++
+	int32_t cant_pags_totales;   ++
+
+	t_posMemoria fin_stack;
 
 	u_int32_t cant_instrucciones; ++
 	t_posMemoria* indice_codigo; ++
 
-	int32_t cant_etiquetas;
-	t_indice_etiq* indice_etiquetas;
+	int32_t cant_etiquetas;	+-
+	t_indice_etiq* indice_etiquetas;	+-
 
 	u_int32_t cant_entradas_indice_stack;
 	registro_indice_stack* indice_stack;
-}__attribute__((__packed__)) t_pcb;*/
+} t_pcb;
 
-	//nvopcb.cant_etiquetas=metadata->cantidad_de_etiquetas;
+
+*/
+
 	log_debug(logNucleo,"PCB armado para programa:\n%s\ntamano: %d",paquete.datos,paquete.tamano_datos);
 
 	return nvopcb;
 }
-	//falta liberar todos los malloc todo
+	//falta liberar todos los malloc todo los libera en el destruirpcb??
 
 char* armar_codigo(t_pcb* nuevo_pcb,char* codigo,t_metadata_program* metadata){
 	int i,offset=0;
@@ -279,7 +317,9 @@ void enviar_a_cpu(){
 
 	t_pcb *pcb_ready;
 	pcb_ready=queue_pop(colaReady);
-
+	if(!pcb_ready){
+		return;
+	}
 	log_info(logNucleo, "Se levanto el pcb con id %d", pcb_ready->pid);
 
 	bool matchPID(void *programa) {
@@ -355,6 +395,7 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			log_debug(logNucleo,"El socket consola %d pidio handshake",socket);
 			enviar(OK_HS_CONSOLA,1,&socket,socket);
 			log_debug(logNucleo,"Se respondio hanshake a socket consola %d",socket);
+
 			break;
 
 		case NUEVO_PROGRAMA:
@@ -415,6 +456,7 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				puts("Handshake exitoso");
 				log_debug(logNucleo,"Handshake exitoso con cpu de socket %d",socket);
 				cargar_cpu(socket);
+				enviar_a_cpu();
 				break;
 
 			case FIN_QUANTUM:
@@ -461,6 +503,8 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 
 				enviar(TERMINO_BIEN_PROGRAMA,1,consola,consola->socket);
 				elminar_consola_por_socket(consola->socket);
+				enviar_a_cpu();
+
 			}
 				break;
 			case WAIT:
