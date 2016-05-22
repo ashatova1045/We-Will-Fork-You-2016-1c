@@ -256,46 +256,16 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 }
 	//falta liberar todos los malloc todo
 
-int enviar_codigo(t_pcb* nuevo_pcb,char* codigo,t_metadata_program* metadata){
-	enviar(CAMBIO_PROCESO_ACTIVO,sizeof(int32_t),&nuevo_pcb->pid,socket_umc);
-
-	int i;
-
+char* armar_codigo(t_pcb* nuevo_pcb,char* codigo,t_metadata_program* metadata){
+	int i,offset=0;
+	char *codigo_rta = malloc(TAMANIO_PAGINA*(nuevo_pcb->cant_pags_totales-config_nucleo->tamano_stack)+1); //+1 para el nulo
 	for(i=0;i < nuevo_pcb->cant_instrucciones;i++){
-		t_pedido_almacenarBytes pedido;
-		pedido.nroPagina = nuevo_pcb->indice_codigo[i].pag;
-		pedido.offset = nuevo_pcb->indice_codigo[i].offset;
-		pedido.tamanioDatos = nuevo_pcb->indice_codigo[i].size;
-		pedido.buffer = codigo+metadata->instrucciones_serializado[i].start;
-
-		t_pedido_almacenarBytes_serializado *ser = serializar_pedido_almacenar(&pedido);
-		enviar(ESCRITURA_PAGINA,ser->tamano,ser->pedido_serializado,socket_umc);
-		log_info(logNucleo,"Se envio el pedido de escritura pag %d offset %d cant %d\n Instruccion %d de %d \n buffer: %*.s",pedido.nroPagina,pedido.offset,pedido.tamanioDatos,i,nuevo_pcb->cant_instrucciones-1,pedido.tamanioDatos, pedido.buffer);
-		log_debug(logNucleo,"Esperando respuesta de la UMC...");
-
-		t_paquete *paquete_escritura = recibir_paquete(socket_umc);
-		switch (paquete_escritura->cod_op) {
-			case OK:
-				puts("Escritura correcta");
-				log_info(logNucleo,"Escritura correcta. UMC envio OK");
-				break;
-			case NO_OK:
-				puts("Escritura incorrecta");
-				log_warning(logNucleo,"Escritura incorrecta. UMC envio NO_OK");
-				return -1;
-				break;
-			case ERROR_COD_OP:
-				puts("Se desconecto la umc");
-				log_error(logNucleo,"Murio la UMC");
-				break;
-			default:
-				break;
-		}
-		destruir_paquete(paquete_escritura);
+		memcpy(codigo_rta+offset,codigo+metadata->instrucciones_serializado[i].start,nuevo_pcb->indice_codigo[i].size);
+		offset+= nuevo_pcb->indice_codigo[i].size;
 	}
+	codigo_rta[offset]='\0';
 
-
-	return 1;
+	return codigo_rta;
 }
 
 bool esta_libre(void * unaCpu){
@@ -332,6 +302,49 @@ void enviar_a_cpu(){
 	log_info(logNucleo,"Se envio un pcb a correr en la cpu %d",cpu_libre->socket);
 }
 
+bool inicializar_programa(t_pcb* nuevo_pcb,t_paquete paquete, t_metadata_program* metadata){
+	t_pedido_inicializar pedido_inicializar;
+
+	pedido_inicializar.idPrograma = nuevo_pcb->pid;
+	pedido_inicializar.pagRequeridas = nuevo_pcb->cant_pags_totales;
+	pedido_inicializar.codigo = armar_codigo(nuevo_pcb,paquete.datos,metadata);
+
+	t_pedido_inicializar_serializado *inicializarserializado = serializar_pedido_inicializar(&pedido_inicializar);
+
+	enviar(NUEVO_PROGRAMA,inicializarserializado->tamano,inicializarserializado->pedido_serializado,socket_umc);
+	log_debug(logNucleo,"Pedido inicializar enviado.PID %d,paginas %d",pedido_inicializar.idPrograma,pedido_inicializar.pagRequeridas);
+
+	free(inicializarserializado->pedido_serializado);
+	free(inicializarserializado);
+
+	t_paquete *respuesta_umc=recibir_paquete(socket_umc);
+	log_info(logNucleo,"Recibi respuesta umc");
+
+	switch (respuesta_umc->cod_op) {
+		case OK:
+			puts("Inicializacion correcta");
+			log_info(logNucleo,"Inicializacion correcta. UMC envio OK");
+			return true;
+			break;
+		case NO_OK:
+			puts("Inicializacion incorrecta");
+			log_warning(logNucleo,"Inicializacion incorrecta. UMC envio NO_OK");
+			//responder a la consola que no se puede ejecutar el programa
+			//destruir lo inicializado
+			break;
+		case ERROR_COD_OP:
+			puts("Se desconecto la umc");
+			log_error(logNucleo,"Murio la UMC");
+			exit(EXIT_FAILURE);
+			//responder a la consola que no se puede ejecutar el programa
+			//destruir lo inicializado
+			break;
+		default:
+			break;
+	}
+return false;
+}
+
 
 
 void manejar_socket_consola(int socket,t_paquete paquete){
@@ -351,54 +364,22 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			t_metadata_program* metadata;
 			metadata = metadata_desde_literal(paquete.datos);
 
+			//Creo el pcb y lo agrego a la cola new
 			t_pcb *nuevo_pcb;
 			nuevo_pcb = armar_nuevo_pcb(paquete,metadata);
 			log_debug(logNucleo, "Se armo el nuevo pcb, su id es: %d", nuevo_pcb->pid);
 			moverA_colaNew(nuevo_pcb);
 
-			//Creo el pcb y lo agrego a la cola new
-			t_pedido_inicializar pedido_inicializar;
+			//envio el inicializar a umc
+			bool inicializo_bien = inicializar_programa(nuevo_pcb,paquete,metadata);
 
-			pedido_inicializar.idPrograma = nuevo_pcb->pid;
-			pedido_inicializar.pagRequeridas = nuevo_pcb->cant_pags_totales;
-
-			enviar(NUEVO_PROGRAMA,sizeof(pedido_inicializar),&pedido_inicializar,socket_umc);
-			log_debug(logNucleo,"Pedido inicializar enviado.PID %d,paginas %d",pedido_inicializar.idPrograma,pedido_inicializar.pagRequeridas);
-
-			t_paquete *respuesta_umc=recibir_paquete(socket_umc);
-			log_info(logNucleo,"Recibi respuesta umc");
-
-			switch (respuesta_umc->cod_op) {
-				case OK:
-					puts("Inicializacion correcta");
-					log_info(logNucleo,"Inicializacion correcta. UMC envio OK");
-					break;
-				case NO_OK:
-					puts("Inicializacion incorrecta");
-					log_warning(logNucleo,"Inicializacion incorrecta. UMC envio NO_OK");
-					//responder a la consola que no se puede ejecutar el programa
-					//destruir lo inicializado
-					break;
-				case ERROR_COD_OP:
-					puts("Se desconecto la umc");
-					log_error(logNucleo,"Murio la UMC");
-					//responder a la consola que no se puede ejecutar el programa
-					//destruir lo inicializado
-					break;
-				default:
-					break;
-			}
-
-			enviar_codigo(nuevo_pcb,paquete.datos,metadata);
 			metadata_destruir(metadata);
 
-			log_debug(logNucleo,"Codigo programa ansisop enviado para escritura");
-
-
+			//agrego consola a la lista
 			cargar_programa(socket,nuevo_pcb->pid);
 
-			moverA_colaReady(nuevo_pcb);
-
+			if (inicializo_bien)
+				moverA_colaReady(nuevo_pcb);
 
 			enviar_a_cpu();
 			log_debug(logNucleo,"Termino la inicializacion del programa");
