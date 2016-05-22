@@ -317,7 +317,9 @@ void enviar_a_cpu(){
 
 	t_pcb *pcb_ready;
 	pcb_ready=queue_pop(colaReady);
-
+	if(!pcb_ready){
+		return;
+	}
 	log_info(logNucleo, "Se levanto el pcb con id %d", pcb_ready->pid);
 
 	bool matchPID(void *programa) {
@@ -393,6 +395,7 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			log_debug(logNucleo,"El socket consola %d pidio handshake",socket);
 			enviar(OK_HS_CONSOLA,1,&socket,socket);
 			log_debug(logNucleo,"Se respondio hanshake a socket consola %d",socket);
+
 			break;
 
 		case NUEVO_PROGRAMA:
@@ -453,6 +456,7 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				puts("Handshake exitoso");
 				log_debug(logNucleo,"Handshake exitoso con cpu de socket %d",socket);
 				cargar_cpu(socket);
+				enviar_a_cpu();
 				break;
 
 			case FIN_QUANTUM:
@@ -499,6 +503,8 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 
 				enviar(TERMINO_BIEN_PROGRAMA,1,consola,consola->socket);
 				elminar_consola_por_socket(consola->socket);
+				enviar_a_cpu();
+
 			}
 				break;
 			case WAIT:
