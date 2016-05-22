@@ -34,10 +34,10 @@ t_pedido_almacenar_swap* deserializar_pedido_almacenar_swap(char *pedido_seriali
 	return respuesta;
 }
 
-t_pedido_inicializar_swap* deserializar_pedido_inicializar(char *pedido_serializado){
+t_pedido_inicializar_swap* deserializar_pedido_inicializar_swap(char *pedido_serializado){
 	t_pedido_inicializar_swap *respuesta= malloc(sizeof(t_pedido_inicializar_swap));
 
-	int offset respuesta=0;
+	int offset=0;
 	respuesta->idPrograma= *pedido_serializado;
 	offset+=sizeof(respuesta->idPrograma);
 	respuesta->pagRequeridas=*(pedido_serializado+offset);
