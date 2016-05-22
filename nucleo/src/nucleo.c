@@ -278,8 +278,8 @@ typedef struct {
 	u_int32_t cant_instrucciones; ++
 	t_posMemoria* indice_codigo; ++
 
-	int32_t cant_etiquetas;
-	t_indice_etiq* indice_etiquetas;
+	int32_t cant_etiquetas;	+-
+	t_indice_etiq* indice_etiquetas;	+-
 
 	u_int32_t cant_entradas_indice_stack;
 	registro_indice_stack* indice_stack;
