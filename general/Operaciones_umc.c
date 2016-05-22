@@ -40,3 +40,37 @@ t_pedido_almacenarBytes* deserializar_pedido_almacenar(char *pedido_serializado)
 
 	return respuesta;
 }
+
+t_pedido_inicializar* deserializar_pedido_inicializar(char *pedido_serializado){
+	t_pedido_inicializar *respuesta = malloc(sizeof(t_pedido_inicializar));
+
+	int offset = 0;
+	respuesta->idPrograma = *pedido_serializado;
+	offset += sizeof(respuesta->idPrograma);
+	respuesta->pagRequeridas = *(pedido_serializado+offset);
+	offset += sizeof(respuesta->pagRequeridas);
+	strcpy(respuesta->codigo,pedido_serializado+offset);
+	
+	return respuesta;
+}
+t_pedido_inicializar_serializado* serializar_pedido_inicializar(t_pedido_inicializar *pedido){
+	t_pedido_inicializar_serializado *respuesta = malloc(sizeof(t_pedido_inicializar_serializado));
+
+	int tamanoidprograma = sizeof(pedido->idPrograma);
+	int tamanopagsrequeridas = sizeof(pedido->pagRequeridas);
+	int tamanocodigo = (strlen(pedido->codigo)+1);
+
+	respuesta->tamano = tamanoidprograma+ tamanopagsrequeridas + tamanocodigo;
+	respuesta->pedido_serializado = malloc(respuesta->tamano);
+
+	int offset = 0;
+	memcpy(respuesta->pedido_serializado,&pedido->idPrograma,tamanoidprograma);
+	offset += tamanoidprograma;
+
+	memcpy(respuesta->pedido_serializado+offset,&pedido->pagRequeridas,tamanopagsrequeridas);
+	offset += tamanopagsrequeridas;
+
+	strcpy(respuesta->pedido_serializado+offset,pedido->codigo);
+
+	return respuesta;
+}

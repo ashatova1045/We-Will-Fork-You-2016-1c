@@ -9,6 +9,7 @@ typedef struct
 {
 	int32_t idPrograma;
 	int32_t pagRequeridas;
+	char* codigo;
 }t_pedido_inicializar;
 
 typedef struct
@@ -32,6 +33,15 @@ typedef struct
 	char* pedido_serializado;
 }t_pedido_almacenarBytes_serializado;
 
+typedef struct
+{
+	int32_t tamano;
+	char* pedido_serializado;
+}t_pedido_inicializar_serializado;
+
+
+t_pedido_inicializar* deserializar_pedido_inicializar(char *pedido_serializado);
+t_pedido_inicializar_serializado* serializar_pedido_inicializar(t_pedido_inicializar *pedido);
 
 t_pedido_almacenarBytes* deserializar_pedido_almacenar(char *pedido_serializado);
 t_pedido_almacenarBytes_serializado* serializar_pedido_almacenar(t_pedido_almacenarBytes *pedido);
