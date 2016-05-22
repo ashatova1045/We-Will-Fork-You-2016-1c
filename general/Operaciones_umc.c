@@ -49,7 +49,7 @@ t_pedido_inicializar* deserializar_pedido_inicializar(char *pedido_serializado){
 	offset += sizeof(respuesta->idPrograma);
 	respuesta->pagRequeridas = *((int32_t*)(pedido_serializado+offset));
 	offset += sizeof(respuesta->pagRequeridas);
-	strcpy(respuesta->codigo,pedido_serializado+offset);
+	respuesta->codigo = strdup(pedido_serializado+offset);
 	
 	return respuesta;
 }

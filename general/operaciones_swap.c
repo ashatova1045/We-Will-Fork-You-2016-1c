@@ -42,7 +42,7 @@ t_pedido_inicializar_swap* deserializar_pedido_inicializar_swap(char *pedido_ser
 	offset+=sizeof(respuesta->idPrograma);
 	respuesta->pagRequeridas=*(pedido_serializado+offset);
 	offset+=sizeof(respuesta->pagRequeridas);
-	strcpy(respuesta->codigo,pedido_serializado+offset);
+	respuesta->codigo = strdup(pedido_serializado+offset);
 
 	return respuesta;
 }
