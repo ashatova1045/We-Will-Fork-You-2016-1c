@@ -296,12 +296,11 @@ typedef struct {
 
 char* armar_codigo(t_pcb* nuevo_pcb,char* codigo,t_metadata_program* metadata){
 	int i,offset=0;
-	char *codigo_rta = malloc(TAMANIO_PAGINA*(nuevo_pcb->cant_pags_totales-config_nucleo->tamano_stack)+1); //+1 para el nulo
+	char *codigo_rta = malloc(tamano_pag_umc*(nuevo_pcb->cant_pags_totales-config_nucleo->tamano_stack));
 	for(i=0;i < nuevo_pcb->cant_instrucciones;i++){
 		memcpy(codigo_rta+offset,codigo+metadata->instrucciones_serializado[i].start,nuevo_pcb->indice_codigo[i].size);
 		offset+= nuevo_pcb->indice_codigo[i].size;
 	}
-	codigo_rta[offset]='\0';
 
 	return codigo_rta;
 }
@@ -346,11 +345,13 @@ bool inicializar_programa(t_pcb* nuevo_pcb,t_paquete paquete, t_metadata_program
 	pedido_inicializar.idPrograma = nuevo_pcb->pid;
 	pedido_inicializar.pagRequeridas = nuevo_pcb->cant_pags_totales;
 	pedido_inicializar.codigo = armar_codigo(nuevo_pcb,paquete.datos,metadata);
+	log_trace(logNucleo,"Arme el pedido_inicializar");
 
 	t_pedido_inicializar_serializado *inicializarserializado = serializar_pedido_inicializar(&pedido_inicializar);
+	log_trace(logNucleo,"Serialice");
 
 	enviar(NUEVO_PROGRAMA,inicializarserializado->tamano,inicializarserializado->pedido_serializado,socket_umc);
-	log_debug(logNucleo,"Pedido inicializar enviado.PID %d,paginas %d",pedido_inicializar.idPrograma,pedido_inicializar.pagRequeridas);
+	log_debug(logNucleo,"Pedido inicializar enviado. PID %d,paginas %d",pedido_inicializar.idPrograma,pedido_inicializar.pagRequeridas);
 
 	free(inicializarserializado->pedido_serializado);
 	free(inicializarserializado);
@@ -361,7 +362,7 @@ bool inicializar_programa(t_pcb* nuevo_pcb,t_paquete paquete, t_metadata_program
 	switch (respuesta_umc->cod_op) {
 		case OK:
 			puts("Inicializacion correcta");
-			log_info(logNucleo,"Inicializacion correcta. UMC envio OK");
+//			log_info(logNucleo,"Inicializacion correcta. UMC envio OK");
 			return true;
 			break;
 		case NO_OK:
@@ -397,7 +398,6 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 		case NUEVO_PROGRAMA:
 	//		log_debug(logNucleo,"Se envio el nuevo programa a la umc con codop NUEVO_PROGRAMA");
 			printf("Llego un nuevo programa del socketConsola  %d\n",socket);
-			printf("El socket %d dice:\n",socket);
 
 			t_metadata_program* metadata;
 			metadata = metadata_desde_literal(paquete.datos);

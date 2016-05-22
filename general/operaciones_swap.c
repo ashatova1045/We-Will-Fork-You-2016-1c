@@ -62,6 +62,7 @@ t_pedido_inicializar_serializado_swap* serializar_pedido_inicializar_swap(t_pedi
 	offset += tamano_idprograma;
 
 	memcpy(respuesta->pedido_serializado+offset, &pedido->pagRequeridas, tamano_pags_requeridas);
+	offset += tamano_idprograma;
 
 	strcpy(respuesta->pedido_serializado+offset,pedido->codigo);
 
