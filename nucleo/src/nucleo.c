@@ -212,7 +212,7 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 		posicion_nueva_instruccion.size = tamano_instruccion;
 		nvopcb->indice_codigo[i] = posicion_nueva_instruccion;
 
-		if((tamano_instruccion/tamano_pagina_restante)<=1){
+		if((tamano_instruccion/tamano_pagina_restante)<1){
 			offset_actual += tamano_instruccion;
 		}
 		else{
@@ -220,10 +220,8 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 			offset_actual = tamano_instruccion % tamano_pagina_restante;
 		}
 
-		if (offset_actual == tamano_pag_umc){
-			pagina_actual++;
-			offset_actual = 0;
-		}
+		tamano_pagina_restante = tamano_pag_umc-offset_actual;
+
 	}
 
 	int result_pag = roundup(paquete.tamano_datos, tamano_pag_umc);
