@@ -8,6 +8,11 @@
 #ifndef ESTRUCTURAS_UMC_H_
 #define ESTRUCTURAS_UMC_H_
 #include <stdbool.h>
+#include <commons/collections/list.h>
+#include "../../sockets/Sockets.h"
+#include <stdlib.h>
+#include <commons/collections/dictionary.h>
+#include "Log_Umc.h"
 
 //Creo la estructura de configuración
 typedef struct{
@@ -21,28 +26,24 @@ typedef struct{
 	int retardo;
 }t_umcConfig;
 
-typedef struct {
-	int pid;
-	int pagina;
-	bool libre;
-	bool modificada;
-}t_marco;
 
-typedef struct {
-	t_marco *marco;
-	int posicion;	//posicion de este marco en la memoria_principal
-}t_info_marco;
+typedef struct{
+	int32_t nro_marco;
+	bool presencia;
+	bool modificado;
+}t_entrada_tabla_paginas;
+
+t_dictionary *tablasDePagina;
 
 char *memoria_principal;
-t_marco *tabla_marcos;
-t_info_marco *tlb;
+//t_marco *tabla_marcos;
+
+//Cada proceso tiene su tabla de paginas
+
+void nuevaTablaDePaginas(int pid, int cantPaginas);
 
 void crear_estructuras();
-t_info_marco* obtener_marco(int pid, int pagina);
-char* obtener_posicion_real(int pid, int pagina,int offset_en_bytes);
 void destruir_estructuras();
-char* obtener_posicion_real_desde_marco(t_info_marco* marco_info, int offset_en_bytes);
-bool es_el_marco_requerido(t_marco marco, int pagina, int pid);
 
 void destruir_estructura_conexion(int* datosConexion);
 #endif /* ESTRUCTURAS_UMC_H_ */
