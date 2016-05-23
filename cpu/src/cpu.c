@@ -104,7 +104,7 @@ char* pedir_lectura_de_umc(t_pedido_solicitarBytes pedido) {
 }
 
 int min (int a,int b){
-	return a<a?a:b;
+	return a<b?a:b;
 }
 
 void correr_pcb() {
