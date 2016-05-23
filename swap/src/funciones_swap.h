@@ -23,7 +23,7 @@
 t_log* crearLog();
 void levantarConfiguracion(t_config*);
 void manejar_socket_umc(t_paquete*);
-void inicializaSwapFile();
+int inicializaSwapFile();
 void manejarOperaciones(t_paquete* paquete);
 void inicializarNuevoPrograma(t_paquete* paquete);
 void leerPagina(t_paquete* paquete);

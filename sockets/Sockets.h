@@ -59,7 +59,9 @@ enum cod_op{ // Si se persisten en algun lado,agregar los cod_ops al final
 	OBTENER_INSTRUCCION=31,
 	ASIGNAR=32,
 	DEREFERENCIAR=33,
-	DEFINIR_VARIABLE=34
+	DEFINIR_VARIABLE=34,
+	OBTENER_VALOR_COMPARTIDA=35,
+	ASIGNAR_VALOR_COMPARTIDA=36
 };
 
 int enviar(uint16_t cod_op, int tamano_datos_en_bytes, void* datos, int destino_fd);

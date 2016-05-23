@@ -22,10 +22,12 @@ void levantarConfiguracion(t_config* config){
 	}
 }
 
-void inicializaSwapFile(){
+int inicializaSwapFile(){
 	// Inicializa variables
 	char* array = malloc(datosSwap->cantidad_paginas);
-	int cantBytes = (datosSwap->cantidad_paginas) / 8;
+	int codRet, cantBytes = (datosSwap->cantidad_paginas) / 8;
+
+	codRet = 0;
 
 	// Crea estructura bitmap
 	bitarray = bitarray_create(array, cantBytes);
@@ -38,8 +40,15 @@ void inicializaSwapFile(){
 	size_t tamanio_swap = datosSwap->tamanio_pagina * datosSwap->cantidad_paginas;
 
 	snprintf(command, sizeof(command), "dd if=/dev/zero of=%s bs=%d count=1",datosSwap->nombre_swap,tamanio_swap);
-	system(command);
-	swapFile = fopen(datosSwap->nombre_swap,"r+");
+
+	if(system(command) != -1){
+		swapFile = fopen(datosSwap->nombre_swap,"r+");
+	}else{
+		codRet = -1;
+		log_error(logSwap,"No se pudo crear el archivo");
+	}
+
+	return codRet;
 }
 
 void manejar_socket_umc(t_paquete* paquete){

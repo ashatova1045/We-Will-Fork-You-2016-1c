@@ -32,55 +32,11 @@ int main(int argc, char** argv) {
 	log_info(logSwap, "Se conecta al puerto");
 
 	// Inicializa archivo Swap
-	inicializaSwapFile(datosSwap);
+	if(inicializaSwapFile(datosSwap) == -1){
+		return 0;
+	}
 
 	lista_procesos = list_create();
-
-	//// TEST LISTA Y GRABACIÓN ARCHIVO SWAP
-	/*
-	int pid = 175;
-	int cantPags = 20;
-
-	int y;
-	int posicion = 0, pagina = 0;
-	while(bitarray_test_bit(bitarray,posicion)){
-		posicion++;
-	}
-
-	for(y=0;y<cantPags;y++){
-		//printf("Página %d - Posición %d \n",pagina,posicion);
-		t_control_swap* controlSwap = malloc(sizeof(t_control_swap));
-		controlSwap->PId = pid;
-		controlSwap->cantPaginas = pagina;
-		controlSwap->posicion = posicion;
-
-		list_add(lista_procesos,controlSwap);
-
-		pagina++;
-		posicion++;
-	}
-
-	if(fwrite(lista_procesos,sizeof(t_list),1,swapFile) != 1){
-		puts("Error");
-	}else{
-		puts("Grabación exitosa");
-	}
-	fseek(swapFile,0,SEEK_SET);
-
-	t_list* listaLeida = malloc(sizeof(t_list));
-	t_control_swap* controlSwap2 = malloc(sizeof(t_control_swap));
-
-	fread(listaLeida,sizeof(t_control_swap),1,swapFile);
-
-	int i=0;
-	while(!list_is_empty(listaLeida)){
-		controlSwap2 = list_remove(listaLeida,i);
-		printf("Lee PID %d \n",controlSwap2->PId);
-		printf("Lee Página %d \n",controlSwap2->cantPaginas);
-		printf("Lee Posición %d \n",controlSwap2->posicion);
-	}
-	*/
-	//// FIN TEST LISTA Y GRABACIÓN ARCHIVO SWAP
 
 	// Inicializa la conexión y queda a espera de procesos UMC
 	int socketserver = crear_socket_escucha(datosSwap->puerto_escucha);
