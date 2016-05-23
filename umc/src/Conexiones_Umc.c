@@ -37,6 +37,10 @@ void atender_conexion(int* socket_conexion){
 				//Descerializo el programa
 				t_pedido_inicializar *pedido_inicializar=deserializar_pedido_inicializar(pedido->datos);
 
+				//Creo la tabla para las paginas del proceso
+				nuevaTablaDePaginas(pedido_inicializar->idPrograma,pedido_inicializar->pagRequeridas);
+
+
 				//Creo y cargo una estructura de lo que el swap tiene que recibir
 				t_pedido_inicializar_swap nuevo_programa_swap;
 				log_info(logUMC,"Cantidad de paginas pedidas: %d",pedido_inicializar->pagRequeridas);
