@@ -12,7 +12,6 @@
 #include "nucleo.h"
 
 
-
 /*semaforo = malloc(sizeof(semaforo_t));
 semaforo->valor = atoi(valorSemaforosArray[i]);
 semaforo->cola = queue_create();
@@ -240,7 +239,7 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 	//tengo que ir levantando los strings de el serializado y copiandolos
 	char *c = metadata->etiquetas; //puntero que voy a ir moviendo en el serializado
 	for(i=0;i<nvopcb->cant_etiquetas;i++ ){
-		if(c > (metadata->etiquetas_size + metadata->etiquetas)){	//si c supera es por que me pase del largo de char serializado
+		if(c > ((metadata->etiquetas_size) + metadata->etiquetas)){	//si c supera es por que me pase del largo de char serializado
 			//error se paso
 			log_error(logNucleo,"etiquetas mal serializadas");
 			break;
@@ -252,12 +251,15 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 
 		//falta pos_real
 
-
 	}
+
 //<<<<<<<<<< fin
 
 //>>>>>>> Inicializacion de indice de stack
 	nvopcb->cant_entradas_indice_stack=0; //fixme
+	int tamano_ind_stack=sizeof(registro_indice_stack)*(nvopcb->cant_entradas_indice_stack);
+	nvopcb->indice_stack=malloc(tamano_ind_stack);
+//	nvopcb->indice_stack=
 //	nvopcb->fin_stack=0;
 //<<<<<<<< fin
 
