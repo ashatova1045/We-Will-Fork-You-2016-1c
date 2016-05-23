@@ -1,21 +1,6 @@
 #include "pcb.h"
 #include <stdlib.h>
 
-int32_t tamano_etiqueta(t_indice_etiq etiqueta){
-	return sizeof(etiqueta.pos_real)+
-			sizeof(etiqueta.tamano_etiqueta)+
-			sizeof(char) * etiqueta.tamano_etiqueta;
-}
-
-int32_t tamanio_indice_etiquetas(t_pcb pcb){
-	int i;
-	int32_t contador = 0;
-	for(i=0; i < (pcb.cant_etiquetas); i++)
-		contador += tamano_etiqueta(pcb.indice_etiquetas[i]);
-
-	return contador;
-}
-
 int32_t tamanio_indice_stack(t_pcb pcb){
 	int i;
 	int32_t contador = 0;
@@ -44,8 +29,8 @@ int32_t tamanio_pcb(t_pcb pcb){
 			sizeof(pcb.cant_instrucciones)+
 			sizeof(t_posMemoria) * pcb.cant_instrucciones +
 
-			sizeof(pcb.cant_etiquetas)+
-			tamanio_indice_etiquetas(pcb)+
+			sizeof(pcb.tamano_etiquetas)+
+			pcb.tamano_etiquetas+
 
 			sizeof(pcb.cant_entradas_indice_stack)+
 			tamanio_indice_stack(pcb);
@@ -72,12 +57,8 @@ t_pcb_serializado serializar(t_pcb pcb){
 	for(i=0;i<pcb.cant_instrucciones;i++)
 		offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(t_posMemoria) ,&pcb.indice_codigo[i]);
 
-	offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.cant_etiquetas),&pcb.cant_etiquetas);
-	for(i=0;i<pcb.cant_etiquetas;i++){
-		offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.indice_etiquetas->tamano_etiqueta),&pcb.indice_etiquetas[i].tamano_etiqueta);
-		offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.indice_etiquetas->pos_real),&pcb.indice_etiquetas[i].pos_real);
-		offset+=agregar(pcb_serializado.contenido_pcb+offset,pcb.indice_etiquetas[i].tamano_etiqueta,pcb.indice_etiquetas[i].etiq);
-	}
+	offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.tamano_etiquetas),&pcb.tamano_etiquetas);
+	offset+=agregar(pcb_serializado.contenido_pcb+offset,pcb.tamano_etiquetas,pcb.indice_etiquetas);
 
 	offset+=agregar(pcb_serializado.contenido_pcb+offset,sizeof(pcb.cant_entradas_indice_stack),&pcb.cant_entradas_indice_stack);
 	for(i=0;i<pcb.cant_entradas_indice_stack;i++){
@@ -129,20 +110,12 @@ t_pcb* deserializar(char* pcbs)
 		offset += sizeof(t_posMemoria);
 	}
 
-	pcb->cant_etiquetas = pcbs[offset];
-	offset += sizeof(pcb->cant_etiquetas);
+	pcb->tamano_etiquetas = pcbs[offset];
+	offset += sizeof(pcb->tamano_etiquetas);
 
-	pcb->indice_etiquetas = malloc(sizeof(t_indice_etiq) * pcb->cant_etiquetas);
-	for(i=0;i<pcb->cant_etiquetas;i++){
-		pcb->indice_etiquetas[i].tamano_etiqueta = pcbs[offset];
-		offset += sizeof(pcb->indice_etiquetas->tamano_etiqueta);
-		pcb->indice_etiquetas[i].pos_real= *((t_posMemoria*)(pcbs+offset));
-		offset += sizeof(pcb->indice_etiquetas->pos_real);
-
-		pcb->indice_etiquetas[i].etiq = malloc(sizeof(char)*pcb->indice_etiquetas[i].tamano_etiqueta);
-		memcpy(pcb->indice_etiquetas[i].etiq,pcbs+offset,pcb->indice_etiquetas[i].tamano_etiqueta);
-		offset += pcb->indice_etiquetas[i].tamano_etiqueta;
-	}
+	pcb->indice_etiquetas = malloc(pcb->tamano_etiquetas*sizeof(char));
+	memcpy(pcb->indice_etiquetas,pcbs+offset,pcb->tamano_etiquetas*sizeof(char));
+	offset += pcb->tamano_etiquetas;
 
 	pcb->cant_entradas_indice_stack = pcbs[offset];
 	offset += sizeof(pcb->cant_entradas_indice_stack);
@@ -190,9 +163,6 @@ void destruir_pcb (t_pcb *pcbADestruir){
 
 	free(pcbADestruir->indice_codigo); //hago este free por que se asigno la memoria con un unico malloc
 
-	for(i=0 ;i < (pcbADestruir->cant_etiquetas) ; i++ ){
-		free(pcbADestruir->indice_etiquetas[i].etiq);
-	}
 	free(pcbADestruir->indice_etiquetas);
 
 	for(i=0; i <(pcbADestruir->cant_entradas_indice_stack) ; i++){

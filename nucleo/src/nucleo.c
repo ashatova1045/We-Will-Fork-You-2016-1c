@@ -228,36 +228,14 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 	log_debug(logNucleo,"Cant paginas totales: %ds",nvopcb->cant_pags_totales);
 //<<<<<<<<<<<<<<<fin
 
-//>>>>>>>>>>> Inicializacion de Etiquetas (cambios ana hoy)
-	nvopcb->cant_etiquetas=metadata->cantidad_de_etiquetas; //fixme
-	int tamano_etiquetas = sizeof(t_indice_etiq)*(nvopcb->cant_etiquetas);
-	log_debug(logNucleo,"Tamano de las etiquetas %d",tamano_etiquetas);
-	nvopcb->indice_etiquetas=malloc(tamano_etiquetas);
-
-	//tengo que ir levantando los strings de el serializado y copiandolos
-	char *c = metadata->etiquetas; //puntero que voy a ir moviendo en el serializado
-	for(i=0;i<nvopcb->cant_etiquetas;i++ ){
-		if(c > ((metadata->etiquetas_size) + metadata->etiquetas)){	//si c supera es por que me pase del largo de char serializado
-			//error se paso
-			log_error(logNucleo,"etiquetas mal serializadas");
-			break;
-		}
-		nvopcb->indice_etiquetas[i].tamano_etiqueta = strnlen(c, metadata->etiquetas_size - (c - metadata->etiquetas)) + 1;//para el null
-		nvopcb->indice_etiquetas[i].etiq = (char *)malloc(nvopcb->indice_etiquetas[i].tamano_etiqueta);
-		strncpy( nvopcb->indice_etiquetas[i].etiq, c, nvopcb->indice_etiquetas[i].tamano_etiqueta); //ahora reviso si esto esta bien o estoy tirando cualquiera
-		c += nvopcb->indice_etiquetas[i].tamano_etiqueta;
-
-		//falta pos_real
-
-	}
-
+//>>>>>>>>>>> Inicializacion de Etiquetas
+	nvopcb->tamano_etiquetas=metadata->etiquetas_size;
+	nvopcb->indice_etiquetas=malloc(nvopcb->tamano_etiquetas);
+	memcpy(nvopcb->indice_etiquetas,metadata->etiquetas,nvopcb->tamano_etiquetas);
 //<<<<<<<<<< fin
 
 //>>>>>>> Inicializacion de indice de stack
-	nvopcb->cant_entradas_indice_stack=0; //fixme
-	int tamano_ind_stack=sizeof(registro_indice_stack)*(nvopcb->cant_entradas_indice_stack);
-	nvopcb->indice_stack=malloc(tamano_ind_stack);
-//	nvopcb->indice_stack=
+	nvopcb->cant_entradas_indice_stack=0;
 //	nvopcb->fin_stack=0;
 //<<<<<<<< fin
 

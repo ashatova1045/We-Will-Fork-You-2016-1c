@@ -35,12 +35,6 @@ typedef struct {
 } __attribute__((__packed__)) registro_indice_stack;
 
 typedef struct {
-	u_int32_t tamano_etiqueta;
-	char* etiq; //Este es el id de una funcion o etiqueta de programa
-	t_posMemoria pos_real; // La posicion que debe tomar el PC para arrancar a ejecutar la funicion o etiqueta del programa
-} __attribute__((__packed__)) t_indice_etiq;
-
-typedef struct {
 	int32_t pid;
 	int32_t pc;
 	int32_t cant_pags_totales; //total de paginas que pidio codigo+stack
@@ -49,8 +43,8 @@ typedef struct {
 	u_int32_t cant_instrucciones;
 	t_posMemoria* indice_codigo;
 
-	int32_t cant_etiquetas;
-	t_indice_etiq* indice_etiquetas;
+	u_int32_t tamano_etiquetas;
+	char* indice_etiquetas;
 
 	u_int32_t cant_entradas_indice_stack;
 	registro_indice_stack* indice_stack;
