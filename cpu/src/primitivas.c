@@ -1,4 +1,7 @@
 #include "primitivas.h"
+#include "cpu.h"
+
+int pc;
 
 t_posicion* definirVariable(t_nombre_variable identificador_variable){
 
@@ -100,23 +103,6 @@ void asignar(t_posicion	direccion_variable,	t_valor_variable valor){
 
 	enviar(ASIGNAR,sizeof(t_asignar),paquete_asignar,socket_nucleo);
 
-	/*t_paquete *respuesta_asignar = recibir_paquete(socket_nucleo);
-	switch (respuesta_asignar->cod_op) {
-		case OK:
-			log_debug(logcpu,"Se ha asignado el valor correctamente");
-			break;
-		case NO_OK:
-			log_error(logcpu,"El nucleo reportó un error");
-			break;
-		default:
-			log_error(logcpu,"Se desconectó el núcleo!");
-			destruir_paquete(respuesta_asignar);
-			exit(EXIT_FAILURE);
-			break;
-	}
-
-	destruir_paquete(respuesta_label);*/
-
 }
 
 t_valor_variable obtenerValorCompartida(t_nombre_compartida	variable){
@@ -149,6 +135,10 @@ t_valor_variable obtenerValorCompartida(t_nombre_compartida	variable){
 t_valor_variable asignarValorCompartida(t_nombre_compartida	variable, t_valor_variable valor_variable){
 
 	t_asignar_var_comp* paquete_asignar_var_comp = malloc(sizeof(t_asignar_var_comp));
+	paquete_asignar_var_comp->variable = variable;
+	paquete_asignar_var_comp->valor_variable = valor_variable;
+
+	serializar_asignar_compartida(paquete_asignar_var_comp);
 
 	log_info(logcpu,"Se solicita asignar el valor %d a la variable compartida %s\n", valor_variable, variable);
 
@@ -189,6 +179,11 @@ void llamarConRetorno(t_nombre_etiqueta	etiqueta, t_puntero donde_retornar){
 
 }
 
+t_puntero_instruccion retornar(t_valor_variable retorno){
+	t_puntero_instruccion* instruccion = malloc(sizeof(t_puntero_instruccion));
+	return *instruccion;
+}
+
 int	imprimir(t_valor_variable valor_mostrar){
 	int cantCarImp;
 
@@ -218,14 +213,11 @@ int	imprimir(t_valor_variable valor_mostrar){
 	return cantCarImp;
 }
 
-
 void imprimirTexto(char* texto) {
 	log_info(logcpu,"PRIMITIVA: Imprimiendo el texto:\n%s",texto);
 
 	enviar(IMPRIMIR_TEXTO,strlen(texto)+1,texto,socket_nucleo);
 }
-
-
 
 int	entradaSalida(t_nombre_dispositivo dispositivo, int tiempo){
 	int codResp;
@@ -233,6 +225,8 @@ int	entradaSalida(t_nombre_dispositivo dispositivo, int tiempo){
 
 	paquete_e_s->dispositivo = dispositivo;
 	paquete_e_s->tiempo = tiempo;
+
+	serializar_entrada_salida(paquete_e_s);
 
 	log_info(logcpu,"Intentando usar %s por %d unidades de tiempo:\n", dispositivo, tiempo);
 
@@ -422,3 +416,38 @@ void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
 
  }
 
+ t_pedido_serializado* serializar_asignar_compartida(t_asignar_var_comp *pedido_asignar){
+
+	int tamanio_variable = sizeof(pedido_asignar->variable);
+	int tamanio_valor = sizeof(pedido_asignar->valor_variable);
+
+	t_pedido_serializado* respuesta = malloc(sizeof(t_pedido_serializado));
+	respuesta->tamanio = tamanio_variable + tamanio_valor;
+	respuesta->pedido_serializado = malloc(respuesta->tamanio);
+
+	memcpy(respuesta->pedido_serializado,&pedido_asignar->variable,tamanio_variable);
+	int offset = tamanio_variable;
+
+	memcpy(respuesta->pedido_serializado+offset,&pedido_asignar->valor_variable,tamanio_valor);
+	offset += tamanio_valor;
+
+	return respuesta;
+ }
+
+t_pedido_serializado* serializar_entrada_salida(t_entrada_salida *pedido_e_s){
+
+	int tamanio_dispositivo = sizeof(pedido_e_s->dispositivo);
+	int tamanio_tiempo = sizeof(pedido_e_s->tiempo);
+
+	t_pedido_serializado* respuesta = malloc(sizeof(t_pedido_serializado));
+	respuesta->tamanio = tamanio_dispositivo + tamanio_tiempo;
+	respuesta->pedido_serializado = malloc(respuesta->tamanio);
+
+	memcpy(respuesta->pedido_serializado,&pedido_e_s->dispositivo,tamanio_dispositivo);
+	int offset = tamanio_dispositivo;
+
+	memcpy(respuesta->pedido_serializado+offset,&pedido_e_s->tiempo,tamanio_tiempo);
+	offset += tamanio_tiempo;
+
+	return respuesta;
+ }
