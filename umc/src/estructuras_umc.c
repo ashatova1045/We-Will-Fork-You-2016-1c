@@ -2,6 +2,8 @@
 #include "Config_Umc.h"
 
 
+//TODO Crear bitmap de memoria principal
+
 void crear_estructuras(){
 	//creo la memoria_principal
 	int espacio_total = config_umc->cant_marcos*config_umc->marco_size;
@@ -65,7 +67,7 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 }
 
 char* datos_pagina_en_memoria(int marco){
-	return (memoria_principal+marco);
+	return (memoria_principal+(marco*config_umc->marco_size));
 }
 
 
