@@ -44,6 +44,10 @@ void nuevaTablaDePaginas(int pid, int cantPaginas);
 
 void crear_estructuras();
 void destruir_estructuras();
+void destruir_lista(void *tablaDePaginas);
+char* i_to_s(int i);
+char* datos_pagina_en_memoria(int marco);
+t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina);
 
 void destruir_estructura_conexion(int* datosConexion);
 #endif /* ESTRUCTURAS_UMC_H_ */

@@ -10,7 +10,11 @@
 //------------------------------------------------------------------------------------------------------
 
 //Variables globales
+//mutex para la comunicación con el swap
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+//mutex para el acceso a la tabla de paginas
+pthread_mutex_t mutex_pags=PTHREAD_MUTEX_INITIALIZER;
 
 //Función para atender las conexiones de las cpus y el núcleo
 
@@ -32,14 +36,10 @@ void atender_conexion(int* socket_conexion){
 				log_info(logUMC,"Llego el aviso de un nuevo programa");
 
 				//Simulo el tiempo de acceso a memoria con el tiempo de retardo ingresado en la configuracion
-				sleep(config_umc->retardo);
+				usleep(config_umc->retardo);
 
 				//Descerializo el programa
 				t_pedido_inicializar *pedido_inicializar=deserializar_pedido_inicializar(pedido->datos);
-
-				//Creo la tabla para las paginas del proceso
-				nuevaTablaDePaginas(pedido_inicializar->idPrograma,pedido_inicializar->pagRequeridas);
-
 
 				//Creo y cargo una estructura de lo que el swap tiene que recibir
 				t_pedido_inicializar_swap nuevo_programa_swap;
@@ -86,14 +86,16 @@ void atender_conexion(int* socket_conexion){
 					enviar(OK,1,socket_conexion,*socket_conexion);
 					log_debug(logUMC,"Se informo al kernel que hay paginas para el programa");
 
+					//Creo la entrada a la tabla de paginas del proceso
+					nuevaTablaDePaginas(pedido_inicializar->idPrograma,pedido_inicializar->pagRequeridas);
+					log_info(logUMC,"Se creo la tabla de paginas del programa %d ",pedido_inicializar->idPrograma);
+
 				//Si la respuesta es que se desconecto el socket
 				}else if(paquete->cod_op==ERROR_COD_OP){
 
 					log_warning(logUMC,"Se desconecto el socket %d",*socket_conexion);
 					se_cerro = true;
 				}
-
-				//TODO Crear estructuras para el nuevo proceso (Que estructuras creo yo?
 
 				break;
 
@@ -102,74 +104,95 @@ void atender_conexion(int* socket_conexion){
 				log_info(logUMC,"Llego un pedido de lectura de página");
 
 				//Simulo el tiempo de acceso a memoria con el retardo ingresado en la configuracion
-				sleep(config_umc->retardo);
+				usleep(config_umc->retardo);
 
 				//TODO Poner semáforo mutex para acceder a la TLB
 				//TODO Buscar la página en la TLB, si no esta la busco en la tabla de marcos
 
-				//TODO Poner semáforo mutex para acceder a la tabla de marcos
-				//TODO Buscar la página en la tabla de marcos, si no esta se la pido al swap
-
-				//TODO Si la pagina la tengo en memoria le paso a la cpu el contenido pedido
-				//TODO Si la pagina la tiene el swap me la pasa, la cargo en memoria y le paso a la CPU el contenido pedido
+				//TODO Si la pagina la tiene el swap me la pasa, la cargo en memoria?? y le paso a la CPU el contenido pedido
 
 				//Casteo el pedido como una solicitud de lectura
 				t_pedido_solicitarBytes solicitud=*((t_pedido_solicitarBytes*)pedido->datos);
 
-				//Creo y cargo la estructura para mandarle el pedido de lectura al swap
-				t_pedido_leer_swap pedidoASwap;
-				pedidoASwap.pid=proceso_activo;
-				pedidoASwap.nroPagina=solicitud.nroPagina;
+				//Protejo con un semáforo el acceso a la tabla de paginas
+				pthread_mutex_lock(&mutex_pags);
 
-				log_info(logUMC,"Se pidio leer la pagina %d del proceso %d la cantidad de bytes %d con el offset %d",pedidoASwap.nroPagina,pedidoASwap.pid,solicitud.tamanioDatos,solicitud.offset);
+				//Busco la pagina en la tabla de paginas
+				t_entrada_tabla_paginas *tablaDePaginas= buscar_pagina_en_tabla(proceso_activo);
 
-				//Bloqueo la conexión con el swap
-				pthread_mutex_lock(&mutex);
+				//Libero el acceso a la tabla de páginas
+				pthread_mutex_unlock(&mutex_pags);
 
-				//Le envío al swap el pedido de lectura
-				enviar(LECTURA_PAGINA,sizeof(pedidoASwap),&pedidoASwap,socketswap);
-				log_info(logUMC,"Se pidio pagina al swap");
+				//Si la pagina no esta en la tabla es un error
+				if(tablaDePaginas==NULL){
 
-				//Recibo una respuesta de la lectura de parte del swap
-				t_paquete *paqueteLectura=recibir_paquete(socketswap);
-				log_info(logUMC,"Recibi respuesta del swap");
+					log_warning(logUMC,"No se encontro la pagina %d",solicitud.nroPagina);
+					exit(EXIT_FAILURE);
 
-				//Desbloqueo la conexión con el swap
-				pthread_mutex_unlock(&mutex);
 
-				//Si el swap tiene la pagina me la pasa y le paso los bytes pedidos a la cpu
-				if(paqueteLectura->cod_op==BUFFER_LEIDO){
+				//Si la página está en memoria
+				}else if(tablaDePaginas->presencia==1){
 
-					log_info(logUMC,"Leido: %.*s",solicitud.tamanioDatos,paqueteLectura->datos+solicitud.offset);
-					enviar(BUFFER_LEIDO,solicitud.tamanioDatos,paqueteLectura->datos+solicitud.offset,*socket_conexion);
+					//Busco los datos de la página y se los envío a la cpu
+					char* datosDePagina=datos_pagina_en_memoria(tablaDePaginas->nro_marco);
+
+					log_info(logUMC,"Leido: %.*s",solicitud.tamanioDatos,datosDePagina+solicitud.offset);
+					enviar(BUFFER_LEIDO,solicitud.tamanioDatos,datosDePagina+solicitud.offset,*socket_conexion);
 					log_info(logUMC,"Se le envio el contenido de la pagina a la cpu %d",*socket_conexion);
 
-				//Si el swap no tiene la pagina le aviso a la cpu que hubo un error
-				}else if(paqueteLectura->cod_op==NO_OK){
+				//Si la página no está en memoria le pido los datos al swap
+				}else if(tablaDePaginas->presencia==0){
 
-					log_info(logUMC,"No se pudo leer la página");
-					enviar(NO_OK,1,&socket_conexion,*socket_conexion);
-					log_info(logUMC,"Se le informo a la cpu %d que no se pudo leer la pagina pedida",*socket_conexion);
+					//Creo y cargo la estructura para mandarle el pedido de lectura al swap
+					t_pedido_leer_swap pedidoASwap;
+					pedidoASwap.pid=proceso_activo;
+					pedidoASwap.nroPagina=solicitud.nroPagina;
 
-				//Si se desconecto el socket
-				}else if(paqueteLectura->cod_op==ERROR_COD_OP){
+					log_info(logUMC,"Se pidio leer la pagina %d del proceso %d la cantidad de bytes %d con el offset %d",pedidoASwap.nroPagina,pedidoASwap.pid,solicitud.tamanioDatos,solicitud.offset);
 
-					log_warning(logUMC,"Se desconecto el socket %d",*socket_conexion);
-					se_cerro = true;
+					//Bloqueo la conexión con el swap
+					pthread_mutex_lock(&mutex);
+
+					//Le envío al swap el pedido de lectura
+					enviar(LECTURA_PAGINA,sizeof(pedidoASwap),&pedidoASwap,socketswap);
+					log_info(logUMC,"Se pidio pagina al swap");
+
+					//Recibo una respuesta de la lectura de parte del swap
+					t_paquete *paqueteLectura=recibir_paquete(socketswap);
+					log_info(logUMC,"Recibi respuesta del swap");
+
+					//Desbloqueo la conexión con el swap
+					pthread_mutex_unlock(&mutex);
+
+					//Si el swap tiene la pagina me la pasa y le paso los bytes pedidos a la cpu
+					if(paqueteLectura->cod_op==BUFFER_LEIDO){
+
+						log_info(logUMC,"Leido: %.*s",solicitud.tamanioDatos,paqueteLectura->datos+solicitud.offset);
+						enviar(BUFFER_LEIDO,solicitud.tamanioDatos,paqueteLectura->datos+solicitud.offset,*socket_conexion);
+						log_info(logUMC,"Se le envio el contenido de la pagina a la cpu %d",*socket_conexion);
+
+					//Si el swap no tiene la pagina le aviso a la cpu que hubo un error
+					}else if(paqueteLectura->cod_op==NO_OK){
+
+						log_info(logUMC,"No se pudo leer la página");
+						enviar(NO_OK,1,&socket_conexion,*socket_conexion);
+						log_info(logUMC,"Se le informo a la cpu %d que no se pudo leer la pagina pedida",*socket_conexion);
+
+					//Si se desconecto el socket
+					}else if(paqueteLectura->cod_op==ERROR_COD_OP){
+
+						log_warning(logUMC,"Se desconecto el socket %d",*socket_conexion);
+						se_cerro = true;
+					}
+					destruir_paquete(paqueteLectura);
 				}
-
-
-				destruir_paquete(paqueteLectura);
-				//TODO Traducir página a frame y devolver contenido
-
-
 				break;
 			case ESCRITURA_PAGINA:
 
 				log_info(logUMC,"Llego un pedido de escritura de página");
 
-				//Simulo el tirmpo de acceso a memoria con el retardo ingresado en la configuración
-				sleep(config_umc->retardo);
+				//Simulo el tiempo de acceso a memoria con el retardo ingresado en la configuración
+				usleep(config_umc->retardo);
 
 				//TODO Poner semáforo mutex para acceder a la TLB
 				//TODO Buscar página en la TLB, si no está la busco en memoria
@@ -274,8 +297,6 @@ void atender_conexion(int* socket_conexion){
 				//Recibo el id del programa a finalizar
 				int32_t *programaAFinalizar=pedido->datos;
 
-				//TODO Eliminar estructuras usadas para administrar el programa
-
 				//Bloqueo la conexión con el swap
 				pthread_mutex_lock(&mutex);
 
@@ -295,6 +316,9 @@ void atender_conexion(int* socket_conexion){
 					log_info(logUMC,"Se elimino el programa correctamente");
 					enviar(OK,1,&socket_conexion,*socket_conexion);
 					log_info(logUMC,"Se informo al nucleo que se elimino el programa correctamente");
+
+					//Elimino las estructuras creadas para el manejo del programa
+					dictionary_remove_and_destroy(tablasDePagina,i_to_s(*programaAFinalizar),destruir_lista);
 
 				//Si el swap me informa que el programa no se pudo eliminar le aviso al nucleo
 				}else if(pedidoFinalizar->cod_op==NO_OK){

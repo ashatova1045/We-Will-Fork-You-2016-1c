@@ -54,6 +54,20 @@ void nuevaTablaDePaginas(int pid,int cantPaginas){
 
 	dictionary_put(tablasDePagina,i_to_s(pid),tablaDePaginas);
 }
+t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
+
+	//Busca la tabla de paginas en el directorio y la devuelve
+	t_list *tablaDePaginas=dictionary_get(tablasDePagina,i_to_s(pid));
+
+	//Busca la página pedida en la lista
+	return list_get(tablaDePaginas,pagina);
+
+}
+
+char* datos_pagina_en_memoria(int marco){
+	return (memoria_principal+marco);
+}
+
 
 void destruir_lista(void *tablaDePaginas){
 	list_destroy_and_destroy_elements(tablaDePaginas,free);
