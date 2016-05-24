@@ -124,8 +124,6 @@ int grabarArchivo(int posicion_posta, char* buffer){
 }
 
 void inicializarNuevoPrograma(t_paquete* paquete){
-	//todo: Compactar partición en caso de fragmentación
-
 	log_info(logSwap,"Inicio de proceso de inicialización de un nuevo programa");
 	puts("INICIALIZAR NUEVO PROGRAMA");
 
@@ -198,7 +196,7 @@ void leerPagina(t_paquete* paquete){
 		printf("Posición: %d \n",posicion_posta);
 		log_info(logSwap,"Posición: %d \n",posicion_posta);
 		fseek(swapFile,posicion_posta,SEEK_SET);
-		//sleep(datosSwap->retardo_compactacion);
+
 		if(fread(buffer,tamanioPagina,1,swapFile) < 1){
 			puts("Error en la lectura de la página");
 			log_error(logSwap,"Error en la lectura de la página");
@@ -245,7 +243,6 @@ void finalizarPrograma(t_paquete* paquete){
 	int32_t* pedido = (int32_t*)paquete->datos;
 	int pid_enviado = *pedido;
 
-	//todo: Liberar espacio en caso que se finalice el proceso
 	log_info(logSwap,"Inicia proceso de finalización de programa %d",pid_enviado);
 	puts("FINALIZA PROGRAMA");
 
@@ -334,14 +331,12 @@ void agregarNuevoProceso(int posicion, int cantidadPaginas, t_pedido_inicializar
 }
 
 void compactar(){
-	//todo:Recordar ajustar tiempo de retardo desde milisegundos
-	//todo:Agregar logs de error
 
 	loggearBitmap(); // Log del bitmap antes de la compactación
 
 	log_info(logSwap,"Comienza proceso de compactación");
 	log_info(logSwap,"Compactando...");
-	sleep(datosSwap->retardo_compactacion);
+	usleep((datosSwap->retardo_compactacion)*1000); // retardo en microsegundos
 
 	//Ordena lista por posicion
 	list_sort(lista_procesos,ordenarPorPosicion);

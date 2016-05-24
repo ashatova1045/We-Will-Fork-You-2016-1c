@@ -1,22 +1,10 @@
-#include <commons/config.h>
-#include <commons/log.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-#include "../../sockets/Sockets.h"
-#include "estructuras_swap.h"
 #include "funciones_swap.h"
-#include <commons/collections/list.h>
-#include <commons/bitarray.h>
+#include "estructuras_swap.h"
 
-char* prog;
-
-t_log* logSwap;
-t_list* lista_procesos;
 int socket_memoria;
 t_swapcfg* datosSwap;
+t_log* logSwap;
+t_list* lista_procesos;
 
 int main(int argc, char** argv) {
 
@@ -56,8 +44,6 @@ int main(int argc, char** argv) {
 	puts("Conectado a la UMC");
 	log_info(logSwap,"Conectado a la UMC");
 
-	config_destroy(config);
-
 	printf("Main - Socket memoria %d \n",socket_memoria);
 
 	while(true){
@@ -74,5 +60,8 @@ int main(int argc, char** argv) {
 	fclose(swapFile);
 	close(socketserver);
 	close (socket_memoria);
+	log_info(logSwap,"Socket de UMC cerrado");
+	free(datosSwap);
+	config_destroy(config);
 	return EXIT_SUCCESS;
 }
