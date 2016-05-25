@@ -426,6 +426,17 @@ void nueva_conexion_consola(int socket){
 
 }
 
+void esperar_signal(t_pedido_wait* pedido_wait){
+
+	sem_t* semaforo = dictionary_get(semaforos,pedido_wait->semaforo);
+	sem_wait(semaforo);
+
+	desbloquear_pcb(pedido_wait->pcb);
+	free(pedido_wait->semaforo);
+	free(pedido_wait);
+	enviar_a_cpu();
+}
+
 void manejar_socket_cpu(int socket,t_paquete paquete){
 	switch (paquete.cod_op) {
 			case HS_CPU_NUCLEO:
@@ -486,8 +497,41 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 			}
 				break;
 			case WAIT:
+				{t_pedido_wait *pedido_wait = malloc(sizeof(t_pedido_wait));
+				*pedido_wait=  deserializar_wait(paquete.datos);
+
+				log_debug(logNucleo,"WAIT del socket cpu: %d al semaforo %s",socket,pedido_wait->semaforo);
+
+				sem_t* semaforo = dictionary_get(semaforos,pedido_wait->semaforo);
+
+				//me fijo si se va a bloquear. solo lo mando a bloqueados si se va a bloquear
+				int* currentval = malloc(sizeof(int));
+				sem_getvalue(semaforo,currentval);
+
+				int codop;
+				if(*currentval >0)
+					codop = OK;
+				else{
+					codop= NO_OK;
+					bloquear_pcb(pedido_wait->pcb);
+					liberar_una_relacion_porsocket_cpu(socket);
+				}
+
+				enviar(codop,1,&socket,socket);
+
+				pthread_t thread;
+				pthread_create(&thread,NULL,(void*)esperar_signal,pedido_wait);
+
+				if(codop==NO_OK)
+					enviar_a_cpu();
+
 				break;
+				}
 			case SIGNAL:
+				log_debug(logNucleo,"SIGNAL del socket cpu: %d",socket);
+
+				sem_t* semafor = dictionary_get(semaforos,paquete.datos);
+				sem_post(semafor);
 				break;
 			case ENTRADA_SALIDA:
 				break;
@@ -543,6 +587,24 @@ void funcion_hilo_servidor(t_estructura_server *conf_server){
 	free(fdmax);
 }
 
+void crear_semaforos(){
+	semaforos = dictionary_create();
+	int i;
+	char* sem_id = config_nucleo->semaf_ids[0];
+
+	for(i=0;sem_id;i++){
+		int valor_inicial = atoi(config_nucleo->semaf_init[i]);
+
+		sem_t *semaforo =malloc(sizeof(sem_t));
+		sem_init(semaforo,0,valor_inicial);
+
+		dictionary_put(semaforos,sem_id,semaforo);
+		log_debug(logNucleo,"Se inicializo el semaforo %s con valor %d",sem_id,valor_inicial);
+
+		sem_id = config_nucleo->semaf_ids[i+1];
+	}
+}
+
 int main(int argc, char **argv){
 
 //Declaracion de variables Locales
@@ -583,6 +645,9 @@ int main(int argc, char **argv){
 
 	conf_umc.puerto=config_nucleo->puerto_umc;
 	conf_umc.direccion=config_nucleo->ip_umc;
+
+//Inicializacion de semaforos
+	crear_semaforos();
 
 
 //Creacion hilos para atender conexiones desde cpu/consola

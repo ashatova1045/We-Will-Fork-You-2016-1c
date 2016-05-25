@@ -1,0 +1,14 @@
+#!./../consola/Debug/consola
+begin
+	textPrint Hola!1
+	wait SEM1
+	textPrint Hola!2
+	wait SEM1
+	textPrint Hola!3
+	textPrint Hola!4
+	textPrint Hola!5
+	textPrint Hola!6
+	textPrint Hola!7
+	textPrint Hola!8
+	textPrint Hola!9
+end

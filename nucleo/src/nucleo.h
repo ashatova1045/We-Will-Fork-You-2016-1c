@@ -8,7 +8,10 @@
 #ifndef NUCLEO_H_
 #define NUCLEO_H_
 #include <stdbool.h>
+#include <commons/collections/dictionary.h>
+#include <semaphore.h>
 
+t_dictionary *semaforos;
 
 typedef struct {
 	int puerto;

@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 /* link referencia http://stackoverflow.com/questions/1433204/how-do-i-use-extern-to-share-variables-between-source-files-in-c
  *
@@ -45,5 +46,8 @@ t_pcb *sacarDe_colaNew(uint32_t pid);
 t_pcb *sacarDe_colaReady(uint32_t pid);
 t_pcb *sacarDe_colaExec(uint32_t pid);
 t_pcb *sacarDe_colaBlocked(uint32_t pid);
+
+void bloquear_pcb(t_pcb* pid);
+void desbloquear_pcb(t_pcb* pcb);
 
 #endif /* ESTADOS_H_ */

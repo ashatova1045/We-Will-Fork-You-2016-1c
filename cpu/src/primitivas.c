@@ -287,51 +287,43 @@ int grabar_valor(t_nombre_variable identificador_variable, void* valorGrabar){
 	return codResp;
 }
 
-int	wait(t_nombre_semaforo identificador_semaforo){
-	int codResp;
+void signal(t_nombre_semaforo identificador_semaforo){
+	log_info(logcpu,"Se solicita ejecutar la función signal para el semáforo %s", identificador_semaforo);
 
-	log_info(logcpu,"Se solicita ejecutar la función wait para el semáforo %s\n", identificador_semaforo);
+	int i;
+	for(i=0;identificador_semaforo[i]!='\n';i++);
+	identificador_semaforo[i]='\0'; //fixme tengo que hacer esto xq la umc esta mandando mal las cosas
 
-	enviar(WAIT,sizeof(t_nombre_semaforo),identificador_semaforo,socket_nucleo);
 
-	t_paquete *respuesta_wait = recibir_paquete(socket_nucleo);
-	switch (respuesta_wait->cod_op) {
-		case OK:
-			codResp = 0;
-			log_info(logcpu,"Se ha realizado la función wait sobre el semáforo correctamente");
-			break;
-		case NO_OK:
-			codResp = -1;
-			log_error(logcpu,"El nucleo reportó un error al realizar la función wait");
-			break;
-		default:
-			log_error(logcpu,"Se desconectó el núcleo!");
-			destruir_paquete(respuesta_wait);
-			exit(EXIT_FAILURE);
-			break;
-	}
-
-	destruir_paquete(respuesta_wait);
-
-	return codResp;
+	enviar(SIGNAL,strlen(identificador_semaforo)+1,identificador_semaforo,socket_nucleo);
 }
 
-int	signal(t_nombre_semaforo identificador_semaforo){
-	int codResp;
+void wait(t_nombre_semaforo identificador_semaforo){
+	log_info(logcpu,"Se solicita ejecutar la función wait para el semáforo %s", identificador_semaforo);
+	int i;
+	for(i=0;identificador_semaforo[i]!='\n';i++);
+	identificador_semaforo[i]='\0'; //fixme tengo que hacer esto xq la umc esta mandando mal las cosas
 
-	log_info(logcpu,"Se solicita ejecutar la función signal para el semáforo %s\n", identificador_semaforo);
+	pcb_ejecutandose->pc++; //tengo que actualizarlo antes de enviar por si se bloquea
 
-	enviar(SIGNAL,sizeof(t_nombre_semaforo),identificador_semaforo,socket_nucleo);
+	t_pedido_wait* pedidowait = malloc(sizeof(t_pedido_wait));
+	pedidowait->semaforo = identificador_semaforo;
+	pedidowait->pcb = pcb_ejecutandose;
+
+	t_pedido_wait_serializado *pwaitser = serializar_wait(pedidowait);
+
+	enviar(WAIT,pwaitser->tamano,pwaitser->contenido,socket_nucleo);
 
 	t_paquete *respuesta_signal = recibir_paquete(socket_nucleo);
 	switch (respuesta_signal->cod_op) {
 		case OK:
-			codResp = 0;
-			log_info(logcpu,"Se ha realizado la función signal sobre el semáforo correctamente");
+			log_debug(logcpu,"El proceso %d no se bloqueo!",pcb_ejecutandose->pid);
+			pcb_ejecutandose->pc--; //no era necesario aumentar el pc(lo aumenta afuera)
 			break;
 		case NO_OK:
-			codResp = -1;
-			log_error(logcpu,"El nucleo reportó un error al realizar la función signal");
+			log_debug(logcpu,"El proceso %d se bloqueo!",pcb_ejecutandose->pid);
+			termino_programa = true;
+			destruir_pcb(pcb_ejecutandose);
 			break;
 		default:
 			log_error(logcpu,"Se desconectó el núcleo!");
@@ -341,12 +333,19 @@ int	signal(t_nombre_semaforo identificador_semaforo){
 	}
 
 	destruir_paquete(respuesta_signal);
-
-	return codResp;
+//	free(pwaitser->contenido);
+//	free(pwaitser);
 }
 
 void finalizar() {
 	termino_programa = true;
+
+	t_pcb_serializado pcbs = serializar(*pcb_ejecutandose);
+	enviar(FINALIZA_PROGRAMA,pcbs.tamanio,pcbs.contenido_pcb,socket_nucleo);
+
+	free(pcbs.contenido_pcb);
+
+	destruir_pcb(pcb_ejecutandose);
 
 	log_info(logcpu,"PRIMITIVA: Fin");
 }
@@ -403,6 +402,7 @@ void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
 	 functions = (AnSISOP_funciones) {
 		.AnSISOP_imprimirTexto = imprimirTexto,
 		.AnSISOP_finalizar = finalizar,
+
 		// .AnSISOP_definirVariable = dummy_definirVariable,
 		// .AnSISOP_obtenerPosicionVariable = dummy_obtenerPosicionVariable,
 		// .AnSISOP_dereferenciar = dummy_dereferenciar, .AnSISOP_asignar =
@@ -411,6 +411,8 @@ void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
 	};
 
 	kernel_functions =(AnSISOP_kernel) {
+		.AnSISOP_wait = wait,
+		.AnSISOP_signal = signal,
 
 	};
 

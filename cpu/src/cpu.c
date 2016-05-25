@@ -151,21 +151,21 @@ void correr_pcb() {
 		analizadorLinea(instruccion_actual, &functions, &kernel_functions);
 
 		//Incremento el program counter
-		pcb_ejecutandose->pc++;
+		if(!termino_programa)
+			pcb_ejecutandose->pc++;
 
 		//Destuyo la instruccion
 		free(instruccion_actual);
 	}
 
-	t_pcb_serializado pcb_serializado = serializar(*pcb_ejecutandose);
+	if(!termino_programa){
+		t_pcb_serializado pcb_serializado = serializar(*pcb_ejecutandose);
 
-	int codigo_respuesta = FIN_QUANTUM;
-	if(termino_programa)
-		codigo_respuesta = FINALIZA_PROGRAMA;
-	enviar(codigo_respuesta, pcb_serializado.tamanio, pcb_serializado.contenido_pcb,socket_nucleo);
+		enviar(FIN_QUANTUM, pcb_serializado.tamanio, pcb_serializado.contenido_pcb,socket_nucleo);
 
-	free(pcb_serializado.contenido_pcb);
-	destruir_pcb(pcb_ejecutandose);
+		free(pcb_serializado.contenido_pcb);
+		destruir_pcb(pcb_ejecutandose);
+	}
 }
 
 void matar_hilo_ejecucion() {

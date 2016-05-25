@@ -50,9 +50,21 @@ typedef struct {
 	registro_indice_stack* indice_stack;
 }__attribute__((__packed__)) t_pcb;
 
+typedef struct {
+	t_pcb* pcb;
+	char* semaforo; 
+}__attribute__((__packed__)) t_pedido_wait;
+
+typedef struct {
+	int32_t tamano;
+	char* contenido; 
+}__attribute__((__packed__)) t_pedido_wait_serializado;
+
 t_pcb_serializado serializar(t_pcb pcb);
 t_pcb* deserializar(char* pcbs);
 void destruir_pcb (t_pcb* pcbADestruir);
 
 
+t_pedido_wait deserializar_wait(char* serializado);
+t_pedido_wait_serializado* serializar_wait(t_pedido_wait* pedido);
 #endif /* PCB_H_ */

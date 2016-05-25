@@ -172,3 +172,40 @@ void destruir_pcb (t_pcb *pcbADestruir){
 	free(pcbADestruir->indice_stack);
 	free(pcbADestruir);
 }
+
+t_pedido_wait_serializado* serializar_wait(t_pedido_wait* pedido){
+	int tamano_semaforo = strlen(pedido->semaforo)+1;
+
+	t_pcb_serializado pcbserializado =  serializar(*pedido->pcb);
+
+	t_pedido_wait_serializado* ser = malloc(sizeof(t_pedido_wait_serializado));
+	ser->tamano = sizeof(pcbserializado.tamanio)+pcbserializado.tamanio+tamano_semaforo;
+	ser->contenido = malloc(ser->tamano);
+	int offset = 0;
+
+	strcpy(ser->contenido,pedido->semaforo);
+	offset+=tamano_semaforo;
+
+	memcpy(ser->contenido+offset,&pcbserializado.tamanio,sizeof(pcbserializado.tamanio));
+	offset+=sizeof(pcbserializado.tamanio);
+
+	memcpy(ser->contenido+offset,pcbserializado.contenido_pcb,pcbserializado.tamanio);
+
+	free(pcbserializado.contenido_pcb);
+
+	return ser;
+}
+
+t_pedido_wait deserializar_wait(char* serializado){
+	t_pedido_wait pedido;
+
+	int tamano_sem = strlen(serializado)+1;
+	pedido.semaforo=malloc(tamano_sem);
+	strcpy(pedido.semaforo,serializado);
+
+	int offset = tamano_sem;
+
+	pedido.pcb = deserializar(serializado+sizeof(int32_t)+offset);
+
+	return pedido;
+}
