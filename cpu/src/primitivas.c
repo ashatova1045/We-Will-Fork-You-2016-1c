@@ -300,9 +300,6 @@ void signal(t_nombre_semaforo identificador_semaforo){
 
 void wait(t_nombre_semaforo identificador_semaforo){
 	log_info(logcpu,"Se solicita ejecutar la función wait para el semáforo %s", identificador_semaforo);
-	int i;
-	for(i=0;identificador_semaforo[i]!='\n';i++);
-	identificador_semaforo[i]='\0'; //fixme tengo que hacer esto xq la umc esta mandando mal las cosas
 
 	pcb_ejecutandose->pc++; //tengo que actualizarlo antes de enviar por si se bloquea
 

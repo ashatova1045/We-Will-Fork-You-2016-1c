@@ -65,7 +65,7 @@ char* recibir_respuesta_lectura() {
 	//Trato el paquete segun el codigo de operacion
 	switch (paquete_actual->cod_op) {
 	case BUFFER_LEIDO:
-		log_debug(logcpu, "Datos leidos: %s", paquete_actual->datos);
+		log_debug(logcpu, "Datos leidos");
 		break;
 	case NO_OK:
 		log_info(logcpu, "NO OK recibido");
@@ -80,15 +80,10 @@ char* recibir_respuesta_lectura() {
 		//En caso de que el paquete recibido sea del nucleo y no se la umc
 		break;
 	}
-	char* respuesta = strdup(paquete_actual->datos);
-	destruir_paquete(paquete_actual);
-	if (respuesta == NULL) {
-		puts("Error al reservar memoria para la lectura requerida");
-		log_error(logcpu,
-				"Error al reservar memoria para la lectura requerida");
-		pthread_exit(NULL);
-	}
+	char* respuesta = malloc(paquete_actual->tamano_datos*sizeof(char));
+	memcpy(respuesta,paquete_actual->datos,paquete_actual->tamano_datos);
 
+	destruir_paquete(paquete_actual);
 	return respuesta;
 }
 
@@ -107,6 +102,42 @@ int min (int a,int b){
 	return a<b?a:b;
 }
 
+char* fetch_instruction(){
+	t_posMemoria posicion_instruccion_actual =
+			pcb_ejecutandose->indice_codigo[pcb_ejecutandose->pc];
+	//Pido instrucción a umc
+	int tamanoinstruccion_que_entra = min(tamPag-posicion_instruccion_actual.offset,posicion_instruccion_actual.size);
+
+
+	t_pedido_solicitarBytes pedido;
+	pedido.nroPagina = posicion_instruccion_actual.pag;
+	pedido.offset = posicion_instruccion_actual.offset;
+	pedido.tamanioDatos = tamanoinstruccion_que_entra;
+
+	//Envío pedido a UMC
+	char* instruccion_actual = pedir_lectura_de_umc(pedido);
+
+	int tamanoinstruccionfaltante=posicion_instruccion_actual.size-tamanoinstruccion_que_entra;
+
+	if(tamanoinstruccionfaltante>0){
+		pedido.nroPagina++;
+		pedido.offset=0;
+		pedido.tamanioDatos = tamanoinstruccionfaltante;
+		char* instruccion_actual2 = pedir_lectura_de_umc(pedido);
+		instruccion_actual = realloc(instruccion_actual,tamanoinstruccion_que_entra+tamanoinstruccionfaltante);
+		memcpy(instruccion_actual+tamanoinstruccion_que_entra,instruccion_actual2,tamanoinstruccionfaltante);
+		free(instruccion_actual2);
+	}
+
+	//hago que el string sea null-terminated para que no imprima basura
+	int i;
+	for(i=0;instruccion_actual[i]!='\n';i++);
+	instruccion_actual[i]='\0';
+
+
+	return instruccion_actual;
+}
+
 void correr_pcb() {
 	//Seteo proceso activo
 	enviar(CAMBIO_PROCESO_ACTIVO, sizeof(pcb_ejecutandose->pid),
@@ -119,43 +150,20 @@ void correr_pcb() {
 	for (quantum_actual = 1; quantum_actual <= quantumCpu && !termino_programa; quantum_actual++) {
 		log_info(logcpu, "\n\n\n\nCorriendo instruccion %d de %d",
 				quantum_actual, quantumCpu);
-		t_posMemoria posicion_instruccion_actual =
-				pcb_ejecutandose->indice_codigo[pcb_ejecutandose->pc];
 
-		
-		//Pido instrucción a umc
+		char *instruccion_actual = fetch_instruction();
+		log_info(logcpu,"Instruccion a correr:\n%s",instruccion_actual);
+		printf("Instruccion a correr:\n%s\n",instruccion_actual);
 
-		int tamanoinstruccion_que_entra = min(tamPag-posicion_instruccion_actual.offset,posicion_instruccion_actual.size);
-
-		t_pedido_solicitarBytes pedido;
-		pedido.nroPagina = posicion_instruccion_actual.pag;
-		pedido.offset = posicion_instruccion_actual.offset;
-		pedido.tamanioDatos = tamanoinstruccion_que_entra;
-
-		//Envío pedido a UMC
-		char* instruccion_actual = pedir_lectura_de_umc(pedido);
-
-		int tamanoinstruccionfaltante=posicion_instruccion_actual.size-tamanoinstruccion_que_entra;
-
-		if(tamanoinstruccionfaltante>0){
-			pedido.nroPagina++;
-			pedido.offset=0;
-			pedido.tamanioDatos = tamanoinstruccionfaltante;
-			char* instruccion_actual2 = pedir_lectura_de_umc(pedido);
-			instruccion_actual = realloc(instruccion_actual,tamanoinstruccion_que_entra+tamanoinstruccionfaltante);
-			memcpy(instruccion_actual+tamanoinstruccion_que_entra,instruccion_actual2,tamanoinstruccionfaltante);
-			free(instruccion_actual2);
-		}
+		//Incremento el program counter
+		pcb_ejecutandose->pc++;
 
 		//Parseo de la instruccion
 		analizadorLinea(instruccion_actual, &functions, &kernel_functions);
 
-		//Incremento el program counter
-		if(!termino_programa)
-			pcb_ejecutandose->pc++;
-
 		//Destuyo la instruccion
 		free(instruccion_actual);
+		puts("Fin instruccion");
 	}
 
 	if(!termino_programa){
