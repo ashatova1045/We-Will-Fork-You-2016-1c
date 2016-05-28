@@ -184,7 +184,7 @@ void destruirNucleoConfig(t_nucleoConfig* datosADestruir){
 
 t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 	int i;
-	log_debug(logNucleo,"Armando pcb para programa:\n%s\ntamano: %d",paquete.datos,paquete.tamano_datos);
+	log_debug(logNucleo,"Armando pcb para programa original:\n%s\nTamano: %d bytes",paquete.datos,paquete.tamano_datos);
 
 	t_pcb* nvopcb = malloc(sizeof(t_pcb));
 	nvopcb->pid=++pidActual;
@@ -194,8 +194,6 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 	nvopcb->cant_instrucciones=metadata->instrucciones_size;
 
 	int tamano_instrucciones = sizeof(t_posMemoria)*(nvopcb->cant_instrucciones);
-
-	log_debug(logNucleo,"Tamano de las instrucciones %d",tamano_instrucciones);
 
 	nvopcb->indice_codigo=malloc(tamano_instrucciones);
 
@@ -211,21 +209,34 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 		posicion_nueva_instruccion.size = tamano_instruccion;
 		nvopcb->indice_codigo[i] = posicion_nueva_instruccion;
 
-		if((tamano_instruccion/tamano_pagina_restante)<1){
+//		printf("pag %d offset %d size %d\n",posicion_nueva_instruccion.pag,posicion_nueva_instruccion.offset,posicion_nueva_instruccion.size);
+//		printf("%.*s\n",posicion_nueva_instruccion.size,(char*)paquete.datos+metadata->instrucciones_serializado[i].start);
+
+		if(tamano_instruccion<tamano_pagina_restante){
 			offset_actual += tamano_instruccion;
 		}
 		else{
 			pagina_actual++;
-			offset_actual = tamano_instruccion % tamano_pagina_restante;
+			offset_actual = tamano_instruccion - tamano_pagina_restante;
+		}
+
+		//por si el else del if anterior justo deja el offset al final de la pag
+		if(offset_actual == tamano_pag_umc){
+			pagina_actual++;
+			offset_actual = 0;
 		}
 
 		tamano_pagina_restante = tamano_pag_umc-offset_actual;
-
 	}
 
-	int result_pag = roundup(paquete.tamano_datos, tamano_pag_umc);
+	int tamano_codigo = 0;
+	for(i=0;i<nvopcb->cant_instrucciones;i++)
+		tamano_codigo+= nvopcb->indice_codigo[i].size;
+	log_trace(logNucleo,"Tamano del codigo parseado: %d",tamano_codigo);
+
+	int result_pag = roundup(tamano_codigo, tamano_pag_umc);
 	nvopcb->cant_pags_totales=(result_pag + (config_nucleo->tamano_stack));
-	log_debug(logNucleo,"Cant paginas totales: %ds",nvopcb->cant_pags_totales);
+	log_debug(logNucleo,"Cant paginas totales: %d",nvopcb->cant_pags_totales);
 //<<<<<<<<<<<<<<<fin
 
 //>>>>>>>>>>> Inicializacion de Etiquetas
@@ -265,9 +276,6 @@ typedef struct {
 
 
 */
-
-	log_debug(logNucleo,"PCB armado para programa:\n%s\ntamano: %d",paquete.datos,paquete.tamano_datos);
-
 	return nvopcb;
 }
 	//falta liberar todos los malloc todo los libera en el destruirpcb??
@@ -277,9 +285,13 @@ char* armar_codigo(t_pcb* nuevo_pcb,char* codigo,t_metadata_program* metadata){
 	char *codigo_rta = malloc(tamano_pag_umc*(nuevo_pcb->cant_pags_totales-config_nucleo->tamano_stack));
 	for(i=0;i < nuevo_pcb->cant_instrucciones;i++){
 		memcpy(codigo_rta+offset,codigo+metadata->instrucciones_serializado[i].start,nuevo_pcb->indice_codigo[i].size);
+
+//		log_trace(logNucleo,"Instruccion %d:\n%.*s",i,nuevo_pcb->indice_codigo[i].size,codigo_rta+offset);
+
 		offset+= nuevo_pcb->indice_codigo[i].size;
 	}
-
+	//lo hago null-terminated para poder serializarlo y printearlo mas facil
+	codigo_rta[offset] = '\0';
 	return codigo_rta;
 }
 
@@ -426,17 +438,6 @@ void nueva_conexion_consola(int socket){
 
 }
 
-void esperar_signal(t_pedido_wait* pedido_wait){
-
-	sem_t* semaforo = dictionary_get(semaforos,pedido_wait->semaforo);
-	sem_wait(semaforo);
-
-	desbloquear_pcb(pedido_wait->pcb);
-	free(pedido_wait->semaforo);
-	free(pedido_wait);
-	enviar_a_cpu();
-}
-
 void manejar_socket_cpu(int socket,t_paquete paquete){
 	switch (paquete.cod_op) {
 			case HS_CPU_NUCLEO:
@@ -502,25 +503,27 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 
 				log_debug(logNucleo,"WAIT del socket cpu: %d al semaforo %s",socket,pedido_wait->semaforo);
 
-				sem_t* semaforo = dictionary_get(semaforos,pedido_wait->semaforo);
+				t_semaforo* semaforo = dictionary_get(semaforos,pedido_wait->semaforo);
+				if(!semaforo){
+					log_error(logNucleo,"Se pidio wait a un semaforo inexistente");
+					exit(EXIT_FAILURE);
+				}
 
-				//me fijo si se va a bloquear. solo lo mando a bloqueados si se va a bloquear
-				int* currentval = malloc(sizeof(int));
-				sem_getvalue(semaforo,currentval);
+				semaforo->valor--;
 
 				int codop;
-				if(*currentval >0)
+				if(semaforo->valor >= 0)
 					codop = OK;
 				else{
 					codop= NO_OK;
+
+					queue_push(semaforo->cola,pedido_wait->pcb);
+
 					bloquear_pcb(pedido_wait->pcb);
 					liberar_una_relacion_porsocket_cpu(socket);
 				}
 
 				enviar(codop,1,&socket,socket);
-
-				pthread_t thread;
-				pthread_create(&thread,NULL,(void*)esperar_signal,pedido_wait);
 
 				if(codop==NO_OK)
 					enviar_a_cpu();
@@ -530,8 +533,18 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 			case SIGNAL:
 				log_debug(logNucleo,"SIGNAL del socket cpu: %d",socket);
 
-				sem_t* semafor = dictionary_get(semaforos,paquete.datos);
-				sem_post(semafor);
+				t_semaforo* semaforo = dictionary_get(semaforos,paquete.datos);
+				if(!semaforo){
+					log_error(logNucleo,"Se pidio wait a un semaforo inexistente");
+					exit(EXIT_FAILURE);
+				}
+
+				semaforo->valor++;
+
+				t_pcb* pcb = queue_pop(semaforo->cola);
+				desbloquear_pcb(pcb);
+				enviar_a_cpu();
+
 				break;
 			case ENTRADA_SALIDA:
 				break;
@@ -595,8 +608,9 @@ void crear_semaforos(){
 	for(i=0;sem_id;i++){
 		int valor_inicial = atoi(config_nucleo->semaf_init[i]);
 
-		sem_t *semaforo =malloc(sizeof(sem_t));
-		sem_init(semaforo,0,valor_inicial);
+		t_semaforo *semaforo =malloc(sizeof(t_semaforo));
+		semaforo->valor = valor_inicial;
+		semaforo->cola = queue_create();
 
 		dictionary_put(semaforos,sem_id,semaforo);
 		log_debug(logNucleo,"Se inicializo el semaforo %s con valor %d",sem_id,valor_inicial);
@@ -698,6 +712,8 @@ int main(int argc, char **argv){
 
 	destruirNucleoConfig(config_nucleo);
 	config_destroy(config);
+
+	dictionary_destroy_and_destroy_elements(semaforos,free);
 
 	log_destroy(logNucleo);
 

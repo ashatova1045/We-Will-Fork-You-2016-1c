@@ -301,8 +301,6 @@ void signal(t_nombre_semaforo identificador_semaforo){
 void wait(t_nombre_semaforo identificador_semaforo){
 	log_info(logcpu,"Se solicita ejecutar la función wait para el semáforo %s", identificador_semaforo);
 
-	pcb_ejecutandose->pc++; //tengo que actualizarlo antes de enviar por si se bloquea
-
 	t_pedido_wait* pedidowait = malloc(sizeof(t_pedido_wait));
 	pedidowait->semaforo = identificador_semaforo;
 	pedidowait->pcb = pcb_ejecutandose;
@@ -315,7 +313,6 @@ void wait(t_nombre_semaforo identificador_semaforo){
 	switch (respuesta_signal->cod_op) {
 		case OK:
 			log_debug(logcpu,"El proceso %d no se bloqueo!",pcb_ejecutandose->pid);
-			pcb_ejecutandose->pc--; //no era necesario aumentar el pc(lo aumenta afuera)
 			break;
 		case NO_OK:
 			log_debug(logcpu,"El proceso %d se bloqueo!",pcb_ejecutandose->pid);

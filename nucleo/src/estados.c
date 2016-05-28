@@ -102,20 +102,26 @@ t_pcb *sacarDe_colaBlocked(uint32_t pid)
 	t_pcb *pcb = sacar_pcb_por_pid(colaBlocked->elements, pid);
 	if(pcb)
 		log_debug(logNucleo, "Sacando PCB: %d de la cola Blocked",pid);
-	if(pcb) printf("saco de blocked a %d\n",pcb->pid);
 	return pcb;
 }
 
-void bloquear_pcb(t_pcb* pcb){
-	printf("bloqueo a %d\n",pcb->pid);
-	t_pcb* pcbviejo = sacarDe_colaExec(pcb->pid);
-//	destruir_pcb(pcbviejo);
-	*pcbviejo = *pcb;
+void bloquear_pcb(t_pcb* pcbabloquear){
+	printf("Bloqueo a PID = %d\n",pcbabloquear->pid);
+	t_pcb* pcbviejo = sacarDe_colaExec(pcbabloquear->pid);
+
+	t_pcb* aux = pcbviejo;
+	pcbviejo = pcbabloquear;
+	destruir_pcb(aux);
+
 	moverA_colaBlocked(pcbviejo);
 }
 
 void desbloquear_pcb(t_pcb* pcb){
+	if(!pcb)
+		return;
+
 	t_pcb* pcbsacado = sacarDe_colaBlocked(pcb->pid);
+
 	if(pcbsacado)
 		moverA_colaReady(pcbsacado);
 }

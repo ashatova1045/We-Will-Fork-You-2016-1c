@@ -45,7 +45,7 @@ void atender_conexion(int* socket_conexion){
 				//Creo y cargo una estructura de lo que el swap tiene que recibir
 				t_pedido_inicializar_swap nuevo_programa_swap;
 				log_info(logUMC,"Cantidad de paginas pedidas: %d",pedido_inicializar->pagRequeridas);
-
+				log_info(logUMC,"Datos:\n%s",pedido_inicializar->codigo);
 
 				nuevo_programa_swap.idPrograma=pedido_inicializar->idPrograma;
 				nuevo_programa_swap.pagRequeridas=pedido_inicializar->pagRequeridas;

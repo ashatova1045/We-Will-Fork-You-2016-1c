@@ -154,7 +154,6 @@ t_pcb* deserializar(char* pcbs)
 	return pcb;
 }
 
-
 void destruir_pcb (t_pcb *pcbADestruir){
 	int i;
 
@@ -162,14 +161,14 @@ void destruir_pcb (t_pcb *pcbADestruir){
 		return;
 
 	free(pcbADestruir->indice_codigo); //hago este free por que se asigno la memoria con un unico malloc
-
 	free(pcbADestruir->indice_etiquetas);
-
 	for(i=0; i <(pcbADestruir->cant_entradas_indice_stack) ; i++){
 		free(pcbADestruir->indice_stack[i].argumentos);
 		free(pcbADestruir->indice_stack[i].variables);
 	}
-	free(pcbADestruir->indice_stack);
+	if(pcbADestruir->cant_entradas_indice_stack>0)
+		free(pcbADestruir->indice_stack);
+
 	free(pcbADestruir);
 }
 
