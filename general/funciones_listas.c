@@ -12,5 +12,6 @@ int list_get_index(t_list* lista,void* element){
 	}
 	
 	return -1;
+
 }
 

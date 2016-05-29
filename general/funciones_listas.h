@@ -8,5 +8,6 @@
 
 int list_get_index(t_list* lista,void* element);
 
+
 #endif /* FUNCIONES_LISTAS_H_ */
 

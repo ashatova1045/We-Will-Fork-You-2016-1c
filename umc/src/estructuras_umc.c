@@ -1,5 +1,21 @@
 #include "estructuras_umc.h"
 #include "Config_Umc.h"
+#include "Conexiones_Umc.h"
+
+//Funcion para saber si una página esta presente en memoria o no
+bool paginaPresente(void* entrada_pag){
+	t_entrada_tabla_paginas *entrada = (t_entrada_tabla_paginas*)entrada_pag;
+	return entrada->presencia;
+}
+
+//Funcion para elegir una víctima a mandar al swap
+t_entrada_tabla_paginas* elegir_victima(t_list *tablaDePaginas){
+	t_entrada_tabla_paginas *entrada_pag_victima =list_find(tablaDePaginas,paginaPresente);
+	return entrada_pag_victima;
+
+}
+
+
 
 
 void crear_estructuras(){
@@ -151,122 +167,11 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 
 //TODO Ver que pasa si no hay espacio y el programa no tiene frames en memoria
 
-//Funcion para saber si una página esta presente en memoria o no
-bool paginaPresente(void* entrada_pag){
-	t_entrada_tabla_paginas *entrada = (t_entrada_tabla_paginas*)entrada_pag;
-	return entrada->presencia;
-}
-
-//Funcion para elegir una víctima a mandar al swap
-t_entrada_tabla_paginas* elegir_victima(t_list *tablaDePaginas){
-	t_entrada_tabla_paginas *entrada_pag_victima =list_find(tablaDePaginas,paginaPresente);
-	return entrada_pag_victima;
-
-}
 
 //Datos que tiene la página en memoria
 char* datos_pagina_en_memoria(int marco){
 	return (memoria_principal+(marco*config_umc->marco_size));
 }
-
-void escribirEnSwap(int pagina,char* datos_pagina,int pid){
-
-	//Armo la estructura para pasarle la pagina al swap
-	t_pedido_almacenar_swap pedido_almacenar_swap;
-	pedido_almacenar_swap.buffer = datos_pagina;
-
-	pedido_almacenar_swap.pid=pid;
-	pedido_almacenar_swap.nroPagina=pagina;
-
-	//Serializo estructura para mandarsela al swap
-	t_pedido_almacenar_swap_serializado *pedido_almacenar_swap_serializado;
-	pedido_almacenar_swap_serializado=serializar_pedido_almacenar_swap(&pedido_almacenar_swap,config_umc->marco_size);
-
-	//Bloqueo la conexión con el swap
-	pthread_mutex_lock(&mutex);
-
-	//Envio el pedido de escritura serializado al swap
-	enviar(ESCRITURA_PAGINA,pedido_almacenar_swap_serializado->tamano,pedido_almacenar_swap_serializado->pedido_serializado,socketswap);
-	log_info(logUMC,"Se le mando el pedido de escritura al swap");
-	log_debug(logUMC,"Pagina a escribir\n%.*s",config_umc->marco_size,pedido_almacenar_swap.buffer);
-
-	//Recibo la respuesta del swap
-	t_paquete *paqueteEscritura=recibir_paquete(socketswap);
-	log_info(logUMC,"Recibi una respuesta del swap");
-
-	//Desbloqueo la conexión con el swap
-	pthread_mutex_unlock(&mutex);
-
-	//Si la respuesta del swap es que se pudo escribir la página devuelvo el paquete
-	if(paqueteEscritura->cod_op==OK){
-
-		log_info(logUMC,"Se pudo escribir la pagina");
-
-	//Si la respuesta del swap es que no pudo escribir la página
-	}else if(paqueteEscritura->cod_op==NO_OK){
-
-		log_info(logUMC,"No se pudo escribir en la pagina");
-		exit(EXIT_FAILURE);
-
-	//Si la respuesta del swap es que se desconecto el socket
-	}else if(paqueteEscritura->cod_op==ERROR_COD_OP){
-
-		log_warning(logUMC,"Hubo un error al escribir la página");
-		log_warning(logUMC,"Se cerro la conexión con el swap");
-		exit(EXIT_FAILURE);
-
-	}
-
-	destruir_paquete(paqueteEscritura);
-	free(pedido_almacenar_swap_serializado);
-}
-
-
-char* leerDeSwap(int pid,int pagina){
-
-	char* datos_pagina;
-
-	//Le pido la página al swap
-	t_pedido_leer_swap pedido_leer;
-	pedido_leer.nroPagina = pagina;
-	pedido_leer.pid = pid;
-	log_info(logUMC,"Se pidio leer la pagina %d del proceso %d",pagina);
-
-	//Bloqueo la conexión con el swap
-	pthread_mutex_lock(&mutex);
-
-	//Le pido la página requerida al swap
-	enviar(LECTURA_PAGINA,sizeof(pedido_leer),&pedido_leer,socketswap);
-	t_paquete *paquete_lectura = recibir_paquete(socketswap);
-	log_info(logUMC,"Recibi el contenido de la pagina del swap");
-
-	//Desbloqueo la conexión con el swap
-	pthread_mutex_unlock(&mutex);
-
-	//Si el swap tiene la pagina me la pasa y le paso los bytes pedidos a la cpu
-	if(paquete_lectura->cod_op==BUFFER_LEIDO){
-
-		datos_pagina=malloc(paquete_lectura->tamano_datos);
-		memcpy(datos_pagina,paquete_lectura->datos,paquete_lectura->tamano_datos);
-
-	//Si el swap no tiene la pagina le aviso a la cpu que hubo un error
-	}else if(paquete_lectura->cod_op==NO_OK){
-
-		log_info(logUMC,"No se pudo leer la página");
-		exit(EXIT_FAILURE);
-
-	//Si se desconecto el socket
-	}else if(paquete_lectura->cod_op==ERROR_COD_OP){
-
-		log_warning(logUMC,"Se desconecto el swap");
-		exit(EXIT_FAILURE);
-	}
-
-	destruir_paquete(paquete_lectura);
-
-	return datos_pagina;
-}
-
 
 void destruir_lista(void *tablaDePaginas){
 	list_destroy_and_destroy_elements(tablaDePaginas,free);
