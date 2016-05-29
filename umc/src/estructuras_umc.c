@@ -128,25 +128,23 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 			entrada_pag_victima->nro_marco=-1;
 
 			entrada_pagina = entrada_pag_pedida;
+
+		//Si el proceso no pidió la cantidad máxima de frames
+		}else if(paginasUsadas<config_umc->marco_x_proc){
+
+			//TODO Ver si hay frames libres en bitmap de memoria
+			//TODO Si hay frames libres en memoria se carga la pagina en un frame libre y se setea la misma como usada en bitmap
+			//TODO Si no hay frames libres en memoria se elije una víctima de entre los frames que tiene el programa
+			//TODO Si la víctima fue modificada se la manda al swap y sino se elimina
+			//TODO Cargar la página requerida en el frame que se liberó
+
 		}
 
 	}
 	return entrada_pagina;
 }
-//TODO Ver si el programa ya uso la cantidad maxima permitida de frames en bitmap
-//TODO Si ya los uso todos se elije una de sus páginas como víctima
-//TODO Si la pagina fue modificada se manda al swap y sino se elimina
-//TODO Cargar la pagina requerida en el frame que se libero en memoria
-
-//TODO Si todavia no uso todos sus frames ver si hay frames libres en memoria
-//TODO Si hay frames libres en memoria se carga la pagina en un frame libre y se setea la misma como usada en bitmap
-//TODO Si no hay frames libres en memoria se elije una víctima de entre los frames que tiene el programa
-//TODO Si la víctima fue modificada se la manda al swap y sino se elimina
-//TODO Cargar la página requerida en el frame que se liberó
 
 //TODO Ver que pasa si no hay espacio y el programa no tiene frames en memoria
-
-
 
 char* datos_pagina_en_memoria(int marco){
 	return (memoria_principal+(marco*config_umc->marco_size));

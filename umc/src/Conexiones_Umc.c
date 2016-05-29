@@ -55,7 +55,7 @@ void atender_conexion(int* socket_conexion){
 				pedido_inicializar_swap_serializado = serializar_pedido_inicializar_swap(&nuevo_programa_swap);
 
 				//Bloqueo la conexión con el swap
-				//pthread_mutex_lock(&mutex);
+				pthread_mutex_lock(&mutex);
 
 				//Le envío la estructura al swap para saber si tiene espacio para guardar el programa
 				enviar(NUEVO_PROGRAMA,pedido_inicializar_swap_serializado->tamano,pedido_inicializar_swap_serializado->pedido_serializado,socketswap);
@@ -66,7 +66,7 @@ void atender_conexion(int* socket_conexion){
 				log_info(logUMC,"Recibi respuesta de cantidad de páginas del swap");
 
 				//Desbloqueo la conexión con el swap
-				//pthread_mutex_unlock(&mutex);
+				pthread_mutex_unlock(&mutex);
 
 
 				//Si la respuesta es que no hay espacio
@@ -185,7 +185,7 @@ void atender_conexion(int* socket_conexion){
 				int32_t *programaAFinalizar=pedido->datos;
 
 				//Bloqueo la conexión con el swap
-				//pthread_mutex_lock(&mutex);
+				pthread_mutex_lock(&mutex);
 
 				//Le informo al swap que finalizo un programa y le paso el PID para que elimine las estructuas
 				enviar(FINALIZA_PROGRAMA,sizeof(int32_t),programaAFinalizar,socketswap);
@@ -195,13 +195,13 @@ void atender_conexion(int* socket_conexion){
 				t_paquete *pedidoFinalizar=recibir_paquete(socketswap);
 
 				//Desbloqueo la conexión con el swap
-				//pthread_mutex_unlock(&mutex);
+				pthread_mutex_unlock(&mutex);
 
 				//Si el swap me informa que el programa se elimino correctamente le aviso al nucleo
 				if(pedidoFinalizar->cod_op==OK){
 
 					//Protejo el acceso a la tabla de páginas
-					//pthread_mutex_lock(&mutex_pags);
+					pthread_mutex_lock(&mutex_pags);
 
 					//Elimino las estructuras creadas para el manejo del programa
 					dictionary_remove_and_destroy(tablasDePagina,i_to_s(*programaAFinalizar),destruir_lista);
@@ -209,7 +209,7 @@ void atender_conexion(int* socket_conexion){
 					//TODO Marcar los frames asignados como libres en el bitmap
 
 					//Libero el acceso a la tabla de páginas
-					//pthread_mutex_unlock(&mutex_pags);
+					pthread_mutex_unlock(&mutex_pags);
 
 					log_info(logUMC,"Se elimino el programa correctamente");
 					enviar(OK,1,&socket_conexion,*socket_conexion);
@@ -375,6 +375,10 @@ void servidor_pedidos(){
 	close(socketServerPedido);
 }
 
+//------------------------------------------------------------------------------------------------------
+//Operaciones con swap (Leer y Escribir)
+//------------------------------------------------------------------------------------------------------
+
 void escribirEnSwap(int pagina,char* datos_pagina,int pid){
 
 	//Armo la estructura para pasarle la pagina al swap
@@ -455,7 +459,7 @@ char* leerDeSwap(int pid,int pagina){
 		datos_pagina=malloc(paquete_lectura->tamano_datos);
 		memcpy(datos_pagina,paquete_lectura->datos,paquete_lectura->tamano_datos);
 
-	//Si el swap no tiene la pagina le aviso a la cpu que hubo un error
+	//Si el swap no tiene la pagina
 	}else if(paquete_lectura->cod_op==NO_OK){
 
 		log_info(logUMC,"No se pudo leer la página");
