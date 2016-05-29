@@ -18,9 +18,7 @@
 #include "Config_Umc.h"
 #include "Conexiones_Umc.h"
 #include "Consola_Umc.h"
-
 //------------------------------------------------------------------------------------------------------
-
 int main(int argc, char **argv){
 
 
