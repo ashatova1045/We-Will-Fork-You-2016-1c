@@ -13,11 +13,6 @@
 #include <stdlib.h>
 #include <commons/collections/dictionary.h>
 #include "Log_Umc.h"
-#include <commons/bitarray.h>
-#include "../../general/operaciones_swap.h"
-#include "../../general/funciones_listas.h"
-#include "Conexiones_Umc.h"
-#include <pthread.h>
 
 //Creo la estructura de configuración
 typedef struct{
@@ -41,16 +36,7 @@ typedef struct{
 t_dictionary *tablasDePagina;
 
 char *memoria_principal;
-
-t_bitarray *bitmap_frames;
-
-//Declaro Semaforos
-
-//mutex para la comunicación con el swap
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-
-//mutex para el acceso a la tabla de paginas
-pthread_mutex_t mutex_pags=PTHREAD_MUTEX_INITIALIZER;
+//t_marco *tabla_marcos;
 
 //Cada proceso tiene su tabla de paginas
 
@@ -62,10 +48,6 @@ void destruir_lista(void *tablaDePaginas);
 char* i_to_s(int i);
 char* datos_pagina_en_memoria(int marco);
 t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina);
-bool paginaPresente(void* entrada_pag);
-t_entrada_tabla_paginas* elegir_victima(t_list *tablaDePaginas);
-void escribirEnSwap(int pagina,char* datos_pagina,int pid);
-char* leerDeSwap(int pid,int pagina);
 
 void destruir_estructura_conexion(int* datosConexion);
 #endif /* ESTRUCTURAS_UMC_H_ */

@@ -15,6 +15,7 @@
 #include "Config_Umc.h"
 #include <errno.h>
 #include <pthread.h>
+#include "estructuras_umc.h"
 #include "../../general/Operaciones_umc.h"
 #include "../../general/operaciones_swap.h"
 

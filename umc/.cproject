@@ -39,7 +39,6 @@
 								<option id="gnu.c.link.option.paths.1805987833" name="Library search path (-L)" superClass="gnu.c.link.option.paths"/>
 								<option id="gnu.c.link.option.userobjs.17577510" name="Other objects" superClass="gnu.c.link.option.userobjs" valueType="userObjs">
 									<listOptionValue builtIn="false" value="../../general/Operaciones_umc.c"/>
-									<listOptionValue builtIn="false" value="../../general/funciones_listas.c"/>
 									<listOptionValue builtIn="false" value="../../general/operaciones_swap.c"/>
 									<listOptionValue builtIn="false" value="../../sockets/Sockets.c"/>
 								</option>

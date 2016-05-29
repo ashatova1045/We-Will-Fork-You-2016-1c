@@ -9,7 +9,15 @@
 //Sockets
 //------------------------------------------------------------------------------------------------------
 
+//Variables globales
+//mutex para la comunicación con el swap
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+//mutex para el acceso a la tabla de paginas
+pthread_mutex_t mutex_pags=PTHREAD_MUTEX_INITIALIZER;
+
 //Función para atender las conexiones de las cpus y el núcleo
+
 
 void atender_conexion(int* socket_conexion){
 	
@@ -109,17 +117,43 @@ void atender_conexion(int* socket_conexion){
 				pthread_mutex_lock(&mutex_pags);
 
 				//Busco la pagina en la tabla de paginas
-				t_entrada_tabla_paginas *entrada_pag_pedida= buscar_pagina_en_tabla(proceso_activo,solicitud.nroPagina);
-
-				//Busco los datos de la página y se los envío a la cpu
-				char* datosDePaginaLectura=datos_pagina_en_memoria(entrada_pag_pedida->nro_marco);
-
-				log_info(logUMC,"Leido: %.*s",solicitud.tamanioDatos,datosDePaginaLectura+solicitud.offset);
-				enviar(BUFFER_LEIDO,solicitud.tamanioDatos,datosDePaginaLectura+solicitud.offset,*socket_conexion);
-				log_info(logUMC,"Se le envio el contenido de la pagina a la cpu %d",*socket_conexion);
+				t_entrada_tabla_paginas *tablaDePaginasLectura= buscar_pagina_en_tabla(proceso_activo,solicitud.nroPagina);
 
 				//Libero el acceso a la tabla de páginas
 				pthread_mutex_unlock(&mutex_pags);
+
+				//Si la pagina no esta en la tabla es un error
+				if(tablaDePaginasLectura==NULL){
+
+					log_warning(logUMC,"No se encontro la pagina %d",solicitud.nroPagina);
+					exit(EXIT_FAILURE);
+
+
+				//Si la página está en memoria
+				}else if(tablaDePaginasLectura->presencia==true){
+
+					//Busco los datos de la página y se los envío a la cpu
+					char* datosDePagina=datos_pagina_en_memoria(tablaDePaginasLectura->nro_marco);
+
+					log_info(logUMC,"Leido: %.*s",solicitud.tamanioDatos,datosDePagina+solicitud.offset);
+					enviar(BUFFER_LEIDO,solicitud.tamanioDatos,datosDePagina+solicitud.offset,*socket_conexion);
+					log_info(logUMC,"Se le envio el contenido de la pagina a la cpu %d",*socket_conexion);
+
+				//Si la página no está en memoria le pido los datos al swap
+				}else if(tablaDePaginasLectura->presencia==false){
+
+					//TODO Ver si el programa ya uso la cantidad maxima permitida de frames en bitmap
+					//TODO Si ya los uso todos se elije una de sus páginas como víctima
+					//TODO Si la pagina fue modificada se manda al swap y sino se elimina
+					//TODO Cargar la pagina requerida en el frame que se libero en memoria
+
+					//TODO Si todavia no uso todos sus frames ver si hay frames libres en memoria
+					//TODO Si hay frames libres en memoria se carga la pagina en un frame libre y se setea la misma como usada en bitmap
+					//TODO Si no hay frames libres en memoria se elije una víctima de entre los frames que tiene el programa
+					//TODO Si la víctima fue modificada se la manda al swap y sino se elimina
+					//TODO Cargar la página requerida en el frame que se liberó
+
+					//TODO Ver que pasa si no hay espacio y el programa no tiene frames en memoria
 
 					//Creo y cargo la estructura para mandarle el pedido de lectura al swap
 					t_pedido_leer_swap pedidoASwap;
@@ -163,7 +197,7 @@ void atender_conexion(int* socket_conexion){
 						se_cerro = true;
 					}
 					destruir_paquete(paqueteLectura);
-
+				}
 				break;
 			case ESCRITURA_PAGINA:
 
@@ -185,28 +219,52 @@ void atender_conexion(int* socket_conexion){
 				pthread_mutex_lock(&mutex_pags);
 
 				//Busco la página en la tabla de páginas
-				t_entrada_tabla_paginas *entrada_pag_escritura=buscar_pagina_en_tabla(proceso_activo,pedido_almacenar->nroPagina);
+				t_entrada_tabla_paginas *tablaDePaginasEscritura=buscar_pagina_en_tabla(proceso_activo,pedido_almacenar->nroPagina);
 
 				//Libero el acceso a la tabla de páginas
 				pthread_mutex_unlock(&mutex_pags);
 
-				//Busco los datos de la página como están ahora en memoria
-				char* datosDePaginaEscritura=datos_pagina_en_memoria(entrada_pag_escritura->nro_marco);
+				//Si no se encontró la página en la tabla es un error
+				if(tablaDePaginasEscritura==NULL){
 
-				//Modifico los datos de la página
-				log_info(logUMC,"Se pidieron almacenar los datos %s", pedido_almacenar->buffer);
-				memcpy(datosDePaginaEscritura+pedido_almacenar->offset,pedido_almacenar->buffer,pedido_almacenar->tamanioDatos);
+					log_warning(logUMC,"No se encontro la pagina %d",pedido_almacenar->nroPagina);
+					exit(EXIT_FAILURE);
 
-				//Pongo el bit de modificado de la página en true
-				entrada_pag_escritura->modificado=true;
+				//Si la página está en memoria
+				}else if(tablaDePaginasEscritura->presencia==true){
 
-				//Envío el aviso de que se escribio en la página
-				log_info(logUMC,"Se escribio en la página correctamente");
-				enviar(OK,1,&socket_conexion,*socket_conexion);
-				log_info(logUMC,"Se informo que se escribio en la página");
+					//Busco los datos de la página como están ahora
+					char* datosDePagina=datos_pagina_en_memoria(tablaDePaginasEscritura->nro_marco);
 
+					//Modifico los datos de la página
+					log_info(logUMC,"Se pidieron almacenar los datos %s", pedido_almacenar->buffer);
+					memcpy(datosDePagina+pedido_almacenar->offset,pedido_almacenar->buffer,pedido_almacenar->tamanioDatos);
 
-/*					//Pido la pagina como estaba antes. si no lo hago, la nueva escritura sobreescribiria la vieja
+					//Pongo el bit de modificado de la página en true
+					tablaDePaginasEscritura->modificado=true;
+
+					//Envío el aviso de que se escribio en la página
+					log_info(logUMC,"Se escribio en la página correctamente");
+					enviar(OK,1,&socket_conexion,*socket_conexion);
+					log_info(logUMC,"Se informo que se escribio en la página");
+
+				//Si la página no está en memoria se la pido al swap
+				}else if(tablaDePaginasEscritura->presencia==false){
+
+					//TODO Ver si el programa ya uso la cantidad maxima permitida de frames en bitmap
+					//TODO Si ya los uso todos se elije una de sus páginas como víctima
+					//TODO Si la pagina fue modificada se manda al swap y sino se elimina
+					//TODO Cargar la pagina requerida en el frame que se libero en memoria
+
+					//TODO Si todavia no uso todos sus frames ver si hay frames libres en memoria
+					//TODO Si hay frames libres en memoria se carga la pagina en un frame libre y se setea la misma como usada en bitmap
+					//TODO Si no hay frames libres en memoria se elije una víctima de entre los frames que tiene el programa
+					//TODO Si la víctima fue modificada se la manda al swap y sino se elimina
+					//TODO Cargar la página requerida en el frame que se liberó
+
+					//TODO Ver que pasa si no hay espacio y el programa no tiene frames en memoria
+
+					//Pido la pagina como estaba antes. si no lo hago, la nueva escritura sobreescribiria la vieja
 					t_pedido_leer_swap pedido_leer;
 					pedido_leer.nroPagina = pedido_almacenar->nroPagina;
 					pedido_leer.pid = proceso_activo;
@@ -221,7 +279,7 @@ void atender_conexion(int* socket_conexion){
 					//Desbloqueo la conexión con el swap
 					pthread_mutex_unlock(&mutex);
 
-					//Armo la estructura para pasarle la pagina al swap
+					//Armo la estructura para pedirle la pagina al swap
 					t_pedido_almacenar_swap pedido_almacenar_swap;
 					pedido_almacenar_swap.buffer = malloc(config_umc->marco_size);
 					memcpy(pedido_almacenar_swap.buffer,lectura_intermedia->datos,config_umc->marco_size);
@@ -266,7 +324,7 @@ void atender_conexion(int* socket_conexion){
 						log_info(logUMC,"Se informo de que se no se pudo escribir la pagina");
 
 					//Si la respuesta del swap es que se desconecto el socket
-					}else if(paqueteEscritura->cod_op==ERROR_COD_OP){
+					}else if(paqueteEscritura->cod_op==ERROR_COD_OP){destruir_paquete(paqueteEscritura);
 
 						log_warning(logUMC,"Se desconecto el socket %d",*socket_conexion);
 						se_cerro = true;
@@ -275,8 +333,6 @@ void atender_conexion(int* socket_conexion){
 
 					destruir_paquete(paqueteEscritura);
 				}
-*/
-
 
 				break;
 
