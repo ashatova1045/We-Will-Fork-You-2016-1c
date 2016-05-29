@@ -42,6 +42,7 @@ t_dictionary *tablasDePagina;
 char *memoria_principal;
 
 t_bitarray *bitmap_frames;
+//t_marco *tabla_marcos;
 
 //Cada proceso tiene su tabla de paginas
 

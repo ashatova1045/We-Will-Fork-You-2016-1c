@@ -2,22 +2,6 @@
 #include "Config_Umc.h"
 #include "Conexiones_Umc.h"
 
-//Funcion para saber si una página esta presente en memoria o no
-bool paginaPresente(void* entrada_pag){
-	t_entrada_tabla_paginas *entrada = (t_entrada_tabla_paginas*)entrada_pag;
-	return entrada->presencia;
-}
-
-//Funcion para elegir una víctima a mandar al swap
-t_entrada_tabla_paginas* elegir_victima(t_list *tablaDePaginas){
-	t_entrada_tabla_paginas *entrada_pag_victima =list_find(tablaDePaginas,paginaPresente);
-	return entrada_pag_victima;
-
-}
-
-
-
-
 void crear_estructuras(){
 	//creo la memoria_principal
 	int espacio_total = config_umc->cant_marcos*config_umc->marco_size;
@@ -28,16 +12,11 @@ void crear_estructuras(){
 	}
 	log_info(logUMC,"Memoria principal creada. %d marcos * %d bytes = %d bytes",config_umc->cant_marcos,config_umc->marco_size,espacio_total);
 
-
 	//Creo el diccionario de tablas de paginas
 
 	tablasDePagina = dictionary_create();
-	if(!tablasDePagina){
-		log_error(logUMC,"Error al reservar memoria para el diccionario de la tablas de pagina");
-		exit(EXIT_FAILURE);
-	}
-	log_info(logUMC,"Diccionario de tablas de pagina creado correctamente");
 
+	log_info(logUMC,"Diccionario de tablas de pagina creado correctamente");
 
 	//Inicializo variables del bitarray
 
@@ -85,6 +64,7 @@ void nuevaTablaDePaginas(int pid,int cantPaginas){
 }
 
 //Funcion para buscar una página en la tabla de páginas
+
 t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 
 	t_entrada_tabla_paginas *entrada_pagina;
@@ -101,7 +81,7 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 		log_warning(logUMC,"No se encontro la pagina %d",pagina);
 		exit(EXIT_FAILURE);
 
-		//Si la página está en memoria
+	//Si la página está en memoria
 	}else if(entrada_pag_pedida->presencia==true){
 
 		entrada_pagina=entrada_pag_pedida;
@@ -129,7 +109,6 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 
 				//Escribo la página víctima en memoria
 				escribirEnSwap(pagina_victima,datos_pagina_victima,pid);
-
 			}
 
 			//Le pido al swap la página
@@ -150,8 +129,8 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 
 			entrada_pagina = entrada_pag_pedida;
 		}
-	}
 
+	}
 	return entrada_pagina;
 }
 //TODO Ver si el programa ya uso la cantidad maxima permitida de frames en bitmap
@@ -168,10 +147,25 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 //TODO Ver que pasa si no hay espacio y el programa no tiene frames en memoria
 
 
-//Datos que tiene la página en memoria
+
 char* datos_pagina_en_memoria(int marco){
 	return (memoria_principal+(marco*config_umc->marco_size));
 }
+
+
+//Funcion para saber si una página esta presente en memoria o no
+bool paginaPresente(void* entrada_pag){
+	t_entrada_tabla_paginas *entrada = (t_entrada_tabla_paginas*)entrada_pag;
+	return entrada->presencia;
+}
+
+//Funcion para elegir una víctima a mandar al swap
+t_entrada_tabla_paginas* elegir_victima(t_list *tablaDePaginas){
+	t_entrada_tabla_paginas *entrada_pag_victima =list_find(tablaDePaginas,paginaPresente);
+	return entrada_pag_victima;
+
+}
+
 
 void destruir_lista(void *tablaDePaginas){
 	list_destroy_and_destroy_elements(tablaDePaginas,free);
@@ -182,4 +176,3 @@ void destruir_estructuras(){
 	dictionary_destroy_and_destroy_elements(tablasDePagina,destruir_lista);
 
 }
-
