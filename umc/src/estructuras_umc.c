@@ -138,6 +138,20 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 			//TODO Si la víctima fue modificada se la manda al swap y sino se elimina
 			//TODO Cargar la página requerida en el frame que se liberó
 
+			//Le pido al swap la página
+			char* datos_pagina = leerDeSwap(pid,pagina);
+
+			//Guardo la nueva página en la memoria
+			char* espacioEnMemoria = (memoria_principal);
+
+			memcpy(espacioEnMemoria,datos_pagina,config_umc->marco_size);
+
+			//Actualizo la entrada a la tabla de la página
+			entrada_pag_pedida->nro_marco=0;
+			entrada_pag_pedida->presencia=true;
+
+			entrada_pagina = entrada_pag_pedida;
+
 		}
 
 	}
