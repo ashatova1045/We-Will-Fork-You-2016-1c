@@ -13,6 +13,10 @@
 #include <stdlib.h>
 #include <commons/collections/dictionary.h>
 #include "Log_Umc.h"
+#include <commons/bitarray.h>
+#include "../../general/operaciones_swap.h"
+#include <pthread.h>
+#include "../../general/funciones_listas.h"
 
 //Creo la estructura de configuración
 typedef struct{
@@ -36,6 +40,8 @@ typedef struct{
 t_dictionary *tablasDePagina;
 
 char *memoria_principal;
+
+t_bitarray *bitmap_frames;
 //t_marco *tabla_marcos;
 
 //Cada proceso tiene su tabla de paginas
@@ -48,6 +54,10 @@ void destruir_lista(void *tablaDePaginas);
 char* i_to_s(int i);
 char* datos_pagina_en_memoria(int marco);
 t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina);
+bool paginaPresente(void* entrada_pag);
+t_entrada_tabla_paginas* elegir_victima(t_list *tablaDePaginas);
+void destruir_estructuras();
+void destruir_lista(void *tablaDePaginas);
 
 void destruir_estructura_conexion(int* datosConexion);
 #endif /* ESTRUCTURAS_UMC_H_ */

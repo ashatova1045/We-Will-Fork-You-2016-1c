@@ -12,6 +12,7 @@ t_umcConfig* config_umc;
 
 t_umcConfig* leerConfiguracion(t_config* config);
 
+
 void eliminarConfigUmc(t_umcConfig* datosUmcAEliminar);
 
 
