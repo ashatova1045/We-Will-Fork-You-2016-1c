@@ -184,7 +184,7 @@ void matar_hilo_ejecucion() {
 int main() {
 
 	//Creo archivo de log
-	logcpu = log_create("logcpu.log", "cpu", false, LOG_LEVEL_DEBUG);
+	logcpu = log_create("logCPU.log", "cpu", false, LOG_LEVEL_DEBUG);
 
 	inicializar_primitivas();
 
