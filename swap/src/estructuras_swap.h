@@ -39,9 +39,12 @@ typedef struct{
 t_bitarray* bitarray;
 t_bitarray* bitarray_aux;
 FILE* swapFile;
-t_log* logSwap;
-t_swapcfg* datosSwap;
 int tamanioPagina;
 int primerPosicionVacia;
+
+int socket_memoria;
+t_swapcfg* datosSwap;
+t_log* logSwap;
+t_list* lista_procesos;
 
 #endif /* ESTRUCTURAS_SWAP_H_ */

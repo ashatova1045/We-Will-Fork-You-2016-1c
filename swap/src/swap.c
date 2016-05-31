@@ -1,10 +1,7 @@
 #include "funciones_swap.h"
 #include "estructuras_swap.h"
 
-int socket_memoria;
-t_swapcfg* datosSwap;
-t_log* logSwap;
-t_list* lista_procesos;
+
 
 int main(int argc, char** argv) {
 

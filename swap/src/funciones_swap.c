@@ -1,11 +1,6 @@
 #include "funciones_swap.h"
 #include "estructuras_swap.h"
 
-extern int socket_memoria;
-extern t_list* lista_procesos;
-extern t_bitarray* bitarray;
-extern t_swapcfg* datosSwap;
-
 t_log* crearLog(){
 	t_log *logSwap = log_create("logSwap.log", "swap.c", false, LOG_LEVEL_INFO);
 	return logSwap;
@@ -25,9 +20,9 @@ void levantarConfiguracion(t_config* config){
 int inicializaSwapFile(){
 	// Inicializa variables
 	char* array = malloc(datosSwap->cantidad_paginas);
-	int codRet, cantBytes = (datosSwap->cantidad_paginas) / 8;
+	int cantBytes = (datosSwap->cantidad_paginas) / 8;
 
-	codRet = 0;
+	int codRet = 0;
 
 	// Crea estructura bitmap
 	bitarray = bitarray_create(array, cantBytes);
