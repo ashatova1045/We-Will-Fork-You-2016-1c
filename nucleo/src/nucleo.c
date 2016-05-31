@@ -188,7 +188,7 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 
 	t_pcb* nvopcb = malloc(sizeof(t_pcb));
 	nvopcb->pid=++pidActual;
-	nvopcb->pc=0;
+	nvopcb->pc=metadata->instruccion_inicio;
 
 //>>>>>>>>> Asignacion de cant de instrucciones, paginas totales e indice de codigo
 	nvopcb->cant_instrucciones=metadata->instrucciones_size;
@@ -247,35 +247,10 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 
 //>>>>>>> Inicializacion de indice de stack
 	nvopcb->cant_entradas_indice_stack=0;
-//	nvopcb->fin_stack=0;
+	nvopcb->fin_stack.pag=result_pag;
+	nvopcb->fin_stack.offset=0;
 //<<<<<<<< fin
 
-	//registro_indice_stack * indice_stack= malloc(sizeof(registro_indice_stack));
-	//indice_stack->posicion=0;
-	//nvopcb->indice_stack=indice_stack;
-	//cant var y cant argumentos??
-/*
- * estructura del pcb
- *
-typedef struct {
-	int32_t pid; ++
-	int32_t pc; ++
-	int32_t cant_pags_totales;   ++
-
-	t_posMemoria fin_stack;
-
-	u_int32_t cant_instrucciones; ++
-	t_posMemoria* indice_codigo; ++
-
-	int32_t cant_etiquetas;	+-
-	t_indice_etiq* indice_etiquetas;	+-
-
-	u_int32_t cant_entradas_indice_stack;
-	registro_indice_stack* indice_stack;
-} t_pcb;
-
-
-*/
 	return nvopcb;
 }
 	//falta liberar todos los malloc todo los libera en el destruirpcb??
