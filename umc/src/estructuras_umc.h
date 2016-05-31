@@ -60,4 +60,12 @@ void destruir_estructuras();
 void destruir_lista(void *tablaDePaginas);
 
 void destruir_estructura_conexion(int* datosConexion);
+
+//Funciones de bitmap
+int verificarFramesLibres(int cantidadFrames);
+int cantidadFramesLibres();
+int encontrarPrimerVacio();
+void usarBitMapDesdePos(int cantFrames, int desdeEstaPosicion);
+void limpiarBitMapDesdePos(int cantFrames, int desdeEstaPosicion);
+
 #endif /* ESTRUCTURAS_UMC_H_ */

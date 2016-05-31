@@ -186,5 +186,59 @@ void destruir_lista(void *tablaDePaginas){
 void destruir_estructuras(){
 	free(memoria_principal);
 	dictionary_destroy_and_destroy_elements(tablasDePagina,destruir_lista);
-
 }
+
+int verificarFramesLibres(int cantidadFrames) {
+	// Revisa el bitmap si hay lugar para el proceso
+	int paginasPendientes = cantidadFrames;
+	int i, max = bitarray_get_max_bit(bitmap_frames);
+	for (i = 0; i < max; i++) {
+		if (bitarray_test_bit(bitmap_frames, i) == false) {
+			paginasPendientes--;
+			if(paginasPendientes == 0){
+				return 0;
+			}
+		}
+	}
+	return paginasPendientes;
+}
+
+int cantidadFramesLibres() {
+	int max = bitarray_get_max_bit(bitmap_frames);
+	int i, framesLibres = 0;
+	for (i = 0; i < max; i++) {
+		if (bitarray_test_bit(bitmap_frames, i) == false) {
+			framesLibres++;
+		}
+	}
+	return framesLibres;
+}
+
+int encontrarPrimerVacio(){
+	int i, max = bitarray_get_max_bit(bitmap_frames);
+	for (i = 0; i < max; i++) {
+		if (bitarray_test_bit(bitmap_frames, i) == false) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+void usarBitMapDesdePos(int cantFrames, int desdeEstaPosicion){
+	int posicionAux = desdeEstaPosicion;
+	while(cantFrames>0){
+		bitarray_set_bit(bitmap_frames,posicionAux);
+		posicionAux++;
+		cantFrames--;
+	}
+}
+
+void limpiarBitMapDesdePos(int cantFrames, int desdeEstaPosicion){
+	int posicionAux = desdeEstaPosicion;
+	while(cantFrames>0){
+		bitarray_clean_bit(bitmap_frames,posicionAux);
+		posicionAux++;
+		cantFrames--;
+	}
+}
+
