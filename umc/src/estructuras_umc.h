@@ -56,6 +56,7 @@ char* datos_pagina_en_memoria(int marco);
 t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina);
 bool paginaPresente(void* entrada_pag);
 t_entrada_tabla_paginas* elegir_victima(t_list *tablaDePaginas);
+t_entrada_tabla_paginas* reemplazarPagina(int pid,int pagina,t_entrada_tabla_paginas* entrada_pag_pedida,t_list* tablaDePaginas);
 void destruir_estructuras();
 void destruir_lista(void *tablaDePaginas);
 

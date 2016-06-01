@@ -81,7 +81,7 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 		log_warning(logUMC,"No se encontro la pagina %d",pagina);
 		exit(EXIT_FAILURE);
 
-	//Si la página está en memoria
+	//Si la página está en memoria la devuelvo
 	}else if(entrada_pag_pedida->presencia==true){
 
 		entrada_pagina=entrada_pag_pedida;
@@ -95,63 +95,49 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 		//Si el proceso tiene la cantidad máxima de frames usados
 		if(paginasUsadas == config_umc->marco_x_proc){
 
-			//Elijo una víctima de entre las páginas del proceso
-			t_entrada_tabla_paginas *entrada_pag_victima = elegir_victima(tablaDePaginas);
+			//Reemplazo una página del proceso
+			t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pid,pagina,entrada_pag_pedida,tablaDePaginas);
 
-			//Si la página está modificada busco los datos y se los mando al swap
-			if(entrada_pag_victima->modificado==true){
-
-				//Busco los datos en memoria de la página víctima
-				char* datos_pagina_victima = datos_pagina_en_memoria(entrada_pag_victima->nro_marco);
-
-				//Busco el id de la página víctima
-				int pagina_victima = list_get_index(tablaDePaginas,entrada_pag_victima);
-
-				//Escribo la página víctima en memoria
-				escribirEnSwap(pagina_victima,datos_pagina_victima,pid);
-			}
-
-			//Le pido al swap la página
-			char* datos_pagina = leerDeSwap(pid,pagina);
-
-			//Guardo la nueva página en la memoria
-			char* espacioEnMemoria = (memoria_principal+(entrada_pag_victima->nro_marco*config_umc->marco_size));
-
-			memcpy(espacioEnMemoria,datos_pagina,config_umc->marco_size);
-
-			//Actualizo la entrada a la tabla de la página
-			entrada_pag_pedida->nro_marco=entrada_pag_victima->nro_marco;
-			entrada_pag_pedida->presencia=true;
-
-			//Cambio el bit de presencia y limpio el frame de la página que acabo de sacar
-			entrada_pag_victima->presencia=false;
-			entrada_pag_victima->nro_marco=-1;
-
-			entrada_pagina = entrada_pag_pedida;
+			entrada_pagina = entrada_pag_pedida_actualizada;
 
 		//Si el proceso no pidió la cantidad máxima de frames
 		}else if(paginasUsadas<config_umc->marco_x_proc){
 
-			//TODO Ver si hay frames libres en bitmap de memoria
-			//TODO Si hay frames libres en memoria se carga la pagina en un frame libre y se setea la misma como usada en bitmap
-			//TODO Si no hay frames libres en memoria se elije una víctima de entre los frames que tiene el programa
-			//TODO Si la víctima fue modificada se la manda al swap y sino se elimina
-			//TODO Cargar la página requerida en el frame que se liberó
+			//Busco la cantidad de frames
+			int framesLibres = cantidadFramesLibres();
 
-			//Le pido al swap la página
-			char* datos_pagina = leerDeSwap(pid,pagina);
+			//Si hay frames libres
+			if(framesLibres>0){
 
-			//Guardo la nueva página en la memoria
-			char* espacioEnMemoria = (memoria_principal);
+				//Traigo el primer frame libre
+				int frameAOcupar = encontrarPrimerVacio();
 
-			memcpy(espacioEnMemoria,datos_pagina,config_umc->marco_size);
+				//Le pido al swap la página
+				char* datos_pagina = leerDeSwap(pid,pagina);
 
-			//Actualizo la entrada a la tabla de la página
-			entrada_pag_pedida->nro_marco=0;
-			entrada_pag_pedida->presencia=true;
+				//Guardo la nueva página en memoria
+				char* espacioEnMemoria = (memoria_principal+(frameAOcupar*config_umc->marco_size));
 
-			entrada_pagina = entrada_pag_pedida;
+				memcpy(espacioEnMemoria,datos_pagina,config_umc->marco_size);
 
+				//Actualizo la entrada a la tabla de la página
+				entrada_pag_pedida->nro_marco=frameAOcupar;
+				entrada_pag_pedida->presencia=true;
+
+				//Marco el frame como ocupado en el bitmap
+				bitarray_set_bit(bitmap_frames,frameAOcupar);
+
+				entrada_pagina = entrada_pag_pedida;
+
+			//Si no hay frames libres elijo uno de los del proceso
+			}else{
+
+				//Reemplazo una página del proceso
+				t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pid,pagina,entrada_pag_pedida,tablaDePaginas);
+
+				entrada_pagina = entrada_pag_pedida_actualizada;
+
+			}
 		}
 
 	}
@@ -240,5 +226,45 @@ void limpiarBitMapDesdePos(int cantFrames, int desdeEstaPosicion){
 		posicionAux++;
 		cantFrames--;
 	}
+}
+
+//Funcion para reemplazar una página del proceso
+
+t_entrada_tabla_paginas* reemplazarPagina(int pid,int pagina,t_entrada_tabla_paginas* entrada_pag_pedida,t_list* tablaDePaginas){
+
+	//Elijo una víctima de entre las páginas del proceso
+	t_entrada_tabla_paginas *entrada_pag_victima = elegir_victima(tablaDePaginas);
+
+	//Si la página está modificada busco los datos y se los mando al swap
+	if(entrada_pag_victima->modificado==true){
+
+		//Busco los datos en memoria de la página víctima
+		char* datos_pagina_victima = datos_pagina_en_memoria(entrada_pag_victima->nro_marco);
+
+		//Busco el id de la página víctima
+		int pagina_victima = list_get_index(tablaDePaginas,entrada_pag_victima);
+
+		//Escribo la página víctima en memoria
+		escribirEnSwap(pagina_victima,datos_pagina_victima,pid);
+	}
+
+	//Le pido al swap la página
+	char* datos_pagina = leerDeSwap(pid,pagina);
+
+	//Guardo la nueva página en la memoria
+	char* espacioEnMemoria = (memoria_principal+(entrada_pag_victima->nro_marco*config_umc->marco_size));
+
+	memcpy(espacioEnMemoria,datos_pagina,config_umc->marco_size);
+
+	//Actualizo la entrada a la tabla de la página
+	entrada_pag_pedida->nro_marco=entrada_pag_victima->nro_marco;
+	entrada_pag_pedida->presencia=true;
+
+	//Cambio el bit de presencia y limpio el frame de la página que acabo de sacar
+	entrada_pag_victima->presencia=false;
+	entrada_pag_victima->nro_marco=-1;
+
+	return entrada_pag_pedida;
+
 }
 
