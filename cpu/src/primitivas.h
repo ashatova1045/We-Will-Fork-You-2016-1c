@@ -51,7 +51,7 @@ void llamarConRetorno(t_nombre_etiqueta etiqueta, t_puntero donde_retornar);
 t_puntero_instruccion retornar(t_valor_variable retorno);
 int	imprimir(t_valor_variable valor_mostrar);
 void imprimirTexto(char*);
-int	entradaSalida(t_nombre_dispositivo, int);
+void entradaSalida(t_nombre_dispositivo, int);
 void wait(t_nombre_semaforo identificador_semaforo);
 void signal(t_nombre_semaforo identificador_semaforo);
 int grabar_valor(t_nombre_variable identificador_variable, void* valorGrabar);

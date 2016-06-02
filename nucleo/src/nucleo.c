@@ -435,7 +435,25 @@ void cerrar_socket_consola(int socket){
 
 void nueva_conexion_consola(int socket){
 	printf("Se conecto proceso Programa %d\n",socket);
+}
 
+void msleep(int usecs){
+	usleep(usecs*1000);
+}
+
+void entrada_salida(t_pedido_wait *pedido){
+	t_dispositivo_io* disp = dictionary_get(entradasalida,pedido->semaforo);
+
+	pthread_mutex_lock(&disp->mutex);
+	msleep(pedido->tiempo*disp->retardo);
+	pthread_mutex_unlock(&disp->mutex);
+
+	desbloquear_pcb(pedido->pcb);
+
+	free(pedido->semaforo);
+	free(pedido);
+
+	enviar_a_cpu();
 }
 
 void manejar_socket_cpu(int socket,t_paquete paquete){
@@ -547,6 +565,25 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 
 				break;
 			case ENTRADA_SALIDA:
+				log_debug(logNucleo,"ENTRADA_SALIDA del socket cpu: %d",socket);
+
+				t_pedido_wait *pedido = malloc(sizeof(t_pedido_wait));
+				*pedido = deserializar_wait(paquete.datos);
+
+				liberar_una_relacion(pedido->pcb);
+				bloquear_pcb(pedido->pcb);
+				enviar_a_cpu();
+
+				pthread_t thread;
+				pthread_attr_t attr;
+				pthread_attr_init(&attr);
+				pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
+
+				if(pthread_create(&thread,&attr,(void*)entrada_salida,pedido)){
+					log_error(logNucleo,"Error al crear el hilo de ENTRADASALIDA");
+					exit(EXIT_FAILURE);
+				}
+				pthread_attr_destroy(&attr);
 				break;
 			default:
 				break;
@@ -619,6 +656,25 @@ void crear_semaforos(){
 	}
 }
 
+void crear_dispositivos_es(){
+	entradasalida = dictionary_create();
+	int i;
+	char* dispositivo_id = config_nucleo->io_ids[0];
+
+	for(i=0;dispositivo_id;i++){
+
+		t_dispositivo_io *dispositivo =malloc(sizeof(t_dispositivo_io));
+
+		dispositivo->retardo = atoi(config_nucleo->io_retardo[i]);
+		dispositivo->mutex =(pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
+
+		dictionary_put(entradasalida,dispositivo_id,dispositivo);
+		log_debug(logNucleo,"Se inicializo el dispositivo %s con retardo %d",dispositivo_id,dispositivo->retardo);
+
+		dispositivo_id = config_nucleo->io_ids[i+1];
+	}
+}
+
 int main(int argc, char **argv){
 
 //Declaracion de variables Locales
@@ -662,6 +718,8 @@ int main(int argc, char **argv){
 
 //Inicializacion de semaforos
 	crear_semaforos();
+//Inicializacion de dispositivos de es
+	crear_dispositivos_es();
 
 
 //Creacion hilos para atender conexiones desde cpu/consola

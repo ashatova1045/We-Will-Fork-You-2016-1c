@@ -178,17 +178,21 @@ t_pedido_wait_serializado* serializar_wait(t_pedido_wait* pedido){
 	t_pcb_serializado pcbserializado =  serializar(*pedido->pcb);
 
 	t_pedido_wait_serializado* ser = malloc(sizeof(t_pedido_wait_serializado));
-	ser->tamano = sizeof(pcbserializado.tamanio)+pcbserializado.tamanio+tamano_semaforo;
+	ser->tamano = sizeof(pcbserializado.tamanio)+pcbserializado.tamanio+tamano_semaforo+sizeof(pedido->tiempo);
 	ser->contenido = malloc(ser->tamano);
 	int offset = 0;
 
 	strcpy(ser->contenido,pedido->semaforo);
 	offset+=tamano_semaforo;
 
+	memcpy(ser->contenido+offset,&pedido->tiempo,sizeof(pedido->tiempo));
+	offset+=sizeof(pedido->tiempo);
+
 	memcpy(ser->contenido+offset,&pcbserializado.tamanio,sizeof(pcbserializado.tamanio));
 	offset+=sizeof(pcbserializado.tamanio);
 
 	memcpy(ser->contenido+offset,pcbserializado.contenido_pcb,pcbserializado.tamanio);
+	offset+=pcbserializado.tamanio;
 
 	free(pcbserializado.contenido_pcb);
 
@@ -203,6 +207,8 @@ t_pedido_wait deserializar_wait(char* serializado){
 	strcpy(pedido.semaforo,serializado);
 
 	int offset = tamano_sem;
+	pedido.tiempo = *(int32_t*)(serializado+offset);
+	offset+=sizeof(pedido.tiempo);
 
 	pedido.pcb = deserializar(serializado+sizeof(int32_t)+offset);
 

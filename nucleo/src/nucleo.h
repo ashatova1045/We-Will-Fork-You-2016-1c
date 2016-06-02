@@ -9,13 +9,20 @@
 #define NUCLEO_H_
 #include <stdbool.h>
 #include <commons/collections/dictionary.h>
+#include <commons/collections/dictionary.h>
 
 t_dictionary *semaforos;
+t_dictionary *entradasalida;
 
 typedef struct {
 	int valor;
 	t_queue* cola;
 } t_semaforo;
+
+typedef struct {
+	int retardo;
+	pthread_mutex_t mutex;
+} t_dispositivo_io;
 
 typedef struct {
 	int puerto;

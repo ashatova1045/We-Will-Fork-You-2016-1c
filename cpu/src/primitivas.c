@@ -219,38 +219,24 @@ void imprimirTexto(char* texto) {
 	enviar(IMPRIMIR_TEXTO,strlen(texto)+1,texto,socket_nucleo);
 }
 
-int	entradaSalida(t_nombre_dispositivo dispositivo, int tiempo){
-	int codResp;
-	t_entrada_salida* paquete_e_s = malloc(sizeof(t_entrada_salida));
+void entradaSalida(t_nombre_dispositivo dispositivo, int tiempo){
+	t_pedido_wait paquete_e_s;
 
-	paquete_e_s->dispositivo = dispositivo;
-	paquete_e_s->tiempo = tiempo;
+	paquete_e_s.semaforo = dispositivo;
+	paquete_e_s.tiempo = tiempo;
+	paquete_e_s.pcb = pcb_ejecutandose;
 
-	serializar_entrada_salida(paquete_e_s);
+	t_pedido_wait_serializado *paquete_e_s_serializado = serializar_wait(&paquete_e_s);
 
-	log_info(logcpu,"Intentando usar %s por %d unidades de tiempo:\n", dispositivo, tiempo);
+	log_info(logcpu,"Intentando usar %s por %d unidades de tiempo", dispositivo, tiempo);
 
-	enviar(ENTRADA_SALIDA,sizeof(paquete_e_s),paquete_e_s,socket_nucleo);
+	enviar(ENTRADA_SALIDA,paquete_e_s_serializado->tamano,paquete_e_s_serializado->contenido,socket_nucleo);
 
-	t_paquete *respuesta_e_s = recibir_paquete(socket_nucleo);
-	switch (respuesta_e_s->cod_op) {
-		case OK:
-			codResp = 0;
-			log_debug(logcpu,"Es permitido el uso del dispositivo de e/s");
-			break;
-		case NO_OK:
-			codResp = 1;
-			log_error(logcpu,"El nucleo reportó un error al permitir el uso del dispositivo de e/s");
-			break;
-		default:
-			log_error(logcpu,"Se desconectó el núcleo!");
-			destruir_paquete(respuesta_e_s);
-			exit(EXIT_FAILURE);
-			break;
-	}
-
-	destruir_paquete(respuesta_e_s);
-	return codResp;
+	log_debug(logcpu,"El proceso %d se bloqueo!",pcb_ejecutandose->pid);
+	termino_programa = true;
+	destruir_pcb(pcb_ejecutandose);
+	free(paquete_e_s_serializado->contenido);
+	free(paquete_e_s_serializado);
 }
 
 
@@ -396,7 +382,7 @@ void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
 	 functions = (AnSISOP_funciones) {
 		.AnSISOP_imprimirTexto = imprimirTexto,
 		.AnSISOP_finalizar = finalizar,
-
+		.AnSISOP_entradaSalida =entradaSalida
 		// .AnSISOP_definirVariable = dummy_definirVariable,
 		// .AnSISOP_obtenerPosicionVariable = dummy_obtenerPosicionVariable,
 		// .AnSISOP_dereferenciar = dummy_dereferenciar, .AnSISOP_asignar =
@@ -406,8 +392,7 @@ void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
 
 	kernel_functions =(AnSISOP_kernel) {
 		.AnSISOP_wait = wait,
-		.AnSISOP_signal = signal,
-
+		.AnSISOP_signal = signal
 	};
 
  }
