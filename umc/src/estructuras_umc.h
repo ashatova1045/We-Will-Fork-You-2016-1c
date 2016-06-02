@@ -68,5 +68,7 @@ int cantidadFramesLibres();
 int encontrarPrimerVacio();
 void usarBitMapDesdePos(int cantFrames, int desdeEstaPosicion);
 void limpiarBitMapDesdePos(int cantFrames, int desdeEstaPosicion);
+void eliminarPaginas(void *pagina);
+void loggearBitmap();
 
 #endif /* ESTRUCTURAS_UMC_H_ */

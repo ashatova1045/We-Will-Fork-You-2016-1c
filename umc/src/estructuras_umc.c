@@ -228,6 +228,29 @@ void limpiarBitMapDesdePos(int cantFrames, int desdeEstaPosicion){
 	}
 }
 
+void eliminarPaginas(void *pagina){
+	t_entrada_tabla_paginas* paginaABorrar = (t_entrada_tabla_paginas*)pagina;
+
+	//Inicializar varaibles
+	int32_t nro_marco = paginaABorrar->nro_marco;
+
+	bitarray_clean_bit(bitmap_frames,nro_marco);
+
+	free(pagina);
+}
+
+void loggearBitmap(){
+	int i;
+	for(i=0;i<(config_umc->cant_marcos);i++){
+		if(bitarray_test_bit(bitmap_frames,i)){
+			printf("1");
+		}else{
+			printf("0");
+		}
+	}
+	printf("\n");
+}
+
 //Funcion para reemplazar una página del proceso
 
 t_entrada_tabla_paginas* reemplazarPagina(int pid,int pagina,t_entrada_tabla_paginas* entrada_pag_pedida,t_list* tablaDePaginas){

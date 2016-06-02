@@ -204,9 +204,17 @@ void atender_conexion(int* socket_conexion){
 					pthread_mutex_lock(&mutex_pags);
 
 					//Elimino las estructuras creadas para el manejo del programa
-					dictionary_remove_and_destroy(tablasDePagina,i_to_s(*programaAFinalizar),destruir_lista);
+					//dictionary_remove_and_destroy(tablasDePagina,i_to_s(*programaAFinalizar),destruir_lista);
 
-					//TODO Marcar los frames asignados como libres en el bitmap
+					loggearBitmap();
+
+					//Se marcan los frames asignados como libres en el bitmap
+					t_list *tablaDePaginas = dictionary_remove(tablasDePagina,i_to_s(*programaAFinalizar));
+					list_iterate(tablaDePaginas,eliminarPaginas);
+
+					printf("Se limpia Bitmap \n");
+
+					loggearBitmap();
 
 					//Libero el acceso a la tabla de páginas
 					pthread_mutex_unlock(&mutex_pags);
@@ -244,6 +252,8 @@ void atender_conexion(int* socket_conexion){
 	}
 	free(socket_conexion);
 }
+
+
 
 int crear_hilo_conexion(int socket){
 	int* socket_actual = malloc(sizeof(int));

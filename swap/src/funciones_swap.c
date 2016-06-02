@@ -56,7 +56,7 @@ void manejar_socket_umc(t_paquete* paquete){
 		break;
 	case ERROR_COD_OP:
 		puts("Error en el recibir. Recibio codigo de error");
-		log_error(logSwap,"Recibio codigo de error");
+		log_error(logSwap,"Se ha desconectado la UMC");
 		exit(EXIT_FAILURE);
 		break;
 	case TAMANIO_PAGINA:
@@ -242,7 +242,7 @@ void finalizarPrograma(t_paquete* paquete){
 	puts("FINALIZA PROGRAMA");
 
 
-	int i,codOp = TERMINO_MAL_PROGRAMA;
+	int i,codOp = NO_OK;
 
 	for(i=0;i<list_size(lista_procesos);i++){
 		t_control_swap* controlSwap = list_get(lista_procesos,i);
@@ -259,9 +259,13 @@ void finalizarPrograma(t_paquete* paquete){
 				posAux++;
 			}
 
+			printf("Se limplia el bitmap \n");
+
+			loggearBitmap();
+
 			free(list_remove(lista_procesos,i));
 
-			codOp = TERMINO_BIEN_PROGRAMA;
+			codOp = OK;
 			log_info(logSwap,"Finalización del programa exitosa");
 			puts("Finalización del programa exitosa");
 		}else{
@@ -314,6 +318,8 @@ void agregarNuevoProceso(int posicion, int cantidadPaginas, t_pedido_inicializar
 		bitarray_set_bit(bitarray,posAux);
 		posAux++;
 	}
+
+	loggearBitmap();
 
 	t_control_swap* controlSwap = malloc(sizeof(t_control_swap));
 	controlSwap->PId = pedido->idPrograma;
