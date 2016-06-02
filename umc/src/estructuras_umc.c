@@ -58,6 +58,7 @@ void nuevaTablaDePaginas(int pid,int cantPaginas){
 
 		//Agrego la entrada a la lista
 		list_add(tablaDePaginas,entradaTablaPaginas);
+
 	}
 
 	dictionary_put(tablasDePagina,i_to_s(pid),tablaDePaginas);
@@ -69,7 +70,7 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 
 	t_entrada_tabla_paginas *entrada_pagina;
 
-	//Busca la tabla de paginas en el directorio y la devuelve
+	//Busca la tabla de paginas en el diccionario y la devuelve
 	t_list *tablaDePaginas=dictionary_get(tablasDePagina,i_to_s(pid));
 
 	//Busca la página pedida en la lista
@@ -78,7 +79,7 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 	//Si la pagina no esta en la tabla es un error
 	if(entrada_pag_pedida==NULL){
 
-		log_warning(logUMC,"No se encontro la pagina %d",pagina);
+		log_warning(logUMC,"No se encontro la pagina %d del proceso %d",pagina,pid);
 		exit(EXIT_FAILURE);
 
 	//Si la página está en memoria la devuelvo
@@ -86,14 +87,22 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 
 		entrada_pagina=entrada_pag_pedida;
 
+		log_info(logUMC,"La página %d del proceso %d estaba en memoria",pagina,pid);
+
 	//Si la página no está en memoria le pido los datos al swap
 	}else if(entrada_pag_pedida->presencia==false){
+
+		log_info(logUMC,"La página %d del proceso %d no estaba en memoria",pagina,pid);
 
 		//Cuento la cantidad de paginas del proceso presentes en memoria
 		int paginasUsadas = list_count_satisfying(tablaDePaginas,paginaPresente);
 
+		log_info(logUMC,"El proceso %d va usando %d frames",pid,paginasUsadas);
+
 		//Si el proceso tiene la cantidad máxima de frames usados
 		if(paginasUsadas == config_umc->marco_x_proc){
+
+			log_info(logUMC,"El proceso %d uso la máxima cantidad de frames permitida",pid);
 
 			//Reemplazo una página del proceso
 			t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pid,pagina,entrada_pag_pedida,tablaDePaginas);
@@ -103,14 +112,20 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 		//Si el proceso no pidió la cantidad máxima de frames
 		}else if(paginasUsadas<config_umc->marco_x_proc){
 
+			log_info(logUMC,"El proceso %d aun no pidio el máximo número de frames permitidos",pid);
+
 			//Busco la cantidad de frames
 			int framesLibres = cantidadFramesLibres();
 
 			//Si hay frames libres
 			if(framesLibres>0){
 
+				log_info(logUMC,"Todavía quedan frames libres en memoria");
+
 				//Traigo el primer frame libre
 				int frameAOcupar = encontrarPrimerVacio();
+
+				log_debug(logUMC,"Se va a ocupar el frame %d",frameAOcupar);
 
 				//Le pido al swap la página
 				char* datos_pagina = leerDeSwap(pid,pagina);
@@ -129,8 +144,13 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 
 				entrada_pagina = entrada_pag_pedida;
 
+				log_info(logUMC,"La página %d del proceso %d ahora está en memoria en el frame %d",pagina,pid,frameAOcupar);
+				log_info(logUMC,"El bit de presencia de la pagina %d del proceso %d es %d",pagina,pid,entrada_pagina->presencia);
+
 			//Si no hay frames libres elijo uno de los del proceso
 			}else{
+
+				log_info(logUMC,"No quedan frames libres en memoria");
 
 				//Reemplazo una página del proceso
 				t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pid,pagina,entrada_pag_pedida,tablaDePaginas);
@@ -258,14 +278,19 @@ t_entrada_tabla_paginas* reemplazarPagina(int pid,int pagina,t_entrada_tabla_pag
 	//Elijo una víctima de entre las páginas del proceso
 	t_entrada_tabla_paginas *entrada_pag_victima = elegir_victima(tablaDePaginas);
 
+
 	//Si la página está modificada busco los datos y se los mando al swap
 	if(entrada_pag_victima->modificado==true){
+
+		log_info(logUMC,"La página víctima del proceso %d está modificada",pid);
 
 		//Busco los datos en memoria de la página víctima
 		char* datos_pagina_victima = datos_pagina_en_memoria(entrada_pag_victima->nro_marco);
 
 		//Busco el id de la página víctima
 		int pagina_victima = list_get_index(tablaDePaginas,entrada_pag_victima);
+
+		log_info(logUMC,"Se eligio como víctima la página %d del proceso %d",pagina_victima,pid);
 
 		//Escribo la página víctima en memoria
 		escribirEnSwap(pagina_victima,datos_pagina_victima,pid);
@@ -286,6 +311,11 @@ t_entrada_tabla_paginas* reemplazarPagina(int pid,int pagina,t_entrada_tabla_pag
 	//Cambio el bit de presencia y limpio el frame de la página que acabo de sacar
 	entrada_pag_victima->presencia=false;
 	entrada_pag_victima->nro_marco=-1;
+
+	log_info(logUMC,"Ahora la página %d del proceso %d está en memoria en el frame %d",pagina,pid,entrada_pag_pedida->nro_marco);
+	log_debug(logUMC,"El bit de presencia de la pagina victima del proceso %d ahora es %d",pid,entrada_pag_victima->presencia);
+	log_debug(logUMC,"El numero de frame de la página víctima del proceso %d es %d",pid,entrada_pag_victima->nro_marco);
+	log_debug(logUMC,"El bit de presencia de la página %d del proceso %d es %d",pagina,pid,entrada_pag_pedida->presencia);
 
 	return entrada_pag_pedida;
 

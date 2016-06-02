@@ -71,15 +71,15 @@ void atender_conexion(int* socket_conexion){
 
 				//Si la respuesta es que no hay espacio
 				if(paquete->cod_op==NO_OK){
-					log_info(logUMC,"No hay espacio sufuciente para el nuevo programa");
+					log_info(logUMC,"No hay espacio sufuciente para el programa %d",pedido_inicializar->idPrograma);
 
 					//Le aviso al núcleo de que no hay espacio
 					enviar(NO_OK,1,socket_conexion,*socket_conexion);
-					log_debug(logUMC,"Se informó a nucleo de que no hay espacio para el nuevo programa");
+					log_debug(logUMC,"Se informó al nucleo de que no hay espacio para el programa %d",pedido_inicializar->idPrograma);
 
 				//Si la respuesta es que hay espacio para el programa
 				}else if(paquete->cod_op==OK){
-					log_info(logUMC,"Hay espacio sufuciente para el nuevo programa");
+					log_info(logUMC,"Hay espacio sufuciente para el programa %d",pedido_inicializar->idPrograma);
 
 					//Creo la entrada a la tabla de paginas del proceso
 					nuevaTablaDePaginas(pedido_inicializar->idPrograma,pedido_inicializar->pagRequeridas);
@@ -87,7 +87,7 @@ void atender_conexion(int* socket_conexion){
 
 					//Le aviso al nucleo que hay espacio para el nuevo programa
 					enviar(OK,1,socket_conexion,*socket_conexion);
-					log_debug(logUMC,"Se informo al kernel que hay paginas para el programa");
+					log_debug(logUMC,"Se informo al kernel que hay paginas para el programa %d",pedido_inicializar->idPrograma);
 
 				//Si la respuesta es que se desconecto el socket
 				}else if(paquete->cod_op==ERROR_COD_OP){
@@ -106,11 +106,11 @@ void atender_conexion(int* socket_conexion){
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
 
-				//TODO Poner semáforo mutex para acceder a la TLB
-				//TODO Buscar la página en la TLB, si no esta la busco en la tabla de marcos
-
 				//Casteo el pedido como una solicitud de lectura
 				t_pedido_solicitarBytes solicitud=*((t_pedido_solicitarBytes*)pedido->datos);
+
+				//TODO Poner semáforo mutex para acceder a la TLB
+				//TODO Buscar la página en la TLB, si no esta la busco en la tabla de marcos
 
 				//Protejo con un semáforo el acceso a la tabla de paginas
 				pthread_mutex_lock(&mutex_pags);
@@ -123,7 +123,7 @@ void atender_conexion(int* socket_conexion){
 
 				log_info(logUMC,"Leido: %.*s",solicitud.tamanioDatos,datosDePagina+solicitud.offset);
 				enviar(BUFFER_LEIDO,solicitud.tamanioDatos,datosDePagina+solicitud.offset,*socket_conexion);
-				log_info(logUMC,"Se le envio el contenido de la pagina a la cpu %d",*socket_conexion);
+				log_info(logUMC,"Se le envio el contenido de la pagina %d a la cpu %d",solicitud.nroPagina,*socket_conexion);
 
 				//Libero el acceso a la tabla de páginas
 				pthread_mutex_unlock(&mutex_pags);
@@ -137,13 +137,13 @@ void atender_conexion(int* socket_conexion){
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
 
-				//TODO Poner semáforo mutex para acceder a la TLB
-				//TODO Buscar página en la TLB, si no está la busco en memoria
-
 				//Descerializo el paquete que me llego
 				t_pedido_almacenarBytes *pedido_almacenar;
 				pedido_almacenar=deserializar_pedido_almacenar(pedido->datos);
 				log_info(logUMC,"Se pidio escribir en la pagina %d con el offset %d la cantidad de bytes %d. Se pidio escribir buffer: %.*s",pedido_almacenar->nroPagina,pedido_almacenar->offset,pedido_almacenar->tamanioDatos,pedido_almacenar->tamanioDatos,pedido_almacenar->buffer);
+
+				//TODO Poner semáforo mutex para acceder a la TLB
+				//TODO Buscar página en la TLB, si no está la busco en memoria
 
 				//Protejo el acceso a la tabla de páginas
 				pthread_mutex_lock(&mutex_pags);
@@ -158,11 +158,13 @@ void atender_conexion(int* socket_conexion){
 				char* datosDePaginaEscritura = datos_pagina_en_memoria(entrada_pag_escritura->nro_marco);
 
 				//Modifico los datos de la página
-				log_info(logUMC,"Se pidieron almacenar los datos %s", pedido_almacenar->buffer);
+				log_info(logUMC,"Se pidieron almacenar los datos %s de la pagina %d del proceso %d", pedido_almacenar->buffer,pedido_almacenar->nroPagina,proceso_activo);
 				memcpy(datosDePaginaEscritura+pedido_almacenar->offset,pedido_almacenar->buffer,pedido_almacenar->tamanioDatos);
+				log_info(logUMC,"Se almacenaron los datos %s de la pagina %d del proceso %d", pedido_almacenar->buffer,pedido_almacenar->nroPagina,proceso_activo);
 
 				//Pongo el bit de modificado de la página en true
 				entrada_pag_escritura->modificado=true;
+				log_info(logUMC,"El bit de modificado de la pagina %d del proceso %d es %d",solicitud.nroPagina,proceso_activo,entrada_pag_escritura);
 
 				//Envío el aviso de que se escribio en la página
 				log_info(logUMC,"Se escribio en la página correctamente");
@@ -183,6 +185,8 @@ void atender_conexion(int* socket_conexion){
 
 				//Recibo el id del programa a finalizar
 				int32_t *programaAFinalizar=pedido->datos;
+
+				log_info(logUMC,"Se pidio finalizar el proceso %d",*programaAFinalizar);
 
 				//Bloqueo la conexión con el swap
 				pthread_mutex_lock(&mutex);
@@ -211,6 +215,9 @@ void atender_conexion(int* socket_conexion){
 					//Se marcan los frames asignados como libres en el bitmap
 					t_list *tablaDePaginas = dictionary_remove(tablasDePagina,i_to_s(*programaAFinalizar));
 					list_iterate(tablaDePaginas,eliminarPaginas);
+					list_destroy(tablaDePaginas);
+
+					log_info(logUMC,"Se eliminaron las estructuras del proceso %d",*programaAFinalizar);
 
 					printf("Se limpia Bitmap \n");
 
@@ -221,14 +228,14 @@ void atender_conexion(int* socket_conexion){
 
 					log_info(logUMC,"Se elimino el programa correctamente");
 					enviar(OK,1,&socket_conexion,*socket_conexion);
-					log_info(logUMC,"Se informo al nucleo que se elimino el programa correctamente");
+					log_info(logUMC,"Se informo al nucleo que se elimino el programa %d correctamente",*programaAFinalizar);
 
 				//Si el swap me informa que el programa no se pudo eliminar le aviso al nucleo
 				}else if(pedidoFinalizar->cod_op==NO_OK){
 
-					log_info(logUMC,"No  se pudo eliminar el programa");
+					log_info(logUMC,"No  se pudo eliminar el programa %d",*programaAFinalizar);
 					enviar(NO_OK,1,&socket_conexion,*socket_conexion);
-					log_info(logUMC,"Se le informo al nucleo que no se pudo eliminar el programa");
+					log_info(logUMC,"Se le informo al nucleo que no se pudo eliminar el programa %d",*programaAFinalizar);
 
 				//Si el swap me informa que se desconecto el socket
 				}else if(pedidoFinalizar->cod_op==ERROR_COD_OP){
@@ -398,6 +405,8 @@ void escribirEnSwap(int pagina,char* datos_pagina,int pid){
 	pedido_almacenar_swap.pid=pid;
 	pedido_almacenar_swap.nroPagina=pagina;
 
+	log_info(logUMC,"Se le pidio al swap almacenar la página %d del proceso %d",pagina,pid);
+
 	//Serializo estructura para mandarsela al swap
 	t_pedido_almacenar_swap_serializado *pedido_almacenar_swap_serializado;
 	pedido_almacenar_swap_serializado=serializar_pedido_almacenar_swap(&pedido_almacenar_swap,config_umc->marco_size);
@@ -417,15 +426,15 @@ void escribirEnSwap(int pagina,char* datos_pagina,int pid){
 	//Desbloqueo la conexión con el swap
 	pthread_mutex_unlock(&mutex);
 
-	//Si la respuesta del swap es que se pudo escribir la página devuelvo el paquete
+	//Si la respuesta del swap es que se pudo escribir la página
 	if(paqueteEscritura->cod_op==OK){
 
-		log_info(logUMC,"Se pudo escribir la pagina");
+		log_info(logUMC,"Se pudo escribir la pagina %d del proceso %d en swap",pagina,pid);
 
 	//Si la respuesta del swap es que no pudo escribir la página
 	}else if(paqueteEscritura->cod_op==NO_OK){
 
-		log_info(logUMC,"No se pudo escribir en la pagina");
+		log_info(logUMC,"No se pudo escribir la pagina %d del proceso %d",pagina,pid);
 		exit(EXIT_FAILURE);
 
 	//Si la respuesta del swap es que se desconecto el socket
@@ -450,7 +459,7 @@ char* leerDeSwap(int pid,int pagina){
 	t_pedido_leer_swap pedido_leer;
 	pedido_leer.nroPagina = pagina;
 	pedido_leer.pid = pid;
-	log_info(logUMC,"Se pidio leer la pagina %d del proceso %d",pagina);
+	log_info(logUMC,"Se pidio al swap leer la pagina %d del proceso %d",pagina,pid);
 
 	//Bloqueo la conexión con el swap
 	pthread_mutex_lock(&mutex);
@@ -458,7 +467,7 @@ char* leerDeSwap(int pid,int pagina){
 	//Le pido la página requerida al swap
 	enviar(LECTURA_PAGINA,sizeof(pedido_leer),&pedido_leer,socketswap);
 	t_paquete *paquete_lectura = recibir_paquete(socketswap);
-	log_info(logUMC,"Recibi el contenido de la pagina del swap");
+	log_info(logUMC,"Recibi el contenido de la pagina %d del proceso %d del swap");
 
 	//Desbloqueo la conexión con el swap
 	pthread_mutex_unlock(&mutex);
@@ -468,11 +477,12 @@ char* leerDeSwap(int pid,int pagina){
 
 		datos_pagina=malloc(paquete_lectura->tamano_datos);
 		memcpy(datos_pagina,paquete_lectura->datos,paquete_lectura->tamano_datos);
+		log_debug(logUMC,"Pagina a leer\n%.*s",config_umc->marco_size,datos_pagina);
 
 	//Si el swap no tiene la pagina
 	}else if(paquete_lectura->cod_op==NO_OK){
 
-		log_info(logUMC,"No se pudo leer la página");
+		log_info(logUMC,"No se pudo leer la página %d del proceso %d",pagina,pid);
 		exit(EXIT_FAILURE);
 
 	//Si se desconecto el socket
