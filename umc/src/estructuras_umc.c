@@ -83,7 +83,7 @@ void nuevaTablaDePaginas(int pid,int cantPaginas){
 		list_add(tablaDePaginas,entradaTablaPaginas);
 
 	}
-	memcpy(entrada_diccionario->tablaDePaginas,tablaDePaginas,list_size(tablaDePaginas));
+	memcpy(entrada_diccionario->tablaDePaginas,tablaDePaginas,(list_size(tablaDePaginas)*config_umc->marco_size));
 	entrada_diccionario->manecilla=0;
 	entrada_diccionario->pid=pid;
 
@@ -223,28 +223,29 @@ bool paginaPresente(void* entrada_pag){
 //Funcion para elegir una víctima a mandar al swap
 t_entrada_tabla_paginas* elegir_victima_clock(t_entrada_diccionario *entrada_diccionario){
 
-	//t_list *tablaDePaginas=list_create();
-
-	//list_add_all(tablaDePaginas,entrada_diccionario->tablaDePaginas);
-
+	//Traigo la tabla de páginas del proceso
 	t_list *tablaDePaginas=entrada_diccionario->tablaDePaginas;
+	log_info(logUMC,"Se consiguió la tabla de páginas del proceso %d",entrada_diccionario->pid);
 
-	//t_entrada_tabla_paginas *entrada_pag_victima =list_find(tablaDePaginas,paginaPresente);
-	//return entrada_pag_victima;
 
 	bool encontro_pag_victima = false;
-	//int manecilla = entrada_diccionario->manecilla;
 	t_entrada_tabla_paginas *entrada_pagina_victima;
 
+	//Mientras no se encuentre una página que sea víctima
 	while(encontro_pag_victima==false){
 
+		//Traigo los elementos de la lista(entradas)
 		t_entrada_tabla_paginas *entrada_pag_victima = list_get(tablaDePaginas,entrada_diccionario->manecilla);
 
+		//Si la página está presente
 		if(entrada_pag_victima->presencia==true){
 
+			//Si la página está en uso
 			if(entrada_pag_victima->uso==true){
 
 				entrada_pag_victima->uso=false;
+				//log_debug(logUMC,"La página %d del proceso %d ahora tiene el bit de uso %d")
+
 				entrada_diccionario->manecilla+=sizeof(t_entrada_tabla_paginas);
 
 			}else if(entrada_pag_victima->uso==false){
