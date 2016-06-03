@@ -229,6 +229,19 @@ t_entrada_tabla_paginas* buscar_pagina_en_TLB(int32_t proceso, int32_t nro_marco
 	return NULL;
 }
 
+void cargar_en_TLB(int32_t pid, t_entrada_tabla_paginas* pagina){
+	log_info(logUMC,"Se carga la página al TLB");
+
+	t_entrada_tlb* entrada_tlb = malloc(sizeof(t_entrada_tlb));
+	entrada_tlb->pid = pid;
+	entrada_tlb->nro_marco  = pagina->nro_marco;
+	entrada_tlb->presencia  = pagina->presencia;
+	entrada_tlb->modificado = pagina->modificado;
+	entrada_tlb->uso = pagina->uso;
+
+	list_add(tlb,entrada_tlb);
+}
+
 
 //TODO Ver que pasa si no hay espacio y el programa no tiene frames en memoria
 

@@ -114,7 +114,7 @@ void atender_conexion(int* socket_conexion){
 
 				//Poner semáforo mutex para acceder a la TLB
 				pthread_mutex_lock(&mutex_tlb);
-				//TODO Buscar la página en la TLB, si no esta la busco en la tabla de marcos
+				//Buscar la página en la TLB, si no esta la busco en la tabla de marcos
 				t_entrada_tabla_paginas* entrada_pag_pedida = buscar_pagina_en_TLB(proceso_activo,solicitud.nroPagina);
 				pthread_mutex_unlock(&mutex_tlb);
 
@@ -130,6 +130,9 @@ void atender_conexion(int* socket_conexion){
 
 					//Libero el acceso a la tabla de páginas
 					pthread_mutex_unlock(&mutex_pags);
+
+					//Cargar pagina en la TLB
+					cargar_en_TLB(proceso_activo,entrada_pag_pedida);
 
 					//Busco los datos de la página y se los envío a la cpu
 					char* datosDePagina=datos_pagina_en_memoria(entrada_pag_pedida->nro_marco);
@@ -167,7 +170,7 @@ void atender_conexion(int* socket_conexion){
 				//Poner semáforo mutex para acceder a la TLB
 				pthread_mutex_lock(&mutex_tlb);
 
-				//TODO Buscar página en la TLB, si no está la busco en memoria
+				//Buscar página en la TLB, si no está la busco en memoria
 				t_entrada_tabla_paginas* entrada_pag_escritura = buscar_pagina_en_TLB(proceso_activo,pedido_almacenar->nroPagina);
 
 				pthread_mutex_unlock(&mutex_tlb);
