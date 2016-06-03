@@ -15,6 +15,9 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 //mutex para el acceso a la tabla de paginas
 pthread_mutex_t mutex_pags=PTHREAD_MUTEX_INITIALIZER;
 
+//mutex para la tlb
+pthread_mutex_t mutex_tlb=PTHREAD_MUTEX_INITIALIZER;
+
 //Función para atender las conexiones de las cpus y el núcleo
 
 
@@ -38,7 +41,7 @@ void atender_conexion(int* socket_conexion){
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
 
-				//Descerializo el programa
+				//Deserializo el programa
 				t_pedido_inicializar *pedido_inicializar=deserializar_pedido_inicializar(pedido->datos);
 
 				//Creo y cargo una estructura de lo que el swap tiene que recibir
@@ -109,24 +112,43 @@ void atender_conexion(int* socket_conexion){
 				//Casteo el pedido como una solicitud de lectura
 				t_pedido_solicitarBytes solicitud=*((t_pedido_solicitarBytes*)pedido->datos);
 
-				//TODO Poner semáforo mutex para acceder a la TLB
+				//Poner semáforo mutex para acceder a la TLB
+				pthread_mutex_lock(&mutex_tlb);
 				//TODO Buscar la página en la TLB, si no esta la busco en la tabla de marcos
+				t_entrada_tabla_paginas* entrada_pag_pedida = buscar_pagina_en_TLB(proceso_activo,solicitud.nroPagina);
+				pthread_mutex_unlock(&mutex_tlb);
 
-				//Protejo con un semáforo el acceso a la tabla de paginas
-				pthread_mutex_lock(&mutex_pags);
+				if(entrada_pag_pedida == NULL){
+					log_warning(logUMC,"Página no encontrada en la TLB");
 
-				//Busco la pagina en la tabla de paginas
-				t_entrada_tabla_paginas *entrada_pag_pedida= buscar_pagina_en_tabla(proceso_activo,solicitud.nroPagina);
+					//Protejo con un semáforo el acceso a la tabla de paginas
+					pthread_mutex_lock(&mutex_pags);
 
-				//Busco los datos de la página y se los envío a la cpu
-				char* datosDePagina=datos_pagina_en_memoria(entrada_pag_pedida->nro_marco);
+					//Busco la pagina en la tabla de paginas
+					log_info(logUMC,"Se busca en la tabla de páginas");
+					entrada_pag_pedida= buscar_pagina_en_tabla(proceso_activo,solicitud.nroPagina);
 
-				log_info(logUMC,"Leido: %.*s",solicitud.tamanioDatos,datosDePagina+solicitud.offset);
-				enviar(BUFFER_LEIDO,solicitud.tamanioDatos,datosDePagina+solicitud.offset,*socket_conexion);
-				log_info(logUMC,"Se le envio el contenido de la pagina %d a la cpu %d",solicitud.nroPagina,*socket_conexion);
+					//Libero el acceso a la tabla de páginas
+					pthread_mutex_unlock(&mutex_pags);
 
-				//Libero el acceso a la tabla de páginas
-				pthread_mutex_unlock(&mutex_pags);
+					//Busco los datos de la página y se los envío a la cpu
+					char* datosDePagina=datos_pagina_en_memoria(entrada_pag_pedida->nro_marco);
+
+					log_info(logUMC,"Leido: %.*s",solicitud.tamanioDatos,datosDePagina+solicitud.offset);
+					enviar(BUFFER_LEIDO,solicitud.tamanioDatos,datosDePagina+solicitud.offset,*socket_conexion);
+					log_info(logUMC,"Se le envio el contenido de la pagina %d a la cpu %d",solicitud.nroPagina,*socket_conexion);
+
+				}else{
+					log_info(logUMC,"Página encontrada en la TLB");
+
+					//Busco los datos de la página y se los envío a la cpu
+					char* datosDePagina=datos_pagina_en_memoria(entrada_pag_pedida->nro_marco);
+
+					log_info(logUMC,"Leido: %.*s",solicitud.tamanioDatos,datosDePagina+solicitud.offset);
+					enviar(BUFFER_LEIDO,solicitud.tamanioDatos,datosDePagina+solicitud.offset,*socket_conexion);
+					log_info(logUMC,"Se le envio el contenido de la pagina %d a la cpu %d",solicitud.nroPagina,*socket_conexion);
+
+				}
 
 				break;
 			case ESCRITURA_PAGINA:
@@ -137,39 +159,67 @@ void atender_conexion(int* socket_conexion){
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
 
-				//Descerializo el paquete que me llego
+				//Deserializo el paquete que me llego
 				t_pedido_almacenarBytes *pedido_almacenar;
 				pedido_almacenar=deserializar_pedido_almacenar(pedido->datos);
 				log_info(logUMC,"Se pidio escribir en la pagina %d con el offset %d la cantidad de bytes %d. Se pidio escribir buffer: %.*s",pedido_almacenar->nroPagina,pedido_almacenar->offset,pedido_almacenar->tamanioDatos,pedido_almacenar->tamanioDatos,pedido_almacenar->buffer);
 
-				//TODO Poner semáforo mutex para acceder a la TLB
+				//Poner semáforo mutex para acceder a la TLB
+				pthread_mutex_lock(&mutex_tlb);
+
 				//TODO Buscar página en la TLB, si no está la busco en memoria
+				t_entrada_tabla_paginas* entrada_pag_escritura = buscar_pagina_en_TLB(proceso_activo,pedido_almacenar->nroPagina);
 
-				//Protejo el acceso a la tabla de páginas
-				pthread_mutex_lock(&mutex_pags);
+				pthread_mutex_unlock(&mutex_tlb);
 
-				//Busco la página en la tabla de páginas
-				t_entrada_tabla_paginas *entrada_pag_escritura=buscar_pagina_en_tabla(proceso_activo,pedido_almacenar->nroPagina);
+				if(entrada_pag_escritura == NULL){
+					log_warning(logUMC,"Página no encontrada en la TLB");
 
-				//Libero el acceso a la tabla de páginas
-				pthread_mutex_unlock(&mutex_pags);
+					//Protejo el acceso a la tabla de páginas
+					pthread_mutex_lock(&mutex_pags);
 
-				//Busco los datos de la página como están ahora en memoria
-				char* datosDePaginaEscritura = datos_pagina_en_memoria(entrada_pag_escritura->nro_marco);
+					//Busco la página en la tabla de páginas
+					entrada_pag_escritura=buscar_pagina_en_tabla(proceso_activo,pedido_almacenar->nroPagina);
 
-				//Modifico los datos de la página
-				log_info(logUMC,"Se pidieron almacenar los datos %s de la pagina %d del proceso %d", pedido_almacenar->buffer,pedido_almacenar->nroPagina,proceso_activo);
-				memcpy(datosDePaginaEscritura+pedido_almacenar->offset,pedido_almacenar->buffer,pedido_almacenar->tamanioDatos);
-				log_info(logUMC,"Se almacenaron los datos %s de la pagina %d del proceso %d", pedido_almacenar->buffer,pedido_almacenar->nroPagina,proceso_activo);
+					//Libero el acceso a la tabla de páginas
+					pthread_mutex_unlock(&mutex_pags);
 
-				//Pongo el bit de modificado de la página en true
-				entrada_pag_escritura->modificado=true;
-				log_info(logUMC,"El bit de modificado de la pagina %d del proceso %d es %d",solicitud.nroPagina,proceso_activo,entrada_pag_escritura);
+					//Busco los datos de la página como están ahora en memoria
+					char* datosDePaginaEscritura = datos_pagina_en_memoria(entrada_pag_escritura->nro_marco);
 
-				//Envío el aviso de que se escribio en la página
-				log_info(logUMC,"Se escribio en la página correctamente");
-				enviar(OK,1,&socket_conexion,*socket_conexion);
-				log_info(logUMC,"Se informo que se escribio en la página");
+					//Modifico los datos de la página
+					log_info(logUMC,"Se pidieron almacenar los datos %s de la pagina %d del proceso %d", pedido_almacenar->buffer,pedido_almacenar->nroPagina,proceso_activo);
+					memcpy(datosDePaginaEscritura+pedido_almacenar->offset,pedido_almacenar->buffer,pedido_almacenar->tamanioDatos);
+					log_info(logUMC,"Se almacenaron los datos %s de la pagina %d del proceso %d", pedido_almacenar->buffer,pedido_almacenar->nroPagina,proceso_activo);
+
+					//Pongo el bit de modificado de la página en true
+					entrada_pag_escritura->modificado=true;
+					log_info(logUMC,"El bit de modificado de la pagina %d del proceso %d es %d",solicitud.nroPagina,proceso_activo,entrada_pag_escritura);
+
+					//Envío el aviso de que se escribio en la página
+					log_info(logUMC,"Se escribio en la página correctamente");
+					enviar(OK,1,&socket_conexion,*socket_conexion);
+					log_info(logUMC,"Se informo que se escribio en la página");
+				}else{
+					log_info(logUMC,"Página encontrada en la TLB");
+
+					//Busco los datos de la página como están ahora en memoria
+					char* datosDePaginaEscritura = datos_pagina_en_memoria(entrada_pag_escritura->nro_marco);
+
+					//Modifico los datos de la página
+					log_info(logUMC,"Se pidieron almacenar los datos %s de la pagina %d del proceso %d", pedido_almacenar->buffer,pedido_almacenar->nroPagina,proceso_activo);
+					memcpy(datosDePaginaEscritura+pedido_almacenar->offset,pedido_almacenar->buffer,pedido_almacenar->tamanioDatos);
+					log_info(logUMC,"Se almacenaron los datos %s de la pagina %d del proceso %d", pedido_almacenar->buffer,pedido_almacenar->nroPagina,proceso_activo);
+
+					//Pongo el bit de modificado de la página en true
+					entrada_pag_escritura->modificado=true;
+					log_info(logUMC,"El bit de modificado de la pagina %d del proceso %d es %d",solicitud.nroPagina,proceso_activo,entrada_pag_escritura);
+
+					//Envío el aviso de que se escribio en la página
+					log_info(logUMC,"Se escribio en la página correctamente");
+					enviar(OK,1,&socket_conexion,*socket_conexion);
+					log_info(logUMC,"Se informo que se escribio en la página");
+				}
 
 				break;
 
@@ -261,8 +311,6 @@ void atender_conexion(int* socket_conexion){
 	}
 	free(socket_conexion);
 }
-
-
 
 int crear_hilo_conexion(int socket){
 	int* socket_actual = malloc(sizeof(int));

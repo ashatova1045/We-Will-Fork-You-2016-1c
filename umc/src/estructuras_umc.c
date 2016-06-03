@@ -44,9 +44,11 @@ void crearTLB(int entradasTLB){
 	int i;
 	for(i = 0 ; i < entradasTLB ; i++) {
 		t_entrada_tlb* entrada = malloc(sizeof(t_entrada_tlb));
-		entrada->en_uso = false;
+		entrada->uso = false;
 		entrada->nro_marco = -1;
 		entrada->pid = -1;
+		entrada->modificado = false;
+		entrada->presencia = false;
 		list_add(tlb, entrada);
 	}
 }
@@ -207,6 +209,26 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 	}
 	return entrada_pagina;
 }
+
+t_entrada_tabla_paginas* buscar_pagina_en_TLB(int32_t proceso, int32_t nro_marco){
+	t_entrada_tabla_paginas* pagina = malloc(sizeof(t_entrada_tabla_paginas));
+	int i;
+	for(i=0;i<list_size(tlb);i++){
+
+		t_entrada_tlb* elementoLista = list_get(tlb,i);
+
+		if(elementoLista->pid == proceso && elementoLista->nro_marco == nro_marco){
+			pagina->nro_marco  = elementoLista->nro_marco;
+			pagina->presencia  = elementoLista->presencia;
+			pagina->modificado = elementoLista->modificado;
+			pagina->uso = elementoLista->uso;
+			return pagina;
+		}
+
+	}
+	return NULL;
+}
+
 
 //TODO Ver que pasa si no hay espacio y el programa no tiene frames en memoria
 

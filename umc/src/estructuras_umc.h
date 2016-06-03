@@ -45,9 +45,11 @@ typedef struct{
 }t_entrada_tabla_paginas;
 
 typedef struct{
-	bool en_uso;
-	int32_t nro_marco;
 	int pid;
+	int32_t nro_marco;
+	bool presencia;
+	bool modificado;
+	bool uso;
 }t_entrada_tlb;
 
 t_dictionary *tablasDePagina;
@@ -89,5 +91,6 @@ void loggearBitmap();
 
 //TLB
 void crearTLB(int entradasTLB);
+t_entrada_tabla_paginas* buscar_pagina_en_TLB(int32_t proceso, int32_t numeroPagina);
 
 #endif /* ESTRUCTURAS_UMC_H_ */
