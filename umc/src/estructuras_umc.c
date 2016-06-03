@@ -32,7 +32,7 @@ void crear_estructuras(){
 	log_info(logUMC,"Bitarray de frames creado correctamente con %d frames",max);
 
 	//Crea la TLB
-	if(config_umc->tlb_habilitada){
+	if((config_umc->entradas_tlb)>0){
 		log_info(logUMC,"Creación de TLB");
 		crearTLB(config_umc->entradas_tlb);
 	}
@@ -83,7 +83,8 @@ void nuevaTablaDePaginas(int pid,int cantPaginas){
 		list_add(tablaDePaginas,entradaTablaPaginas);
 
 	}
-	memcpy(entrada_diccionario->tablaDePaginas,tablaDePaginas,(list_size(tablaDePaginas)*config_umc->marco_size));
+	//memcpy(entrada_diccionario->tablaDePaginas,tablaDePaginas,(list_size(tablaDePaginas)*config_umc->marco_size));
+	entrada_diccionario->tablaDePaginas = tablaDePaginas;
 	entrada_diccionario->manecilla=0;
 	entrada_diccionario->pid=pid;
 
