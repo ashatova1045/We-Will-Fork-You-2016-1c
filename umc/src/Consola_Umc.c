@@ -139,8 +139,13 @@ void reportes(){
 
 //Defino funcion de comando flush tlb
 void limpiarTLB(){
+	//limpiar completamente el contenido de la tabla de paginas
 	printf("\nSe limpio la tabla de paginas\n");
-	//TODO limpiar completamente el contenido de la tabla de paginas
+	int cantEntradas = list_size(tlb);
+	while(!list_is_empty(tlb)){
+		free(list_remove(tlb,0));
+	}
+	crearTLB(cantEntradas);
 }
 
 //Defino funcion de comando flush memory

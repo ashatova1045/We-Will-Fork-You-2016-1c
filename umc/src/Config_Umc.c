@@ -16,6 +16,7 @@ t_umcConfig* leerConfiguracion(t_config* config){
 	datosUmc->cant_marcos = config_get_int_value(config,"CANT_MARCOS");
 	datosUmc->marco_size = config_get_int_value(config,"MARCO_SIZE");
 	datosUmc->marco_x_proc = config_get_int_value(config,"MARCO_X_PROC");
+	datosUmc->tlb_habilitada = config_get_int_value(config,"TLB_HABILITADA");
 	datosUmc->entradas_tlb = config_get_int_value(config,"ENTRADAS_TLB");
 	datosUmc->retardo = config_get_int_value(config,"RETARDO");
 

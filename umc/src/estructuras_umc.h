@@ -26,6 +26,7 @@ typedef struct{
 	int cant_marcos;
 	int marco_size;
 	int marco_x_proc;
+	int tlb_habilitada;
 	int entradas_tlb;
 	int retardo;
 }t_umcConfig;
@@ -43,11 +44,18 @@ typedef struct{
 	bool uso;
 }t_entrada_tabla_paginas;
 
+typedef struct{
+	bool en_uso;
+	int32_t nro_marco;
+	int pid;
+}t_entrada_tlb;
+
 t_dictionary *tablasDePagina;
 
 char *memoria_principal;
 
 t_bitarray *bitmap_frames;
+t_list *tlb;
 //t_marco *tabla_marcos;
 
 //Cada proceso tiene su tabla de paginas
@@ -78,5 +86,8 @@ void usarBitMapDesdePos(int cantFrames, int desdeEstaPosicion);
 void limpiarBitMapDesdePos(int cantFrames, int desdeEstaPosicion);
 void eliminarPaginas(void *pagina);
 void loggearBitmap();
+
+//TLB
+void crearTLB(int entradasTLB);
 
 #endif /* ESTRUCTURAS_UMC_H_ */

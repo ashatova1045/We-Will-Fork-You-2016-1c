@@ -31,6 +31,24 @@ void crear_estructuras(){
 
 	log_info(logUMC,"Bitarray de frames creado correctamente con %d frames",max);
 
+	//Crea la TLB
+	if(config_umc->tlb_habilitada){
+		log_info(logUMC,"Creación de TLB");
+		crearTLB(config_umc->entradas_tlb);
+	}
+
+}
+
+void crearTLB(int entradasTLB){
+	tlb = list_create();
+	int i;
+	for(i = 0 ; i < entradasTLB ; i++) {
+		t_entrada_tlb* entrada = malloc(sizeof(t_entrada_tlb));
+		entrada->en_uso = false;
+		entrada->nro_marco = -1;
+		entrada->pid = -1;
+		list_add(tlb, entrada);
+	}
 }
 
 char* i_to_s(int i){
