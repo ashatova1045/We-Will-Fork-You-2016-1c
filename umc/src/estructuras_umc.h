@@ -30,11 +30,17 @@ typedef struct{
 	int retardo;
 }t_umcConfig;
 
+typedef struct{
+	int pid;
+	int manecilla;
+	t_list* tablaDePaginas;
+}t_entrada_diccionario;
 
 typedef struct{
 	int32_t nro_marco;
 	bool presencia;
 	bool modificado;
+	bool uso;
 }t_entrada_tabla_paginas;
 
 t_dictionary *tablasDePagina;
@@ -55,8 +61,10 @@ char* i_to_s(int i);
 char* datos_pagina_en_memoria(int marco);
 t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina);
 bool paginaPresente(void* entrada_pag);
-t_entrada_tabla_paginas* elegir_victima(t_list *tablaDePaginas);
-t_entrada_tabla_paginas* reemplazarPagina(int pid,int pagina,t_entrada_tabla_paginas* entrada_pag_pedida,t_list* tablaDePaginas);
+//t_entrada_tabla_paginas* elegir_victima(t_list *tablaDePaginas);
+//t_entrada_tabla_paginas* reemplazarPagina(int pid,int pagina,t_entrada_tabla_paginas* entrada_pag_pedida,t_list* tablaDePaginas);
+t_entrada_tabla_paginas* reemplazarPagina(int pagina,t_entrada_diccionario *entrada_diccionario);
+t_entrada_tabla_paginas* elegir_victima_clock(t_entrada_diccionario *entrada_diccionario);
 void destruir_estructuras();
 void destruir_lista(void *tablaDePaginas);
 

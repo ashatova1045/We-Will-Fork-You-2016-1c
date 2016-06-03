@@ -43,7 +43,11 @@ char* i_to_s(int i){
 // Creo la tabla con las paginas de un proceso en particular
 
 void nuevaTablaDePaginas(int pid,int cantPaginas){
+	//Declaro la tabla de páginas como una lista
 	t_list *tablaDePaginas =list_create();
+
+	//Reservo memoria para la entrada de diccionario
+	t_entrada_diccionario *entrada_diccionario=malloc(sizeof(t_entrada_diccionario));
 	int i;
 
 	//Mientras el programa tenga paginas
@@ -55,13 +59,18 @@ void nuevaTablaDePaginas(int pid,int cantPaginas){
 		entradaTablaPaginas->nro_marco=-1;
 		entradaTablaPaginas->presencia=false;
 		entradaTablaPaginas->modificado=false;
+		entradaTablaPaginas->uso=false;
 
 		//Agrego la entrada a la lista
 		list_add(tablaDePaginas,entradaTablaPaginas);
 
 	}
+	memcpy(entrada_diccionario->tablaDePaginas,tablaDePaginas,list_size(tablaDePaginas));
+	entrada_diccionario->manecilla=0;
+	entrada_diccionario->pid=pid;
 
-	dictionary_put(tablasDePagina,i_to_s(pid),tablaDePaginas);
+	//dictionary_put(tablasDePagina,i_to_s(pid),tablaDePaginas);
+	dictionary_put(tablasDePagina,i_to_s(pid),entrada_diccionario);
 }
 
 //Funcion para buscar una página en la tabla de páginas
@@ -70,8 +79,15 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 
 	t_entrada_tabla_paginas *entrada_pagina;
 
-	//Busca la tabla de paginas en el diccionario y la devuelve
-	t_list *tablaDePaginas=dictionary_get(tablasDePagina,i_to_s(pid));
+	//Busco la entrada al diccionario de la página
+	t_entrada_diccionario *entrada_diccionario = dictionary_get(tablasDePagina,i_to_s(pid));
+
+	//t_list *tablaDePaginas=dictionary_get(tablasDePagina,i_to_s(pid));
+	//t_list *tablaDePaginas=list_create();
+	//list_add_all(tablaDePaginas,entrada_diccionario->tablaDePaginas);
+
+	//Busco la tabla de páginas del proceso
+	t_list *tablaDePaginas=entrada_diccionario->tablaDePaginas;
 
 	//Busca la página pedida en la lista
 	t_entrada_tabla_paginas *entrada_pag_pedida = list_get(tablaDePaginas,pagina);
@@ -85,6 +101,9 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 	//Si la página está en memoria la devuelvo
 	}else if(entrada_pag_pedida->presencia==true){
 
+		//Actualizo el bit de uso de la página porque me la acaban de pedir
+		entrada_pag_pedida->uso=true;
+
 		entrada_pagina=entrada_pag_pedida;
 
 		log_info(logUMC,"La página %d del proceso %d estaba en memoria",pagina,pid);
@@ -95,7 +114,7 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 		log_info(logUMC,"La página %d del proceso %d no estaba en memoria",pagina,pid);
 
 		//Cuento la cantidad de paginas del proceso presentes en memoria
-		int paginasUsadas = list_count_satisfying(tablaDePaginas,paginaPresente);
+		int paginasUsadas = list_count_satisfying(entrada_diccionario->tablaDePaginas,paginaPresente);
 
 		log_info(logUMC,"El proceso %d va usando %d frames",pid,paginasUsadas);
 
@@ -105,7 +124,8 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 			log_info(logUMC,"El proceso %d uso la máxima cantidad de frames permitida",pid);
 
 			//Reemplazo una página del proceso
-			t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pid,pagina,entrada_pag_pedida,tablaDePaginas);
+			//t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pid,pagina,entrada_pag_pedida,tablaDePaginas);
+			t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pagina,entrada_diccionario);
 
 			entrada_pagina = entrada_pag_pedida_actualizada;
 
@@ -139,6 +159,9 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 				entrada_pag_pedida->nro_marco=frameAOcupar;
 				entrada_pag_pedida->presencia=true;
 
+				//Cambio bit de uso porque me la acaban de pedir
+				entrada_pag_pedida->uso=true;
+
 				//Marco el frame como ocupado en el bitmap
 				bitarray_set_bit(bitmap_frames,frameAOcupar);
 
@@ -153,7 +176,9 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 				log_info(logUMC,"No quedan frames libres en memoria");
 
 				//Reemplazo una página del proceso
-				t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pid,pagina,entrada_pag_pedida,tablaDePaginas);
+				//t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pid,pagina,entrada_pag_pedida,tablaDePaginas);
+
+				t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pagina,entrada_diccionario);
 
 				entrada_pagina = entrada_pag_pedida_actualizada;
 
@@ -178,12 +203,49 @@ bool paginaPresente(void* entrada_pag){
 }
 
 //Funcion para elegir una víctima a mandar al swap
-t_entrada_tabla_paginas* elegir_victima(t_list *tablaDePaginas){
-	t_entrada_tabla_paginas *entrada_pag_victima =list_find(tablaDePaginas,paginaPresente);
-	return entrada_pag_victima;
+t_entrada_tabla_paginas* elegir_victima_clock(t_entrada_diccionario *entrada_diccionario){
 
+	//t_list *tablaDePaginas=list_create();
+
+	//list_add_all(tablaDePaginas,entrada_diccionario->tablaDePaginas);
+
+	t_list *tablaDePaginas=entrada_diccionario->tablaDePaginas;
+
+	//t_entrada_tabla_paginas *entrada_pag_victima =list_find(tablaDePaginas,paginaPresente);
+	//return entrada_pag_victima;
+
+	bool encontro_pag_victima = false;
+	//int manecilla = entrada_diccionario->manecilla;
+	t_entrada_tabla_paginas *entrada_pagina_victima;
+
+	while(encontro_pag_victima==false){
+
+		t_entrada_tabla_paginas *entrada_pag_victima = list_get(tablaDePaginas,entrada_diccionario->manecilla);
+
+		if(entrada_pag_victima->presencia==true){
+
+			if(entrada_pag_victima->uso==true){
+
+				entrada_pag_victima->uso=false;
+				entrada_diccionario->manecilla+=sizeof(t_entrada_tabla_paginas);
+
+			}else if(entrada_pag_victima->uso==false){
+
+				encontro_pag_victima=true;
+				entrada_pagina_victima = entrada_pag_victima;
+			}
+		}else if(entrada_pag_victima->presencia==false){
+
+			entrada_diccionario->manecilla+=sizeof(t_entrada_tabla_paginas);
+		}
+
+		if(entrada_diccionario->manecilla == list_size(tablaDePaginas)){
+			entrada_diccionario->manecilla=0;
+		}
+	}
+
+	return entrada_pagina_victima;
 }
-
 
 void destruir_lista(void *tablaDePaginas){
 	list_destroy_and_destroy_elements(tablaDePaginas,free);
@@ -273,16 +335,20 @@ void loggearBitmap(){
 
 //Funcion para reemplazar una página del proceso
 
-t_entrada_tabla_paginas* reemplazarPagina(int pid,int pagina,t_entrada_tabla_paginas* entrada_pag_pedida,t_list* tablaDePaginas){
+t_entrada_tabla_paginas* reemplazarPagina(int pagina,t_entrada_diccionario *entrada_diccionario){
+
+	//t_list *tablaDePaginas=list_create();
+	//list_add_all(tablaDePaginas,entrada_diccionario->tablaDePaginas);
+	t_list *tablaDePaginas=entrada_diccionario->tablaDePaginas;
 
 	//Elijo una víctima de entre las páginas del proceso
-	t_entrada_tabla_paginas *entrada_pag_victima = elegir_victima(tablaDePaginas);
+	t_entrada_tabla_paginas *entrada_pag_victima = elegir_victima_clock(entrada_diccionario);
 
 
 	//Si la página está modificada busco los datos y se los mando al swap
 	if(entrada_pag_victima->modificado==true){
 
-		log_info(logUMC,"La página víctima del proceso %d está modificada",pid);
+		log_info(logUMC,"La página víctima del proceso %d está modificada",entrada_diccionario->pid);
 
 		//Busco los datos en memoria de la página víctima
 		char* datos_pagina_victima = datos_pagina_en_memoria(entrada_pag_victima->nro_marco);
@@ -290,32 +356,38 @@ t_entrada_tabla_paginas* reemplazarPagina(int pid,int pagina,t_entrada_tabla_pag
 		//Busco el id de la página víctima
 		int pagina_victima = list_get_index(tablaDePaginas,entrada_pag_victima);
 
-		log_info(logUMC,"Se eligio como víctima la página %d del proceso %d",pagina_victima,pid);
+		log_info(logUMC,"Se eligio como víctima la página %d del proceso %d",pagina_victima,entrada_diccionario->pid);
 
 		//Escribo la página víctima en memoria
-		escribirEnSwap(pagina_victima,datos_pagina_victima,pid);
+		escribirEnSwap(pagina_victima,datos_pagina_victima,entrada_diccionario->pid);
 	}
 
 	//Le pido al swap la página
-	char* datos_pagina = leerDeSwap(pid,pagina);
+	char* datos_pagina = leerDeSwap(entrada_diccionario->pid,pagina);
 
 	//Guardo la nueva página en la memoria
 	char* espacioEnMemoria = (memoria_principal+(entrada_pag_victima->nro_marco*config_umc->marco_size));
 
 	memcpy(espacioEnMemoria,datos_pagina,config_umc->marco_size);
 
+	//Busca la página pedida en la lista
+	t_entrada_tabla_paginas *entrada_pag_pedida = list_get(tablaDePaginas,pagina);
+
 	//Actualizo la entrada a la tabla de la página
 	entrada_pag_pedida->nro_marco=entrada_pag_victima->nro_marco;
 	entrada_pag_pedida->presencia=true;
+
+	//Cambio bit de uso porque la acabo de cargar
+	entrada_pag_pedida->uso=true;
 
 	//Cambio el bit de presencia y limpio el frame de la página que acabo de sacar
 	entrada_pag_victima->presencia=false;
 	entrada_pag_victima->nro_marco=-1;
 
-	log_info(logUMC,"Ahora la página %d del proceso %d está en memoria en el frame %d",pagina,pid,entrada_pag_pedida->nro_marco);
-	log_debug(logUMC,"El bit de presencia de la pagina victima del proceso %d ahora es %d",pid,entrada_pag_victima->presencia);
-	log_debug(logUMC,"El numero de frame de la página víctima del proceso %d es %d",pid,entrada_pag_victima->nro_marco);
-	log_debug(logUMC,"El bit de presencia de la página %d del proceso %d es %d",pagina,pid,entrada_pag_pedida->presencia);
+	log_info(logUMC,"Ahora la página %d del proceso %d está en memoria en el frame %d",pagina,entrada_diccionario->pid,entrada_pag_pedida->nro_marco);
+	log_debug(logUMC,"El bit de presencia de la pagina victima del proceso %d ahora es %d",entrada_diccionario->pid,entrada_pag_victima->presencia);
+	log_debug(logUMC,"El numero de frame de la página víctima del proceso %d es %d",entrada_diccionario->pid,entrada_pag_victima->nro_marco);
+	log_debug(logUMC,"El bit de presencia de la página %d del proceso %d es %d",pagina,entrada_diccionario->pid,entrada_pag_pedida->presencia);
 
 	return entrada_pag_pedida;
 

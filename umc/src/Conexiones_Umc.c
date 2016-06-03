@@ -213,9 +213,11 @@ void atender_conexion(int* socket_conexion){
 					loggearBitmap();
 
 					//Se marcan los frames asignados como libres en el bitmap
-					t_list *tablaDePaginas = dictionary_remove(tablasDePagina,i_to_s(*programaAFinalizar));
+					t_entrada_diccionario *entrada_diccionario = dictionary_remove(tablasDePagina,i_to_s(*programaAFinalizar));
+					t_list* tablaDePaginas = entrada_diccionario->tablaDePaginas;
 					list_iterate(tablaDePaginas,eliminarPaginas);
 					list_destroy(tablaDePaginas);
+					free(entrada_diccionario);
 
 					log_info(logUMC,"Se eliminaron las estructuras del proceso %d",*programaAFinalizar);
 
