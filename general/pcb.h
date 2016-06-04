@@ -52,13 +52,24 @@ typedef struct {
 
 typedef struct {
 	t_pcb* pcb;
-	char* semaforo; 
+	char* semaforo;
+	int32_t tiempo;
 }__attribute__((__packed__)) t_pedido_wait;
 
 typedef struct {
 	int32_t tamano;
-	char* contenido; 
+	char* contenido;
 }__attribute__((__packed__)) t_pedido_wait_serializado;
+
+typedef struct {
+	char* id_var;
+	int32_t valor;
+} t_varCompartida;
+
+typedef struct{
+	int32_t tamanio;
+	char* pedido_serializado;
+}__attribute__((__packed__)) t_pedido_serializado;
 
 t_pcb_serializado serializar(t_pcb pcb);
 t_pcb* deserializar(char* pcbs);
@@ -67,4 +78,8 @@ void destruir_pcb (t_pcb* pcbADestruir);
 
 t_pedido_wait deserializar_wait(char* serializado);
 t_pedido_wait_serializado* serializar_wait(t_pedido_wait* pedido);
+
+t_pedido_serializado serializar_asignar_compartida(t_varCompartida pedido_asignar);
+t_varCompartida deserializar_asignar_compartida(char* pedido_asignar);
+
 #endif /* PCB_H_ */

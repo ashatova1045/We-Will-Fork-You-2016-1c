@@ -5,6 +5,7 @@
 #include <commons/log.h>
 #include <errno.h>
 #include <commons/config.h>
+#include "commons/collections/dictionary.h"
 #include <stdbool.h>
 #include "estados.h"
 #include "../../general/pcb.h"
@@ -180,6 +181,8 @@ void destruirNucleoConfig(t_nucleoConfig* datosADestruir){
 	free(datosADestruir);
 }
 //#undef DESTRUIR_PP solo lo puedo usar hasta aca, si lo uso en otro lado no existe
+
+
 
 
 t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
@@ -410,7 +413,25 @@ void cerrar_socket_consola(int socket){
 
 void nueva_conexion_consola(int socket){
 	printf("Se conecto proceso Programa %d\n",socket);
+}
 
+void msleep(int usecs){
+	usleep(usecs*1000);
+}
+
+void entrada_salida(t_pedido_wait *pedido){
+	t_dispositivo_io* disp = dictionary_get(entradasalida,pedido->semaforo);
+
+	pthread_mutex_lock(&disp->mutex);
+	msleep(pedido->tiempo*disp->retardo);
+	pthread_mutex_unlock(&disp->mutex);
+
+	desbloquear_pcb(pedido->pcb);
+
+	free(pedido->semaforo);
+	free(pedido);
+
+	enviar_a_cpu();
 }
 
 void manejar_socket_cpu(int socket,t_paquete paquete){
@@ -448,10 +469,42 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				enviar(IMPRIMIR_TEXTO,paquete.tamano_datos,paquete.datos,relacion_imp_tex->programa->socket);
 				log_debug(logNucleo,"Enviando imprimir texto a la consola");
 				break;
-			case OBTENER_VALOR:
+			case OBTENER_VALOR_COMPARTIDA:
+				{
+				char* varCompartida = paquete.datos;
+				log_info(logNucleo, "CPU del socket %d pidio obtener valor de: %s", socket, varCompartida);
+				if(!dictionary_has_key(variablesCompartidas, varCompartida)){
+					log_error(logNucleo,"La variable %s no se encuentra en el diccionario", varCompartida);
+					enviar(NO_OK,1,&varCompartida,socket);
+					break;
+				}
+
+				int32_t *valor = dictionary_get(variablesCompartidas,varCompartida);
+				log_debug(logNucleo,"Se envio el valor: %d de la variable: %s al cpu del socket %d",*valor, varCompartida, socket);
+
+				enviar(OK,sizeof(*valor),valor,socket);
+				}
 				break;
-			case GRABAR_VALOR:
+
+			case ASIGNAR_VALOR_COMPARTIDA:
+				{
+				t_varCompartida varCompartida = deserializar_asignar_compartida(paquete.datos);
+
+				log_info(logNucleo, "CPU del socket %d pidio grabar valor %d de la variable %s", socket, varCompartida.id_var);
+				if(!dictionary_has_key(variablesCompartidas,varCompartida.id_var)){
+					log_error(logNucleo,"La variable %s no se encuentra en el diccionario", varCompartida.id_var);
+					printf("La variable %s no se encuentra en el diccionario\n", varCompartida.id_var);
+				}
+				else{
+					int32_t*valor = dictionary_get(variablesCompartidas,varCompartida.id_var);
+					*valor=varCompartida.valor;
+					log_debug(logNucleo,"Se actualizo el valor a: %d de la variable: %s",varCompartida.valor, varCompartida.id_var);
+				}
+
+				free(varCompartida.id_var);
+				}
 				break;
+
 			case FINALIZA_PROGRAMA:
 			{
 				log_debug(logNucleo,"Fin programa, recibi pcb serializado del socket: %d",socket);
@@ -522,6 +575,25 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 
 				break;
 			case ENTRADA_SALIDA:
+				log_debug(logNucleo,"ENTRADA_SALIDA del socket cpu: %d",socket);
+
+				t_pedido_wait *pedido = malloc(sizeof(t_pedido_wait));
+				*pedido = deserializar_wait(paquete.datos);
+
+				liberar_una_relacion(pedido->pcb);
+				bloquear_pcb(pedido->pcb);
+				enviar_a_cpu();
+
+				pthread_t thread;
+				pthread_attr_t attr;
+				pthread_attr_init(&attr);
+				pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
+
+				if(pthread_create(&thread,&attr,(void*)entrada_salida,pedido)){
+					log_error(logNucleo,"Error al crear el hilo de ENTRADASALIDA");
+					exit(EXIT_FAILURE);
+				}
+				pthread_attr_destroy(&attr);
 				break;
 			default:
 				break;
@@ -594,6 +666,40 @@ void crear_semaforos(){
 	}
 }
 
+void crear_dispositivos_es(){
+	entradasalida = dictionary_create();
+	int i;
+	char* dispositivo_id = config_nucleo->io_ids[0];
+
+	for(i=0;dispositivo_id;i++){
+
+		t_dispositivo_io *dispositivo =malloc(sizeof(t_dispositivo_io));
+
+		dispositivo->retardo = atoi(config_nucleo->io_retardo[i]);
+		dispositivo->mutex =(pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
+
+		dictionary_put(entradasalida,dispositivo_id,dispositivo);
+		log_debug(logNucleo,"Se inicializo el dispositivo %s con retardo %d",dispositivo_id,dispositivo->retardo);
+
+		dispositivo_id = config_nucleo->io_ids[i+1];
+	}
+}
+
+void cargar_varCompartidas(){
+	char** varCompartArray = config_nucleo->shared_vars;
+	variablesCompartidas = dictionary_create();
+	int i;
+
+	for(i=0;varCompartArray[i]!=NULL; i++){
+		int32_t *valor = malloc(sizeof(int32_t));
+		*valor = 0;
+
+		dictionary_put(variablesCompartidas,varCompartArray[i],valor);
+	}
+
+	free(varCompartArray);
+}
+
 int main(int argc, char **argv){
 
 //Declaracion de variables Locales
@@ -637,7 +743,10 @@ int main(int argc, char **argv){
 
 //Inicializacion de semaforos
 	crear_semaforos();
-
+//Inicializacion de dispositivos de es
+	crear_dispositivos_es();
+//Inicializar Variables compartidas
+	cargar_varCompartidas();
 
 //Creacion hilos para atender conexiones desde cpu/consola
 

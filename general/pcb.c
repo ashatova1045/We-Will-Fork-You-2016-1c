@@ -178,17 +178,21 @@ t_pedido_wait_serializado* serializar_wait(t_pedido_wait* pedido){
 	t_pcb_serializado pcbserializado =  serializar(*pedido->pcb);
 
 	t_pedido_wait_serializado* ser = malloc(sizeof(t_pedido_wait_serializado));
-	ser->tamano = sizeof(pcbserializado.tamanio)+pcbserializado.tamanio+tamano_semaforo;
+	ser->tamano = sizeof(pcbserializado.tamanio)+pcbserializado.tamanio+tamano_semaforo+sizeof(pedido->tiempo);
 	ser->contenido = malloc(ser->tamano);
 	int offset = 0;
 
 	strcpy(ser->contenido,pedido->semaforo);
 	offset+=tamano_semaforo;
 
+	memcpy(ser->contenido+offset,&pedido->tiempo,sizeof(pedido->tiempo));
+	offset+=sizeof(pedido->tiempo);
+
 	memcpy(ser->contenido+offset,&pcbserializado.tamanio,sizeof(pcbserializado.tamanio));
 	offset+=sizeof(pcbserializado.tamanio);
 
 	memcpy(ser->contenido+offset,pcbserializado.contenido_pcb,pcbserializado.tamanio);
+	offset+=pcbserializado.tamanio;
 
 	free(pcbserializado.contenido_pcb);
 
@@ -203,8 +207,37 @@ t_pedido_wait deserializar_wait(char* serializado){
 	strcpy(pedido.semaforo,serializado);
 
 	int offset = tamano_sem;
+	pedido.tiempo = *(int32_t*)(serializado+offset);
+	offset+=sizeof(pedido.tiempo);
 
 	pedido.pcb = deserializar(serializado+sizeof(int32_t)+offset);
 
 	return pedido;
 }
+
+ t_pedido_serializado serializar_asignar_compartida(t_varCompartida pedido_asignar){
+
+	int tamanio_variable = strlen(pedido_asignar.id_var)+1;
+	int tamanio_valor = sizeof(pedido_asignar.valor);
+
+	t_pedido_serializado respuesta;
+	respuesta.tamanio = tamanio_variable + tamanio_valor;
+	respuesta.pedido_serializado = malloc(respuesta.tamanio);
+
+	memcpy(respuesta.pedido_serializado,&pedido_asignar.valor,tamanio_valor);
+	int offset = tamanio_valor;
+
+	strcpy(respuesta.pedido_serializado+offset,pedido_asignar.id_var);
+
+	return respuesta;
+ }
+
+ t_varCompartida deserializar_asignar_compartida(char* pedido_asignar){
+	 t_varCompartida respuesta;
+	 respuesta.valor = *(int32_t*)pedido_asignar;
+	 pedido_asignar+=sizeof(respuesta.valor);
+
+	 respuesta.id_var = strdup(pedido_asignar);
+
+	return respuesta;
+ }

@@ -9,13 +9,21 @@
 #define NUCLEO_H_
 #include <stdbool.h>
 #include <commons/collections/dictionary.h>
+#include <commons/collections/dictionary.h>
 
 t_dictionary *semaforos;
+t_dictionary *entradasalida;
+t_dictionary *variablesCompartidas;
 
 typedef struct {
 	int valor;
 	t_queue* cola;
 } t_semaforo;
+
+typedef struct {
+	int retardo;
+	pthread_mutex_t mutex;
+} t_dispositivo_io;
 
 typedef struct {
 	int puerto;
@@ -72,6 +80,8 @@ void manejar_socket_consola(int socket,t_paquete paquete);
 void funcion_hilo_servidor(t_estructura_server *conf_server);
 
 void relacionar_cpu_programa(t_cpu* cpu, t_consola* programa,t_pcb* pcb);
+
+void cargar_varCompartidas();
 
 
 #endif /* NUCLEO_H_ */
