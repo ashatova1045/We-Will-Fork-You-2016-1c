@@ -13,6 +13,7 @@
 
 t_dictionary *semaforos;
 t_dictionary *entradasalida;
+t_dictionary *variablesCompartidas;
 
 typedef struct {
 	int valor;
@@ -23,6 +24,17 @@ typedef struct {
 	int retardo;
 	pthread_mutex_t mutex;
 } t_dispositivo_io;
+
+/*typedef struct {
+	char* id_var;
+	int valor;
+} t_varCompartida;*/
+
+typedef struct{
+	t_nombre_compartida id_var;
+	t_valor_variable valor;
+}t_varCompartida;
+
 
 typedef struct {
 	int puerto;
@@ -79,6 +91,8 @@ void manejar_socket_consola(int socket,t_paquete paquete);
 void funcion_hilo_servidor(t_estructura_server *conf_server);
 
 void relacionar_cpu_programa(t_cpu* cpu, t_consola* programa,t_pcb* pcb);
+
+void cargar_varCompartidas();
 
 
 #endif /* NUCLEO_H_ */

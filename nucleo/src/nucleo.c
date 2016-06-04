@@ -5,6 +5,7 @@
 #include <commons/log.h>
 #include <errno.h>
 #include <commons/config.h>
+#include "commons/collections/dictionary.h"
 #include <stdbool.h>
 #include "estados.h"
 #include "../../general/pcb.h"
@@ -180,6 +181,8 @@ void destruirNucleoConfig(t_nucleoConfig* datosADestruir){
 	free(datosADestruir);
 }
 //#undef DESTRUIR_PP solo lo puedo usar hasta aca, si lo uso en otro lado no existe
+
+
 
 
 t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
@@ -492,9 +495,36 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				log_debug(logNucleo,"Enviando imprimir texto a la consola");
 				break;
 			case OBTENER_VALOR:
+				{
+				t_varCompartida varCompartida;
+				memcpy(&varCompartida,paquete.datos,sizeof(t_varCompartida));
+				log_info(logNucleo, "CPU del socket %d pidio obtener valor de: %s", socket, varCompartida.id_var);
+				if(!dictionary_has_key(variablesCompartidas, varCompartida.id_var))
+					log_trace(logNucleo,"la variable %s no se encuentra en el diccionario", varCompartida.id_var);
+
+				int32_t *valor = dictionary_get(variablesCompartidas,varCompartida.id_var);
+				varCompartida.valor=*valor;
+				log_debug(logNucleo,"Se envio el valor: %d de la variable: %s al cpu del socket %d",varCompartida.valor, varCompartida.id_var, socket);
+
+				enviar(OBTENER_VALOR_COMPARTIDA,sizeof(t_varCompartida),&varCompartida,socket);
+				}
 				break;
+
 			case GRABAR_VALOR:
+				{
+				t_varCompartida varCompartida;
+
+				log_info(logNucleo, "CPU del socket %d pidio grabar valor %d de la variable %s", socket, varCompartida.id_var);
+				if(!dictionary_has_key(variablesCompartidas,varCompartida.id_var))
+					log_trace(logNucleo,"la variable %s no se encuentra en el diccionario", varCompartida.id_var);
+
+				int32_t*valor = dictionary_get(variablesCompartidas,varCompartida.id_var);
+				*valor=varCompartida.valor;
+				log_debug(logNucleo,"Se actualizo el valor a: %d de la variable: %s",varCompartida.valor, varCompartida.id_var);
+
+				}
 				break;
+
 			case FINALIZA_PROGRAMA:
 			{
 				log_debug(logNucleo,"Fin programa, recibi pcb serializado del socket: %d",socket);
@@ -675,6 +705,21 @@ void crear_dispositivos_es(){
 	}
 }
 
+void cargar_varCompartidas(){
+	char** varCompartArray = config_nucleo->shared_vars;
+	variablesCompartidas = dictionary_create();
+	int i;
+
+	for(i=0;varCompartArray[i]!=NULL; i++){
+		int32_t *valor = malloc(sizeof(int32_t));
+		*valor = 0;
+
+		dictionary_put(variablesCompartidas,varCompartArray[i],valor);
+	}
+
+	free(varCompartArray);
+}
+
 int main(int argc, char **argv){
 
 //Declaracion de variables Locales
@@ -720,7 +765,8 @@ int main(int argc, char **argv){
 	crear_semaforos();
 //Inicializacion de dispositivos de es
 	crear_dispositivos_es();
-
+//Inicializar Variables compartidas
+	cargar_varCompartidas();
 
 //Creacion hilos para atender conexiones desde cpu/consola
 

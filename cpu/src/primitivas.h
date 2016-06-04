@@ -12,6 +12,9 @@ typedef struct{
 	int tiempo;
 }t_entrada_salida;
 
+
+/*che esto no estaria mal? t_nombre_variable es un solo char y no char*
+ * deberia usar t_nombre_compartida y valor deberia ser t_valor_variable */
 typedef struct{
 	t_nombre_variable variable;
 	void* valorGrabar;
