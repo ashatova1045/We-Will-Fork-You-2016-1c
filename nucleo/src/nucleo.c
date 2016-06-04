@@ -494,34 +494,39 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				enviar(IMPRIMIR_TEXTO,paquete.tamano_datos,paquete.datos,relacion_imp_tex->programa->socket);
 				log_debug(logNucleo,"Enviando imprimir texto a la consola");
 				break;
-			case OBTENER_VALOR:
+			case OBTENER_VALOR_COMPARTIDA:
 				{
-				t_varCompartida varCompartida;
-				memcpy(&varCompartida,paquete.datos,sizeof(t_varCompartida));
-				log_info(logNucleo, "CPU del socket %d pidio obtener valor de: %s", socket, varCompartida.id_var);
-				if(!dictionary_has_key(variablesCompartidas, varCompartida.id_var))
-					log_trace(logNucleo,"la variable %s no se encuentra en el diccionario", varCompartida.id_var);
+				char* varCompartida = paquete.datos;
+				log_info(logNucleo, "CPU del socket %d pidio obtener valor de: %s", socket, varCompartida);
+				if(!dictionary_has_key(variablesCompartidas, varCompartida)){
+					log_error(logNucleo,"La variable %s no se encuentra en el diccionario", varCompartida);
+					enviar(NO_OK,1,&varCompartida,socket);
+					break;
+				}
 
-				int32_t *valor = dictionary_get(variablesCompartidas,varCompartida.id_var);
-				varCompartida.valor=*valor;
-				log_debug(logNucleo,"Se envio el valor: %d de la variable: %s al cpu del socket %d",varCompartida.valor, varCompartida.id_var, socket);
+				int32_t *valor = dictionary_get(variablesCompartidas,varCompartida);
+				log_debug(logNucleo,"Se envio el valor: %d de la variable: %s al cpu del socket %d",*valor, varCompartida, socket);
 
-				enviar(OBTENER_VALOR_COMPARTIDA,sizeof(t_varCompartida),&varCompartida,socket);
+				enviar(OK,sizeof(*valor),valor,socket);
 				}
 				break;
 
-			case GRABAR_VALOR:
+			case ASIGNAR_VALOR_COMPARTIDA:
 				{
-				t_varCompartida varCompartida;
+				t_varCompartida varCompartida = deserializar_asignar_compartida(paquete.datos);
 
 				log_info(logNucleo, "CPU del socket %d pidio grabar valor %d de la variable %s", socket, varCompartida.id_var);
-				if(!dictionary_has_key(variablesCompartidas,varCompartida.id_var))
-					log_trace(logNucleo,"la variable %s no se encuentra en el diccionario", varCompartida.id_var);
+				if(!dictionary_has_key(variablesCompartidas,varCompartida.id_var)){
+					log_error(logNucleo,"La variable %s no se encuentra en el diccionario", varCompartida.id_var);
+					printf("La variable %s no se encuentra en el diccionario\n", varCompartida.id_var);
+				}
+				else{
+					int32_t*valor = dictionary_get(variablesCompartidas,varCompartida.id_var);
+					*valor=varCompartida.valor;
+					log_debug(logNucleo,"Se actualizo el valor a: %d de la variable: %s",varCompartida.valor, varCompartida.id_var);
+				}
 
-				int32_t*valor = dictionary_get(variablesCompartidas,varCompartida.id_var);
-				*valor=varCompartida.valor;
-				log_debug(logNucleo,"Se actualizo el valor a: %d de la variable: %s",varCompartida.valor, varCompartida.id_var);
-
+				free(varCompartida.id_var);
 				}
 				break;
 

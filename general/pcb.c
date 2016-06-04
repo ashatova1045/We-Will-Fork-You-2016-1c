@@ -214,3 +214,30 @@ t_pedido_wait deserializar_wait(char* serializado){
 
 	return pedido;
 }
+
+ t_pedido_serializado serializar_asignar_compartida(t_varCompartida pedido_asignar){
+
+	int tamanio_variable = strlen(pedido_asignar.id_var)+1;
+	int tamanio_valor = sizeof(pedido_asignar.valor);
+
+	t_pedido_serializado respuesta;
+	respuesta.tamanio = tamanio_variable + tamanio_valor;
+	respuesta.pedido_serializado = malloc(respuesta.tamanio);
+
+	memcpy(respuesta.pedido_serializado,&pedido_asignar.valor,tamanio_valor);
+	int offset = tamanio_valor;
+
+	strcpy(respuesta.pedido_serializado+offset,pedido_asignar.id_var);
+
+	return respuesta;
+ }
+
+ t_varCompartida deserializar_asignar_compartida(char* pedido_asignar){
+	 t_varCompartida respuesta;
+	 respuesta.valor = *(int32_t*)pedido_asignar;
+	 pedido_asignar+=sizeof(respuesta.valor);
+
+	 respuesta.id_var = strdup(pedido_asignar);
+
+	return respuesta;
+ }

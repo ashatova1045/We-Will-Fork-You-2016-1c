@@ -106,15 +106,16 @@ void asignar(t_posicion	direccion_variable,	t_valor_variable valor){
 }
 
 t_valor_variable obtenerValorCompartida(t_nombre_compartida	variable){
-	t_valor_variable* valor_compartida = malloc(sizeof(t_valor_variable));
-	log_info(logcpu,"Se solicita el valor de la variable compartida %s\n", variable);
+	log_info(logcpu,"Se solicita el valor de la variable compartida %s", variable);
 
-	enviar(OBTENER_VALOR_COMPARTIDA,sizeof(t_nombre_compartida),&variable,socket_nucleo);
+	int32_t valor_compartida;
+
+	enviar(OBTENER_VALOR_COMPARTIDA,strlen(variable)+1,variable,socket_nucleo);
 
 	t_paquete *respuesta_valor_comp = recibir_paquete(socket_nucleo);
 	switch (respuesta_valor_comp->cod_op) {
 		case OK:
-			valor_compartida = (t_valor_variable*)respuesta_valor_comp->datos;
+			valor_compartida = *((int32_t*)respuesta_valor_comp->datos);
 			log_info(logcpu,"Se ha obtenido el valor de la variable compartida correctamente");
 			break;
 		case NO_OK:
@@ -129,20 +130,21 @@ t_valor_variable obtenerValorCompartida(t_nombre_compartida	variable){
 
 	destruir_paquete(respuesta_valor_comp);
 
-	return *valor_compartida;
+	return valor_compartida;
 }
 
 t_valor_variable asignarValorCompartida(t_nombre_compartida	variable, t_valor_variable valor_variable){
+	t_varCompartida paquete_asignar_var_comp;
+	paquete_asignar_var_comp.id_var = variable;
+	paquete_asignar_var_comp.valor = valor_variable;
 
-	t_asignar_var_comp* paquete_asignar_var_comp = malloc(sizeof(t_asignar_var_comp));
-	paquete_asignar_var_comp->variable = variable;
-	paquete_asignar_var_comp->valor_variable = valor_variable;
+	t_pedido_serializado ser = serializar_asignar_compartida(paquete_asignar_var_comp);
 
-	serializar_asignar_compartida(paquete_asignar_var_comp);
+	log_info(logcpu,"Se solicita asignar el valor %d a la variable compartida %s", valor_variable, variable);
 
-	log_info(logcpu,"Se solicita asignar el valor %d a la variable compartida %s\n", valor_variable, variable);
+	enviar(ASIGNAR_VALOR_COMPARTIDA,ser.tamanio,ser.pedido_serializado,socket_nucleo);
 
-	enviar(ASIGNAR_VALOR_COMPARTIDA,sizeof(t_asignar_var_comp),paquete_asignar_var_comp,socket_nucleo);
+	free(ser.pedido_serializado);
 
 	return valor_variable;
 }
@@ -239,7 +241,7 @@ void entradaSalida(t_nombre_dispositivo dispositivo, int tiempo){
 	free(paquete_e_s_serializado);
 }
 
-
+/*
 int grabar_valor(t_nombre_variable identificador_variable, void* valorGrabar){
 	int codResp;
 	t_grabar_valor* paquete_grabar_valor = malloc(sizeof(t_grabar_valor));
@@ -272,14 +274,9 @@ int grabar_valor(t_nombre_variable identificador_variable, void* valorGrabar){
 
 	return codResp;
 }
-
+ */
 void signal(t_nombre_semaforo identificador_semaforo){
 	log_info(logcpu,"Se solicita ejecutar la función signal para el semáforo %s", identificador_semaforo);
-
-	int i;
-	for(i=0;identificador_semaforo[i]!='\n';i++);
-	identificador_semaforo[i]='\0'; //fixme tengo que hacer esto xq la umc esta mandando mal las cosas
-
 
 	enviar(SIGNAL,strlen(identificador_semaforo)+1,identificador_semaforo,socket_nucleo);
 }
@@ -382,7 +379,9 @@ void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
 	 functions = (AnSISOP_funciones) {
 		.AnSISOP_imprimirTexto = imprimirTexto,
 		.AnSISOP_finalizar = finalizar,
-		.AnSISOP_entradaSalida =entradaSalida
+		.AnSISOP_entradaSalida =entradaSalida,
+		.AnSISOP_obtenerValorCompartida = obtenerValorCompartida,
+		.AnSISOP_asignarValorCompartida = asignarValorCompartida,
 		// .AnSISOP_definirVariable = dummy_definirVariable,
 		// .AnSISOP_obtenerPosicionVariable = dummy_obtenerPosicionVariable,
 		// .AnSISOP_dereferenciar = dummy_dereferenciar, .AnSISOP_asignar =
@@ -395,40 +394,4 @@ void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
 		.AnSISOP_signal = signal
 	};
 
- }
-
- t_pedido_serializado* serializar_asignar_compartida(t_asignar_var_comp *pedido_asignar){
-
-	int tamanio_variable = sizeof(pedido_asignar->variable);
-	int tamanio_valor = sizeof(pedido_asignar->valor_variable);
-
-	t_pedido_serializado* respuesta = malloc(sizeof(t_pedido_serializado));
-	respuesta->tamanio = tamanio_variable + tamanio_valor;
-	respuesta->pedido_serializado = malloc(respuesta->tamanio);
-
-	memcpy(respuesta->pedido_serializado,&pedido_asignar->variable,tamanio_variable);
-	int offset = tamanio_variable;
-
-	memcpy(respuesta->pedido_serializado+offset,&pedido_asignar->valor_variable,tamanio_valor);
-	offset += tamanio_valor;
-
-	return respuesta;
- }
-
-t_pedido_serializado* serializar_entrada_salida(t_entrada_salida *pedido_e_s){
-
-	int tamanio_dispositivo = sizeof(pedido_e_s->dispositivo);
-	int tamanio_tiempo = sizeof(pedido_e_s->tiempo);
-
-	t_pedido_serializado* respuesta = malloc(sizeof(t_pedido_serializado));
-	respuesta->tamanio = tamanio_dispositivo + tamanio_tiempo;
-	respuesta->pedido_serializado = malloc(respuesta->tamanio);
-
-	memcpy(respuesta->pedido_serializado,&pedido_e_s->dispositivo,tamanio_dispositivo);
-	int offset = tamanio_dispositivo;
-
-	memcpy(respuesta->pedido_serializado+offset,&pedido_e_s->tiempo,tamanio_tiempo);
-	offset += tamanio_tiempo;
-
-	return respuesta;
  }

@@ -25,17 +25,6 @@ typedef struct {
 	pthread_mutex_t mutex;
 } t_dispositivo_io;
 
-/*typedef struct {
-	char* id_var;
-	int valor;
-} t_varCompartida;*/
-
-typedef struct{
-	t_nombre_compartida id_var;
-	t_valor_variable valor;
-}t_varCompartida;
-
-
 typedef struct {
 	int puerto;
 	void (*manejar_pedido)(int,t_paquete);
