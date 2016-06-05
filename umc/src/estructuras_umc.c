@@ -13,18 +13,15 @@ void crear_estructuras(){
 	log_info(logUMC,"Memoria principal creada. %d marcos * %d bytes = %d bytes",config_umc->cant_marcos,config_umc->marco_size,espacio_total);
 
 	//Creo el diccionario de tablas de paginas
-
 	tablasDePagina = dictionary_create();
 
 	log_info(logUMC,"Diccionario de tablas de pagina creado correctamente");
 
 	//Inicializo variables del bitarray
-
 	char* arrayFrames = malloc(config_umc->cant_marcos);
 	int bytesDeArray = ((config_umc->cant_marcos)/8);
 
 	//Creo el bitmap de frames
-
 	bitmap_frames = bitarray_create(arrayFrames,bytesDeArray);
 
 	int max = bitarray_get_max_bit(bitmap_frames);
@@ -36,9 +33,9 @@ void crear_estructuras(){
 		log_info(logUMC,"Creación de TLB");
 		crearTLB(config_umc->entradas_tlb);
 	}
-
 }
 
+//Función para crear la TLB
 void crearTLB(int entradasTLB){
 	tlb = list_create();
 	int i;
@@ -61,8 +58,8 @@ char* i_to_s(int i){
 }
 
 // Creo la tabla con las paginas de un proceso en particular
-
 void nuevaTablaDePaginas(int pid,int cantPaginas){
+
 	//Declaro la tabla de páginas como una lista
 	t_list *tablaDePaginas =list_create();
 
@@ -72,6 +69,7 @@ void nuevaTablaDePaginas(int pid,int cantPaginas){
 
 	//Mientras el programa tenga paginas
 	for(i=0;i<cantPaginas;i++){
+
 		//Reservo memoria para la entrada de tabla de paginas
 		t_entrada_tabla_paginas *entradaTablaPaginas=malloc(sizeof(t_entrada_tabla_paginas));
 
@@ -85,27 +83,20 @@ void nuevaTablaDePaginas(int pid,int cantPaginas){
 		list_add(tablaDePaginas,entradaTablaPaginas);
 
 	}
-	//memcpy(entrada_diccionario->tablaDePaginas,tablaDePaginas,(list_size(tablaDePaginas)*config_umc->marco_size));
 	entrada_diccionario->tablaDePaginas = tablaDePaginas;
 	entrada_diccionario->manecilla=0;
 	entrada_diccionario->pid=pid;
 
-	//dictionary_put(tablasDePagina,i_to_s(pid),tablaDePaginas);
 	dictionary_put(tablasDePagina,i_to_s(pid),entrada_diccionario);
 }
 
 //Funcion para buscar una página en la tabla de páginas
-
 t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 
 	t_entrada_tabla_paginas *entrada_pagina;
 
 	//Busco la entrada al diccionario de la página
 	t_entrada_diccionario *entrada_diccionario = dictionary_get(tablasDePagina,i_to_s(pid));
-
-	//t_list *tablaDePaginas=dictionary_get(tablasDePagina,i_to_s(pid));
-	//t_list *tablaDePaginas=list_create();
-	//list_add_all(tablaDePaginas,entrada_diccionario->tablaDePaginas);
 
 	//Busco la tabla de páginas del proceso
 	t_list *tablaDePaginas=entrada_diccionario->tablaDePaginas;
@@ -145,7 +136,6 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 			log_info(logUMC,"El proceso %d uso la máxima cantidad de frames permitida",pid);
 
 			//Reemplazo una página del proceso
-			//t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pid,pagina,entrada_pag_pedida,tablaDePaginas);
 			t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pagina,entrada_diccionario);
 
 			entrada_pagina = entrada_pag_pedida_actualizada;
@@ -173,7 +163,6 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 
 				//Guardo la nueva página en memoria
 				char* espacioEnMemoria = (memoria_principal+(frameAOcupar*config_umc->marco_size));
-
 				memcpy(espacioEnMemoria,datos_pagina,config_umc->marco_size);
 
 				//Actualizo la entrada a la tabla de la página
@@ -197,8 +186,6 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 				log_info(logUMC,"No quedan frames libres en memoria");
 
 				//Reemplazo una página del proceso
-				//t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pid,pagina,entrada_pag_pedida,tablaDePaginas);
-
 				t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pagina,entrada_diccionario);
 
 				entrada_pagina = entrada_pag_pedida_actualizada;
@@ -210,6 +197,7 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 	return entrada_pagina;
 }
 
+//Función para buscar una página en la TLB
 t_entrada_tabla_paginas* buscar_pagina_en_TLB(int32_t proceso, int32_t nro_marco){
 	t_entrada_tabla_paginas* pagina = malloc(sizeof(t_entrada_tabla_paginas));
 	int i;
@@ -229,6 +217,7 @@ t_entrada_tabla_paginas* buscar_pagina_en_TLB(int32_t proceso, int32_t nro_marco
 	return NULL;
 }
 
+//Cargar una entrada en la TLB
 void cargar_en_TLB(int32_t pid, t_entrada_tabla_paginas* pagina){
 	log_info(logUMC,"Se carga la página al TLB");
 
@@ -249,6 +238,7 @@ void eliminar_menos_usado_en_TLB(){
 
 //TODO Ver que pasa si no hay espacio y el programa no tiene frames en memoria
 
+//Función para conseguir los datos que tiene una página en memoria
 char* datos_pagina_en_memoria(int marco){
 	return (memoria_principal+(marco*config_umc->marco_size));
 }
@@ -277,35 +267,19 @@ t_entrada_tabla_paginas* elegir_victima_clock(t_entrada_diccionario *entrada_dic
 		//Traigo los elementos de la lista(entradas)
 		entrada_pag_victima = list_get(tablaDePaginas,entrada_diccionario->manecilla);
 
-		//Si la página está presente
-		if(entrada_pag_victima->presencia==true){
+		//Si la página está en uso la marco como que ya no está en uso
+		if(entrada_pag_victima->uso && entrada_pag_victima->presencia){
+			entrada_pag_victima->uso=false;
 
-			//Si la página está en uso
-			if(entrada_pag_victima->uso==true){
-				entrada_pag_victima->uso=false;
-
-			//Si la página no está en uso
-			}else{
-				encontro_pag_victima=true;
-			}
+		//Si la página no está en uso devuelvo esa entrada
+		}else{
+			encontro_pag_victima=true;
 		}
 
-		entrada_diccionario->manecilla++;
-
-		if(entrada_diccionario->manecilla == list_size(tablaDePaginas)){
-			entrada_diccionario->manecilla=0;
-		}
+		incrementarManecilla(entrada_diccionario,tablaDePaginas);
 	}
 
 	return entrada_pag_victima;
-}
-
-void incrementarManecilla(t_entrada_diccionario *entrada_diccionario, t_list* tablaDePaginas){
-	entrada_diccionario->manecilla++;
-
-	if(entrada_diccionario->manecilla==list_size(tablaDePaginas)){
-		entrada_diccionario->manecilla=0;
-	}
 }
 
 t_entrada_tabla_paginas *elegir_victima_clock_m(t_entrada_diccionario *entrada_diccionario){
@@ -321,9 +295,9 @@ t_entrada_tabla_paginas *elegir_victima_clock_m(t_entrada_diccionario *entrada_d
 	while(encontro_pag_victima==false){
 
 		//Traigo los elementos de la lista(entradas)
-		//entrada_pag_victima = list_get(tablaDePaginas,entrada_diccionario->manecilla);
 		int cantidad_entradas;
 
+		//Recorro la lista buscando una página que se esté en uso ni modificada
 		for(cantidad_entradas = 0;cantidad_entradas<list_size(tablaDePaginas);cantidad_entradas++){
 
 			entrada_pag_victima = list_get(tablaDePaginas,entrada_diccionario->manecilla);
@@ -338,8 +312,10 @@ t_entrada_tabla_paginas *elegir_victima_clock_m(t_entrada_diccionario *entrada_d
 		incrementarManecilla(entrada_diccionario,tablaDePaginas);
 		}
 
+		//Si encontró la página víctima en el primer for sale del while
 		if(encontro_pag_victima) break;
 
+		//Recorro la lista una página que no se haya usado pero esté modificada
 		for(cantidad_entradas = 0;cantidad_entradas<list_size(tablaDePaginas);cantidad_entradas++){
 
 			entrada_pag_victima = list_get(tablaDePaginas,entrada_diccionario->manecilla);
@@ -358,6 +334,16 @@ t_entrada_tabla_paginas *elegir_victima_clock_m(t_entrada_diccionario *entrada_d
 
 	}
 	return entrada_pag_victima;
+}
+
+//Función para incrementar la manecilla
+void incrementarManecilla(t_entrada_diccionario *entrada_diccionario, t_list* tablaDePaginas){
+	entrada_diccionario->manecilla++;
+
+	//Si está al final de la lista vuelve a empezar
+	if(entrada_diccionario->manecilla==list_size(tablaDePaginas)){
+		entrada_diccionario->manecilla=0;
+	}
 }
 
 void destruir_lista(void *tablaDePaginas){
