@@ -296,16 +296,65 @@ t_entrada_tabla_paginas* elegir_victima_clock(t_entrada_diccionario *entrada_dic
 	return entrada_pag_victima;
 }
 
-/*t_entrada_tabla_paginas *elegir_victima_clock_m(t_entrada_diccionario *entrada_diccionario){
+void incrementarManecilla(t_entrada_diccionario *entrada_diccionario, t_list* tablaDePaginas){
+	entrada_diccionario->manecilla++;
 
-	//Traigo la tabla de páginas del proceso que están presentes en memoria
-	t_list *tablaDePaginasPresentes=list_filter(entrada_diccionario->tablaDePaginas,paginaPresente);
+	if(entrada_diccionario->manecilla==list_size(tablaDePaginas)){
+		entrada_diccionario->manecilla=0;
+	}
+}
+
+t_entrada_tabla_paginas *elegir_victima_clock_m(t_entrada_diccionario *entrada_diccionario){
+
+	//Traigo la tabla de páginas del proceso
+	t_list *tablaDePaginas=entrada_diccionario->tablaDePaginas;
 	log_info(logUMC,"Se consiguió la tabla de páginas del proceso %d",entrada_diccionario->pid);
 
 	bool encontro_pag_victima = false;
-	t_entrada_tabla_paginas *entrada_pagina_victima;
+	t_entrada_tabla_paginas *entrada_pag_victima;
 
-}*/
+	//Mientras no se encuentre una página que sea víctima
+	while(encontro_pag_victima==false){
+
+		//Traigo los elementos de la lista(entradas)
+		//entrada_pag_victima = list_get(tablaDePaginas,entrada_diccionario->manecilla);
+		int cantidad_entradas;
+
+		for(cantidad_entradas = 0;cantidad_entradas<list_size(tablaDePaginas);cantidad_entradas++){
+
+			entrada_pag_victima = list_get(tablaDePaginas,entrada_diccionario->manecilla);
+
+			//Si la página no está en uso ni modificada
+			if(!entrada_pag_victima->uso && !entrada_pag_victima->modificado && entrada_pag_victima->presencia){
+
+				encontro_pag_victima = true;
+				break;
+
+			}
+		incrementarManecilla(entrada_diccionario,tablaDePaginas);
+		}
+
+		if(encontro_pag_victima) break;
+
+		for(cantidad_entradas = 0;cantidad_entradas<list_size(tablaDePaginas);cantidad_entradas++){
+
+			entrada_pag_victima = list_get(tablaDePaginas,entrada_diccionario->manecilla);
+
+			//Si la página no está en uso pero si modificada
+			if(!entrada_pag_victima->uso && entrada_pag_victima->modificado && entrada_pag_victima->presencia){
+
+				encontro_pag_victima = true;
+				break;
+
+			}
+			entrada_pag_victima->uso=false;
+
+			incrementarManecilla(entrada_diccionario,tablaDePaginas);
+		}
+
+	}
+	return entrada_pag_victima;
+}
 
 void destruir_lista(void *tablaDePaginas){
 	list_destroy_and_destroy_elements(tablaDePaginas,free);
@@ -401,8 +450,11 @@ t_entrada_tabla_paginas* reemplazarPagina(int pagina,t_entrada_diccionario *entr
 	//list_add_all(tablaDePaginas,entrada_diccionario->tablaDePaginas);
 	t_list *tablaDePaginas=entrada_diccionario->tablaDePaginas;
 
-	//Elijo una víctima de entre las páginas del proceso
-	t_entrada_tabla_paginas *entrada_pag_victima = elegir_victima_clock(entrada_diccionario);
+	t_entrada_tabla_paginas *entrada_pag_victima;
+
+	if(config_umc->esClockM){
+		entrada_pag_victima = elegir_victima_clock_m(entrada_diccionario);
+	}else entrada_pag_victima = elegir_victima_clock(entrada_diccionario);
 
 
 	//Si la página está modificada busco los datos y se los mando al swap
@@ -436,6 +488,7 @@ t_entrada_tabla_paginas* reemplazarPagina(int pagina,t_entrada_diccionario *entr
 	//Actualizo la entrada a la tabla de la página
 	entrada_pag_pedida->nro_marco=entrada_pag_victima->nro_marco;
 	entrada_pag_pedida->presencia=true;
+	entrada_pag_pedida->modificado=false;
 
 	//Cambio bit de uso porque la acabo de cargar
 	entrada_pag_pedida->uso=true;

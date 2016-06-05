@@ -293,14 +293,14 @@ void atender_conexion(int* socket_conexion){
 					pthread_mutex_unlock(&mutex_pags);
 
 					log_info(logUMC,"Se elimino el programa correctamente");
-					enviar(OK,1,&socket_conexion,*socket_conexion);
+					//enviar(OK,1,&socket_conexion,*socket_conexion);
 					log_info(logUMC,"Se informo al nucleo que se elimino el programa %d correctamente",*programaAFinalizar);
 
 				//Si el swap me informa que el programa no se pudo eliminar le aviso al nucleo
 				}else if(pedidoFinalizar->cod_op==NO_OK){
 
 					log_info(logUMC,"No  se pudo eliminar el programa %d",*programaAFinalizar);
-					enviar(NO_OK,1,&socket_conexion,*socket_conexion);
+					//enviar(NO_OK,1,&socket_conexion,*socket_conexion);
 					log_info(logUMC,"Se le informo al nucleo que no se pudo eliminar el programa %d",*programaAFinalizar);
 
 				//Si el swap me informa que se desconecto el socket
