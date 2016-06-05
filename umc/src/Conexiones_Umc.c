@@ -102,15 +102,16 @@ void atender_conexion(int* socket_conexion){
 				break;
 
 			case LECTURA_PAGINA:
-
-				log_info(logUMC,"Llego un pedido de lectura de página");
-
 				//Simulo el tiempo de acceso a memoria con el retardo ingresado en la configuracion
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
 
-				//Casteo el pedido como una solicitud de lectura
+
 				t_pedido_solicitarBytes solicitud=*((t_pedido_solicitarBytes*)pedido->datos);
+
+				log_info(logUMC,"Llego un pedido de lectura de página %d del proceso %d",solicitud.nroPagina,proceso_activo);
+
+				//Casteo el pedido como una solicitud de lectura
 
 				t_entrada_tabla_paginas* entrada_pag_pedida = NULL;
 
@@ -530,7 +531,7 @@ char* leerDeSwap(int pid,int pagina){
 	//Le pido la página requerida al swap
 	enviar(LECTURA_PAGINA,sizeof(pedido_leer),&pedido_leer,socketswap);
 	t_paquete *paquete_lectura = recibir_paquete(socketswap);
-	log_info(logUMC,"Recibi el contenido de la pagina %d del proceso %d del swap");
+	log_info(logUMC,"Recibi el contenido de la pagina %d del proceso %d del swap",pagina,pid);
 
 	//Desbloqueo la conexión con el swap
 	pthread_mutex_unlock(&mutex);
