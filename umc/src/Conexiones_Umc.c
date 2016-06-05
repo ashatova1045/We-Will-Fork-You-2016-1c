@@ -139,7 +139,14 @@ void atender_conexion(int* socket_conexion){
 
 					if(config_umc->entradas_tlb)
 						//Cargar pagina en la TLB
-						cargar_en_TLB(proceso_activo,entrada_pag_pedida);
+						pthread_mutex_lock(&mutex_tlb);
+						if(list_size(tlb) == config_umc->entradas_tlb){
+							//Implementación de LRU
+							eliminar_menos_usado_en_TLB();
+						}else{
+							cargar_en_TLB(proceso_activo,entrada_pag_pedida);
+						}
+						pthread_mutex_unlock(&mutex_tlb);
 
 					//Busco los datos de la página y se los envío a la cpu
 					char* datosDePagina=datos_pagina_en_memoria(entrada_pag_pedida->nro_marco);
@@ -274,7 +281,7 @@ void atender_conexion(int* socket_conexion){
 					//Elimino las estructuras creadas para el manejo del programa
 					//dictionary_remove_and_destroy(tablasDePagina,i_to_s(*programaAFinalizar),destruir_lista);
 
-					loggearBitmap();
+					//loggearBitmap();
 
 					//Se marcan los frames asignados como libres en el bitmap
 					t_entrada_diccionario *entrada_diccionario = dictionary_remove(tablasDePagina,i_to_s(*programaAFinalizar));
@@ -287,7 +294,7 @@ void atender_conexion(int* socket_conexion){
 
 					printf("Se limpia Bitmap \n");
 
-					loggearBitmap();
+					//loggearBitmap();
 
 					//Libero el acceso a la tabla de páginas
 					pthread_mutex_unlock(&mutex_pags);
