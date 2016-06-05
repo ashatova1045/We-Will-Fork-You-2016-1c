@@ -265,13 +265,13 @@ t_entrada_tabla_paginas* elegir_victima_clock(t_entrada_diccionario *entrada_dic
 
 
 	bool encontro_pag_victima = false;
-	t_entrada_tabla_paginas *entrada_pagina_victima;
+	t_entrada_tabla_paginas *entrada_pag_victima;
 
 	//Mientras no se encuentre una página que sea víctima
 	while(encontro_pag_victima==false){
 
 		//Traigo los elementos de la lista(entradas)
-		t_entrada_tabla_paginas *entrada_pag_victima = list_get(tablaDePaginas,entrada_diccionario->manecilla);
+		entrada_pag_victima = list_get(tablaDePaginas,entrada_diccionario->manecilla);
 
 		//Si la página está presente
 		if(entrada_pag_victima->presencia==true){
@@ -279,11 +279,10 @@ t_entrada_tabla_paginas* elegir_victima_clock(t_entrada_diccionario *entrada_dic
 			//Si la página está en uso
 			if(entrada_pag_victima->uso==true){
 				entrada_pag_victima->uso=false;
-				//log_debug(logUMC,"La página %d del proceso %d ahora tiene el bit de uso %d")
 
+			//Si la página no está en uso
 			}else{
 				encontro_pag_victima=true;
-				entrada_pagina_victima = entrada_pag_victima;
 			}
 		}
 
@@ -294,8 +293,10 @@ t_entrada_tabla_paginas* elegir_victima_clock(t_entrada_diccionario *entrada_dic
 		}
 	}
 
-	return entrada_pagina_victima;
+	return entrada_pag_victima;
 }
+
+
 
 void destruir_lista(void *tablaDePaginas){
 	list_destroy_and_destroy_elements(tablaDePaginas,free);
