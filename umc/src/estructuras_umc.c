@@ -296,7 +296,16 @@ t_entrada_tabla_paginas* elegir_victima_clock(t_entrada_diccionario *entrada_dic
 	return entrada_pag_victima;
 }
 
+/*t_entrada_tabla_paginas *elegir_victima_clock_m(t_entrada_diccionario *entrada_diccionario){
 
+	//Traigo la tabla de páginas del proceso que están presentes en memoria
+	t_list *tablaDePaginasPresentes=list_filter(entrada_diccionario->tablaDePaginas,paginaPresente);
+	log_info(logUMC,"Se consiguió la tabla de páginas del proceso %d",entrada_diccionario->pid);
+
+	bool encontro_pag_victima = false;
+	t_entrada_tabla_paginas *entrada_pagina_victima;
+
+}*/
 
 void destruir_lista(void *tablaDePaginas){
 	list_destroy_and_destroy_elements(tablaDePaginas,free);

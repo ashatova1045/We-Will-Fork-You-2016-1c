@@ -26,7 +26,6 @@ typedef struct{
 	int cant_marcos;
 	int marco_size;
 	int marco_x_proc;
-	int tlb_habilitada;
 	int entradas_tlb;
 	int retardo;
 }t_umcConfig;
