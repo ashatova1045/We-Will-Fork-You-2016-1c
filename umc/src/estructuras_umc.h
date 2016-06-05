@@ -28,6 +28,7 @@ typedef struct{
 	int marco_x_proc;
 	int entradas_tlb;
 	int retardo;
+	bool esClockM;
 }t_umcConfig;
 
 typedef struct{
@@ -74,6 +75,7 @@ bool paginaPresente(void* entrada_pag);
 //t_entrada_tabla_paginas* reemplazarPagina(int pid,int pagina,t_entrada_tabla_paginas* entrada_pag_pedida,t_list* tablaDePaginas);
 t_entrada_tabla_paginas* reemplazarPagina(int pagina,t_entrada_diccionario *entrada_diccionario);
 t_entrada_tabla_paginas* elegir_victima_clock(t_entrada_diccionario *entrada_diccionario);
+void incrementarManecilla(t_entrada_diccionario *entrada_diccionario, t_list* tablaDePaginas);
 void destruir_estructuras();
 void destruir_lista(void *tablaDePaginas);
 
