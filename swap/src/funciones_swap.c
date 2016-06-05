@@ -13,6 +13,7 @@ void levantarConfiguracion(t_config* config){
 		datosSwap->nombre_swap = config_get_string_value(config, "NOMBRE_SWAP");
 		datosSwap->cantidad_paginas = config_get_int_value(config, "CANTIDAD_PAGINAS");
 		datosSwap->tamanio_pagina = config_get_int_value(config, "TAMANIO_PAGINA");
+		datosSwap->retardo_acceso = config_get_int_value(config, "RETARDO_ACCESO");
 		datosSwap->retardo_compactacion = config_get_int_value(config, "RETARDO_COMPACTACION");
 	}
 }
@@ -73,6 +74,7 @@ void manejar_socket_umc(t_paquete* paquete){
 }
 
 void manejarOperaciones(t_paquete* paquete){
+	usleep((datosSwap->retardo_acceso)*1000);
 	switch(paquete->cod_op){
 	// Operaciones
 	case NUEVO_PROGRAMA:
