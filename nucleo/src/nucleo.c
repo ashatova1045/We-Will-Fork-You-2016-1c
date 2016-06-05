@@ -27,7 +27,6 @@ t_log *logNucleo;
 t_log* logEstados;
 int tamano_pag_umc;
 t_nucleoConfig* config_nucleo;
-sem_t semNucleo_HilosConect;
 pthread_mutex_t mutexKernel =PTHREAD_MUTEX_INITIALIZER;
 
 
@@ -779,36 +778,23 @@ int main(int argc, char **argv){
 
 				break;
 		}
-//	tamano_pag_umc=*((int*)paquete_umc->datos);
-//	log_info(logNucleo,"Tamano de pagina %d",tamano_pag_umc);
-
-	sem_init(&semNucleo_HilosConect, 0, 0);
 
 	if (pthread_create(&thread_cpu, NULL, (void*)funcion_hilo_servidor, &conf_cpu)){
 	        perror("Error el crear el thread cpu.");
-	        sem_post(&semNucleo_HilosConect);
 	        exit(EXIT_FAILURE);
 	    }
 	log_info(logNucleo, "Me pude conectar con proc_cpu");
 
 	if (pthread_create(&thread_consola, NULL, (void*)funcion_hilo_servidor, &conf_consola)){
 		        perror("Error el crear el thread consola.");
-		        sem_post(&semNucleo_HilosConect);
 		        exit(EXIT_FAILURE);
 		}
 	log_info(logNucleo, "Me pude conectar con proc_consola");
 
 	//TODO planificacion de los procesos
 
-	sem_wait(&semNucleo_HilosConect);
-
-	pthread_cancel(thread_consola);
-	pthread_cancel(thread_cpu);
-
 	pthread_join(thread_cpu, NULL); //el padre espera a qe termina este hilo
 	pthread_join(thread_consola, NULL); //el padre espera a qe termina este hilo
-
-	sem_destroy(&semNucleo_HilosConect);
 
 	destruir_colas();
 	dictionary_destroy_and_destroy_elements(semaforos,free);
