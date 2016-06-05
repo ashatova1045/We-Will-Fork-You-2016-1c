@@ -27,6 +27,7 @@ typedef struct{
 	char* nombre_swap;
 	int cantidad_paginas;
 	int tamanio_pagina;
+	int retardo_acceso;
 	int retardo_compactacion;
 }t_swapcfg;
 

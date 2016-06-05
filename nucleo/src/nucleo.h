@@ -9,7 +9,6 @@
 #define NUCLEO_H_
 #include <stdbool.h>
 #include <commons/collections/dictionary.h>
-#include <commons/collections/dictionary.h>
 
 t_dictionary *semaforos;
 t_dictionary *entradasalida;
@@ -69,19 +68,29 @@ typedef struct{
 
 }t_relacion;
 
-t_nucleoConfig* cargarConfiguracion(t_config* config);
 
+void cargar_cpu(int32_t socket);
+void cargar_programa(int32_t socket, int pid);
+void relacionar_cpu_programa(t_cpu *cpu, t_consola *programa, t_pcb *pcb);
+void liberar_una_relacion(t_pcb *pcb_devuelto);
+void liberar_una_relacion_porsocket_cpu(int socketcpu);
+t_consola* matchear_consola_por_pid(int pid);
+t_relacion* matchear_relacion_por_socketcpu(int socket);
+void elminar_consola_por_socket(int socket);
 t_log* crearLog();
-
+t_nucleoConfig* cargarConfiguracion(t_config* config);
 void destruirNucleoConfig(t_nucleoConfig* datosADestruir);
-
+t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata);
+char* armar_codigo(t_pcb* nuevo_pcb,char* codigo,t_metadata_program* metadata);
+void enviar_a_cpu();
+bool inicializar_programa(t_pcb* nuevo_pcb,t_paquete paquete, t_metadata_program* metadata);
 void manejar_socket_consola(int socket,t_paquete paquete);
-
+void entrada_salida(t_pedido_wait *pedido);
+void manejar_socket_cpu(int socket,t_paquete paquete);
+void cerrar_socket_cpu(int socket);
 void funcion_hilo_servidor(t_estructura_server *conf_server);
-
-void relacionar_cpu_programa(t_cpu* cpu, t_consola* programa,t_pcb* pcb);
-
+void crear_semaforos();
+void crear_dispositivos_es();
 void cargar_varCompartidas();
-
 
 #endif /* NUCLEO_H_ */
