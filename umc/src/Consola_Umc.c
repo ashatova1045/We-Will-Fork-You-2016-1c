@@ -51,9 +51,15 @@ void ingresarRetardo(){
 
 //Defino funcion de comando dump-Estructura memoria-Todos los procesos
 void rEstructurasDeMemoriaTodas(){
+
+	//generar reporte de tabla de paginas de todos los procesos
+	int idProceso = 1;
+	for(idProceso=1;idProceso<=dictionary_size(tablasDePagina);idProceso++){
+		generarReporteDeProceso(idProceso);
+	}
+
 	printf("\nTablas de paginas de todos los procesos\n");
 	getchar();
-	//TODO generar reporte de tabla de paginas de todos los procesos
 }
 
 //Defino funcion de comando dump-Estructura memoria-Un proceso
@@ -69,35 +75,11 @@ void rEstructuraDeMemoriaProceso(){
 	//Se ingresa el id del proceso por teclado
 	scanf("%d",&idProceso);
 
-	//printf("Proceso: %d",idProceso);
-	//printf("Tamaño: %d",dictionary_size(tablasDePagina));
-	t_entrada_diccionario* entradaD = dictionary_get(tablasDePagina,i_to_s(idProceso));
-	t_list* tablaPaginas = entradaD->tablaDePaginas;
-
-	log_info(logUMC,"Cantidad de páginas: %d",list_size(tablaPaginas));
-	int i;
-
-	printf("////////////////////////////////////////////////////\n");
-	printf("----------> Reporte del proceso %d \n",idProceso);
-	printf("////////////////////////////////////////////////////\n");
-
-	for(i=0;i<list_size(tablaPaginas);i++){
-		t_entrada_tabla_paginas* entPag = list_get(tablaPaginas,i);
-		if((entPag->presencia) == 1){
-			printf("La página %d del proceso está en memoria! \n",entPag->nro_marco);
-		}
-		if((entPag->uso) == 1){
-			printf("La página %d del proceso está en uso! \n",entPag->nro_marco);
-		}
-		if((entPag->modificado) == 1){
-			log_info(logUMC,"La página %d del proceso está modificado! \n",entPag->nro_marco);
-		}
-	}
+	generarReporteDeProceso(idProceso);
 
 	printf("\nTabla de paginas del proceso: %d\n",idProceso);
 	getchar();
 
-	//TODO Generar reporte de tabla de paginas del proceso ingresado
 }
 
 //Defino funcion de comando dump-Datos memoria-Todos los procesos
@@ -229,6 +211,37 @@ void ejecutoConsola(){
 	}
 }
 
+void generarReporteDeProceso(int idProceso){
 
+	t_entrada_diccionario* entradaD = dictionary_get(tablasDePagina,i_to_s(idProceso));
 
+	t_list* tablaPaginas = entradaD->tablaDePaginas;
 
+	log_info(logUMC,"Cantidad de páginas: %d",list_size(tablaPaginas));
+	int i;
+
+	printf("////////////////////////////////////////////////////\n");
+	printf("----------> Reporte del proceso %d \n",idProceso);
+	printf("////////////////////////////////////////////////////\n");
+
+	for(i=0;i<list_size(tablaPaginas);i++){
+		t_entrada_tabla_paginas* entPag = list_get(tablaPaginas,i);
+		if(entPag->nro_marco != -1){
+			if((entPag->presencia) == 1){
+				printf("La página %d del proceso está en memoria! \n",entPag->nro_marco);
+			}else{
+				printf("La página %d del proceso no está en memoria! \n",entPag->nro_marco);
+			}
+			if((entPag->uso) == 1){
+				printf("La página %d del proceso está en uso! \n",entPag->nro_marco);
+			}else{
+				printf("La página %d del proceso no está en uso! \n",entPag->nro_marco);
+			}
+			if((entPag->modificado) == 1){
+				log_info(logUMC,"La página %d del proceso está modificada! \n",entPag->nro_marco);
+			}else{
+				printf("La página %d del proceso no está modificada! \n",entPag->nro_marco);
+			}
+		}
+	}
+}
