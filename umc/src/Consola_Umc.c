@@ -69,6 +69,31 @@ void rEstructuraDeMemoriaProceso(){
 	//Se ingresa el id del proceso por teclado
 	scanf("%d",&idProceso);
 
+	//printf("Proceso: %d",idProceso);
+	//printf("Tamaño: %d",dictionary_size(tablasDePagina));
+	t_entrada_diccionario* entradaD = dictionary_get(tablasDePagina,i_to_s(idProceso));
+	t_list* tablaPaginas = entradaD->tablaDePaginas;
+
+	log_info(logUMC,"Cantidad de páginas: %d",list_size(tablaPaginas));
+	int i;
+
+	printf("////////////////////////////////////////////////////\n");
+	printf("----------> Reporte del proceso %d \n",idProceso);
+	printf("////////////////////////////////////////////////////\n");
+
+	for(i=0;i<list_size(tablaPaginas);i++){
+		t_entrada_tabla_paginas* entPag = list_get(tablaPaginas,i);
+		if((entPag->presencia) == 1){
+			printf("La página %d del proceso está en memoria! \n",entPag->nro_marco);
+		}
+		if((entPag->uso) == 1){
+			printf("La página %d del proceso está en uso! \n",entPag->nro_marco);
+		}
+		if((entPag->modificado) == 1){
+			log_info(logUMC,"La página %d del proceso está modificado! \n",entPag->nro_marco);
+		}
+	}
+
 	printf("\nTabla de paginas del proceso: %d\n",idProceso);
 	getchar();
 
