@@ -29,7 +29,7 @@ extern t_queue *colaExit;
 t_list *lista_programas_actuales;
 t_list *lista_cpus_conectadas;
 t_list *lista_relacion;
-
+extern t_log* logEstados;
 
 void crear_colas();
 void destruir_colas();

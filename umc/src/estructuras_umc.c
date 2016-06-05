@@ -242,6 +242,10 @@ void cargar_en_TLB(int32_t pid, t_entrada_tabla_paginas* pagina){
 	list_add(tlb,entrada_tlb);
 }
 
+void eliminar_menos_usado_en_TLB(){
+	free(list_remove(tlb,0));
+}
+
 
 //TODO Ver que pasa si no hay espacio y el programa no tiene frames en memoria
 
