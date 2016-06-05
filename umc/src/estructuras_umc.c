@@ -278,21 +278,16 @@ t_entrada_tabla_paginas* elegir_victima_clock(t_entrada_diccionario *entrada_dic
 
 			//Si la página está en uso
 			if(entrada_pag_victima->uso==true){
-
 				entrada_pag_victima->uso=false;
 				//log_debug(logUMC,"La página %d del proceso %d ahora tiene el bit de uso %d")
 
-				entrada_diccionario->manecilla+=sizeof(t_entrada_tabla_paginas);
-
-			}else if(entrada_pag_victima->uso==false){
-
+			}else{
 				encontro_pag_victima=true;
 				entrada_pagina_victima = entrada_pag_victima;
 			}
-		}else if(entrada_pag_victima->presencia==false){
-
-			entrada_diccionario->manecilla+=sizeof(t_entrada_tabla_paginas);
 		}
+
+		entrada_diccionario->manecilla++;
 
 		if(entrada_diccionario->manecilla == list_size(tablaDePaginas)){
 			entrada_diccionario->manecilla=0;
