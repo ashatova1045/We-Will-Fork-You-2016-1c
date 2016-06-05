@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <commons/config.h>
 #include "commons/collections/dictionary.h"
+#include <semaphore.h>
 #include <stdbool.h>
 #include "estados.h"
 #include "../../general/pcb.h"
@@ -23,8 +24,11 @@ int consola;
 int socket_umc;
 int pidActual=0;
 t_log *logNucleo;
+t_log* logEstados;
 int tamano_pag_umc;
 t_nucleoConfig* config_nucleo;
+sem_t semNucleo_HilosConect;
+pthread_mutex_t mutexKernel =PTHREAD_MUTEX_INITIALIZER;
 
 
 int roundup(x, y){
@@ -123,6 +127,11 @@ t_log* crearLog(){
 	return logNucleo;
 }
 
+t_log* crearLogEstados(){
+	t_log *logEstados = log_create("logEstados.log", "estados.c", false, LOG_LEVEL_TRACE);
+	return logEstados;
+}
+
 t_nucleoConfig* cargarConfiguracion(t_config* config){
 	t_nucleoConfig* datosNucleo = (t_nucleoConfig*)malloc(sizeof(t_nucleoConfig));
 	datosNucleo->puerto_prog=config_get_int_value(config,"PUERTO_PROG");
@@ -181,8 +190,6 @@ void destruirNucleoConfig(t_nucleoConfig* datosADestruir){
 	free(datosADestruir);
 }
 //#undef DESTRUIR_PP solo lo puedo usar hasta aca, si lo uso en otro lado no existe
-
-
 
 
 t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
@@ -253,10 +260,8 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 	nvopcb->fin_stack.pag=result_pag;
 	nvopcb->fin_stack.offset=0;
 //<<<<<<<< fin
-
 	return nvopcb;
 }
-	//falta liberar todos los malloc todo los libera en el destruirpcb??
 
 char* armar_codigo(t_pcb* nuevo_pcb,char* codigo,t_metadata_program* metadata){
 	int i,offset=0;
@@ -354,9 +359,8 @@ bool inicializar_programa(t_pcb* nuevo_pcb,t_paquete paquete, t_metadata_program
 return false;
 }
 
-
-
 void manejar_socket_consola(int socket,t_paquete paquete){
+	pthread_mutex_lock(&mutexKernel);
 	log_debug(logNucleo,"Llego un mensaje del socketConsola  %d. codop %d",socket,paquete.cod_op);
 	switch (paquete.cod_op) {
 		case HS_CONSOLA_NUCLEO:
@@ -385,12 +389,14 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			metadata_destruir(metadata);
 
 			//agrego consola a la lista
+
 			cargar_programa(socket,nuevo_pcb->pid);
 
 			if (inicializo_bien)
 				moverA_colaReady(nuevo_pcb);
 
 			enviar_a_cpu();
+
 			log_debug(logNucleo,"Termino la inicializacion del programa");
 			break;
 
@@ -398,17 +404,19 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 
 			break;
 	}
-
-	//TODO atender pedidos de la consola
-	/* yo recibo del programa algo asi enviar(NUEVO_PROGRAMA,size,programabuf,socket_kernel);
-	 * y le tengo que devolver paquete por el socket: actualizacion = recibir_paquete(socket_kernel);
-	 */
+	pthread_mutex_unlock(&mutexKernel);
 }
 
 void cerrar_socket_consola(int socket){
-	printf("Se cerro %d\n",socket);
-	log_debug(logNucleo, "Se cerro %d\n",socket);
-	//TODO manejar el cierre de socket de la consola
+	pthread_mutex_lock(&mutexKernel);
+	printf("Se cerro la consola %d\n",socket);
+	log_warning(logNucleo, "Se cerro %d\n",socket);
+
+	//FIXME manejar el cierre de socket de la consola
+	elminar_consola_por_socket(socket);
+
+	pthread_mutex_lock(&mutexKernel);
+
 }
 
 void nueva_conexion_consola(int socket){
@@ -435,6 +443,7 @@ void entrada_salida(t_pedido_wait *pedido){
 }
 
 void manejar_socket_cpu(int socket,t_paquete paquete){
+	pthread_mutex_lock(&mutexKernel);
 	switch (paquete.cod_op) {
 			case HS_CPU_NUCLEO:
 				enviar(OK_HS_CPU,1,&socket,socket);
@@ -451,7 +460,6 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				log_debug(logNucleo,"PCB deserializado");
 
 				moverA_colaReady(pcb_devuelto);
-
 				liberar_una_relacion(pcb_devuelto);
 				enviar_a_cpu();
 				break;
@@ -598,11 +606,12 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 			default:
 				break;
 		}
-
+	pthread_mutex_unlock(&mutexKernel);
 	//TODO manejar pedidos del CPU
 }
 
 void cerrar_socket_cpu(int socket){
+	pthread_mutex_lock(&mutexKernel);
 	log_warning(logNucleo,"Se cerro el cpu %d\n",socket);
 	printf("Se cerro el cpu %d\n",socket);
 
@@ -624,6 +633,7 @@ void cerrar_socket_cpu(int socket){
 	}
 
 	free(cpu);
+	pthread_mutex_unlock(&mutexKernel);
 }
 
 
@@ -713,6 +723,7 @@ int main(int argc, char **argv){
 
 //Crea archivo de log
 	logNucleo = crearLog();
+	logEstados = crearLogEstados();
 	log_info(logNucleo, "Ejecucion del Proceso NUCLEO");
 
 //Levanta archivo de config del proceso Nucleo
@@ -771,36 +782,42 @@ int main(int argc, char **argv){
 //	tamano_pag_umc=*((int*)paquete_umc->datos);
 //	log_info(logNucleo,"Tamano de pagina %d",tamano_pag_umc);
 
+	sem_init(&semNucleo_HilosConect, 0, 0);
+
 	if (pthread_create(&thread_cpu, NULL, (void*)funcion_hilo_servidor, &conf_cpu)){
 	        perror("Error el crear el thread cpu.");
+	        sem_post(&semNucleo_HilosConect);
 	        exit(EXIT_FAILURE);
 	    }
 	log_info(logNucleo, "Me pude conectar con proc_cpu");
 
 	if (pthread_create(&thread_consola, NULL, (void*)funcion_hilo_servidor, &conf_consola)){
 		        perror("Error el crear el thread consola.");
+		        sem_post(&semNucleo_HilosConect);
 		        exit(EXIT_FAILURE);
 		}
 	log_info(logNucleo, "Me pude conectar con proc_consola");
 
-
-
 	//TODO planificacion de los procesos
 
-	// TODO ante cualquiera de las fallas en alguno de los hilos, que pueda atender el otro sin esperar, ahora estaria dando la prioridad a cpu
-	/* con un semaforo contador? o alguna estructura de datos compartida donde cada thread avisa si esta activo o  no
-	Los ayudates dijeron que no hace falta, no van a destruir hilos porque si */
+	sem_wait(&semNucleo_HilosConect);
+
+	pthread_cancel(thread_consola);
+	pthread_cancel(thread_cpu);
 
 	pthread_join(thread_cpu, NULL); //el padre espera a qe termina este hilo
 	pthread_join(thread_consola, NULL); //el padre espera a qe termina este hilo
 
+	sem_destroy(&semNucleo_HilosConect);
+
+	destruir_colas();
+	dictionary_destroy_and_destroy_elements(semaforos,free);
+	dictionary_destroy_and_destroy_elements(variablesCompartidas,free);
+
 	destruirNucleoConfig(config_nucleo);
 	config_destroy(config);
-
-	dictionary_destroy_and_destroy_elements(semaforos,free);
-
 	log_destroy(logNucleo);
-
+	log_destroy(logEstados);
 	return EXIT_SUCCESS;
 
 }
