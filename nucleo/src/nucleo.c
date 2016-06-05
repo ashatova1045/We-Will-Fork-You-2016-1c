@@ -412,10 +412,10 @@ void cerrar_socket_consola(int socket){
 	printf("Se cerro la consola %d\n",socket);
 	log_warning(logNucleo, "Se cerro %d\n",socket);
 
-	//FIXME manejar el cierre de socket de la consola
-	elminar_consola_por_socket(socket);
+	//TODO manejar el cierre de socket de la consola
+//	elminar_consola_por_socket(socket);
 
-	pthread_mutex_lock(&mutexKernel);
+	pthread_mutex_unlock(&mutexKernel);
 
 }
 
