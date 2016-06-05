@@ -132,7 +132,9 @@ int enviar(uint16_t cod_op, int tamano_datos_en_bytes, void* datos, int destino_
 }
 
 static t_paquete armar_paquete_de_error(){
-	return armar_paquete(ERROR_COD_OP,ERROR_TAMANO,ERROR_DATOS);
+	t_paquete paquete = armar_paquete(ERROR_COD_OP,ERROR_TAMANO,ERROR_DATOS);
+	paquete.datos = strdup("E");
+	return paquete;
 }
 
 t_paquete* recibir_paquete(int socket_receptor_fd){
