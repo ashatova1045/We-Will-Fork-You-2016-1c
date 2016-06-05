@@ -137,7 +137,7 @@ void atender_conexion(int* socket_conexion){
 					//Libero el acceso a la tabla de páginas
 					pthread_mutex_unlock(&mutex_pags);
 
-					if(config_umc->entradas_tlb)
+					if(config_umc->entradas_tlb){
 						//Cargar pagina en la TLB
 						pthread_mutex_lock(&mutex_tlb);
 						if(list_size(tlb) == config_umc->entradas_tlb){
@@ -147,6 +147,7 @@ void atender_conexion(int* socket_conexion){
 							cargar_en_TLB(proceso_activo,entrada_pag_pedida);
 						}
 						pthread_mutex_unlock(&mutex_tlb);
+					}
 
 					//Busco los datos de la página y se los envío a la cpu
 					char* datosDePagina=datos_pagina_en_memoria(entrada_pag_pedida->nro_marco);
@@ -292,7 +293,7 @@ void atender_conexion(int* socket_conexion){
 
 					log_info(logUMC,"Se eliminaron las estructuras del proceso %d",*programaAFinalizar);
 
-					printf("Se limpia Bitmap \n");
+					//printf("Se limpia Bitmap \n");
 
 					//loggearBitmap();
 
