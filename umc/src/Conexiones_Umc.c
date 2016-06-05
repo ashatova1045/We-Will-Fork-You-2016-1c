@@ -279,11 +279,6 @@ void atender_conexion(int* socket_conexion){
 					//Protejo el acceso a la tabla de páginas
 					pthread_mutex_lock(&mutex_pags);
 
-					//Elimino las estructuras creadas para el manejo del programa
-					//dictionary_remove_and_destroy(tablasDePagina,i_to_s(*programaAFinalizar),destruir_lista);
-
-					//loggearBitmap();
-
 					//Se marcan los frames asignados como libres en el bitmap
 					t_entrada_diccionario *entrada_diccionario = dictionary_remove(tablasDePagina,i_to_s(*programaAFinalizar));
 					t_list* tablaDePaginas = entrada_diccionario->tablaDePaginas;
@@ -292,10 +287,6 @@ void atender_conexion(int* socket_conexion){
 					free(entrada_diccionario);
 
 					log_info(logUMC,"Se eliminaron las estructuras del proceso %d",*programaAFinalizar);
-
-					//printf("Se limpia Bitmap \n");
-
-					//loggearBitmap();
 
 					//Libero el acceso a la tabla de páginas
 					pthread_mutex_unlock(&mutex_pags);
