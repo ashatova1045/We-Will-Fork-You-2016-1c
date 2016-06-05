@@ -27,5 +27,11 @@ void marcarPaginas();
 
 void ejecutoConsola();
 
+void generarReporteDeProceso(int idProceso);
+
+void generarReporteDeDatosProceso(int idProceso);
+
+void generarReporteDeProceso(int idProceso);
+
 
 #endif /* CONSOLA_UMC_H_ */
