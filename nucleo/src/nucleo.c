@@ -113,6 +113,14 @@ t_relacion* matchear_relacion_por_socketcpu(int socket){
 	return list_find(lista_relacion, matchsocketcpurelacion);
 }
 
+t_relacion* matchear_relacion_por_socketconsola(int socket){
+	bool matchsocketconsolarelacion(void *relacion) {
+						return ((t_relacion*)relacion)->programa->socket == socket;
+					}
+
+	return list_find(lista_relacion, matchsocketconsolarelacion);
+}
+
 void elminar_consola_por_socket(int socket){
 	bool matchconsola(void *consola) {
 						return ((t_consola*)consola)->socket == socket;
@@ -411,8 +419,32 @@ void cerrar_socket_consola(int socket){
 	printf("Se cerro la consola %d\n",socket);
 	log_warning(logNucleo, "Se cerro %d\n",socket);
 
-	//TODO manejar el cierre de socket de la consola
-//	elminar_consola_por_socket(socket);
+	bool matchSocket_Consola(void *consola) {
+						return ((t_consola*)consola)->socket == socket;
+					}
+
+	//t_consola* consola = list_remove_by_condition(lista_programas_actuales,matchSocket_Consola);
+	t_relacion* relacion = 	matchear_relacion_por_socketconsola(socket);
+
+	if (relacion){
+		log_warning(logNucleo,"La consola del programa con PID %d se cerro",relacion->programa->pid);
+
+		moverA_colaExit(sacarDe_colaExec(relacion->programa->pid));
+		enviar(MURIO_CONSOLA,1,&socket,relacion->cpu->socket);
+	//	liberar_una_relacion_porsocket_cpu(relacion->cpu->socket);
+	}
+	else{
+		t_consola* consola = list_find(lista_programas_actuales,matchSocket_Consola);
+		moverA_colaExit(sacarDe_colaNew(consola->pid));
+		moverA_colaExit(sacarDe_colaBlocked(consola->pid));
+		moverA_colaExit(sacarDe_colaReady(consola->pid));
+
+		liberar_una_relacion_porsocket_cpu(relacion->cpu->socket);
+
+		enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(consola->pid),socket_umc);
+		elminar_consola_por_socket(socket);
+		enviar_a_cpu();
+	}
 
 	pthread_mutex_unlock(&mutexKernel);
 

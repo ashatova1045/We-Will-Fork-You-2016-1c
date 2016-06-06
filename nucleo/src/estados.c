@@ -95,8 +95,11 @@ void moverA_colaReady(t_pcb *pcb)
 
 t_pcb *sacarDe_colaNew(uint32_t pid)
 {
+	pthread_mutex_lock(&colaReadyMutex);
 	t_pcb *pcb = sacar_pcb_por_pid(colaNew->elements, pid);
-	log_debug(logEstados, "El PCB: %d salio de la cola New");
+	if(pcb)
+		log_debug(logEstados, "El PCB: %d salio de la cola New");
+	pthread_mutex_unlock(&colaReadyMutex);
 	return pcb;
 }
 
@@ -104,7 +107,8 @@ t_pcb *sacarDe_colaReady(uint32_t pid)
 {
 	pthread_mutex_lock(&colaReadyMutex);
 	t_pcb *pcb = sacar_pcb_por_pid(colaReady->elements, pid);
-	log_debug(logEstados, "El PCB: %d salio de la cola Ready",pid);
+	if(pcb)
+		log_debug(logEstados, "El PCB: %d salio de la cola Ready",pid);
 	pthread_mutex_unlock(&colaReadyMutex);
 	return pcb;
 }
