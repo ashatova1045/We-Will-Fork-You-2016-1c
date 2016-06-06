@@ -180,17 +180,18 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 				log_info(logUMC,"La página %d del proceso %d ahora está en memoria en el frame %d",pagina,pid,frameAOcupar);
 				log_info(logUMC,"El bit de presencia de la pagina %d del proceso %d es %d",pagina,pid,entrada_pagina->presencia);
 
-			//Si no hay frames libres elijo uno de los del proceso
-			}else{
+			//Si no hay frames libres y el proceso tiene frames usados
+			}else if(paginasUsadas>0){
 
-				log_info(logUMC,"No quedan frames libres en memoria");
+				log_info(logUMC,"No quedan frames libres en memoria, uso una del proceso %d",pid);
 
 				//Reemplazo una página del proceso
 				t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pagina,entrada_diccionario);
 
 				entrada_pagina = entrada_pag_pedida_actualizada;
 
-			}
+			//Si no hay frames libres y el proceso no usó ninguno
+			}else entrada_pagina=NULL;
 		}
 
 	}
@@ -234,9 +235,6 @@ void cargar_en_TLB(int32_t pid, t_entrada_tabla_paginas* pagina){
 void eliminar_menos_usado_en_TLB(){
 	free(list_remove(tlb,0));
 }
-
-
-//TODO Ver que pasa si no hay espacio y el programa no tiene frames en memoria
 
 //Función para conseguir los datos que tiene una página en memoria
 char* datos_pagina_en_memoria(int marco){
