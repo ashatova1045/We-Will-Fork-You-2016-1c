@@ -46,10 +46,8 @@ typedef struct{
 
 typedef struct{
 	int pid;
-	int32_t nro_marco;
-	bool presencia;
-	bool modificado;
-	bool uso;
+	int nroPagina;
+	t_entrada_tabla_paginas* pagina;
 }t_entrada_tlb;
 
 t_dictionary *tablasDePagina;
@@ -93,6 +91,6 @@ void loggearBitmap();
 //TLB
 void crearTLB(int entradasTLB);
 t_entrada_tabla_paginas* buscar_pagina_en_TLB(int32_t proceso, int32_t numeroPagina);
-void cargar_en_TLB(int32_t pid, t_entrada_tabla_paginas* pagina);
+void cargar_en_TLB(int32_t pid, int nroPagina, t_entrada_tabla_paginas* pagina);
 void eliminar_menos_usado_en_TLB();
 #endif /* ESTRUCTURAS_UMC_H_ */

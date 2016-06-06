@@ -41,11 +41,11 @@ void crearTLB(int entradasTLB){
 	int i;
 	for(i = 0 ; i < entradasTLB ; i++) {
 		t_entrada_tlb* entrada = malloc(sizeof(t_entrada_tlb));
-		entrada->uso = false;
-		entrada->nro_marco = -1;
+
 		entrada->pid = -1;
-		entrada->modificado = false;
-		entrada->presencia = false;
+		entrada->nroPagina = -1;
+		entrada->pagina = NULL;
+
 		list_add(tlb, entrada);
 	}
 }
@@ -199,21 +199,23 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 }
 
 //Función para buscar una página en la TLB
-t_entrada_tabla_paginas* buscar_pagina_en_TLB(int32_t proceso, int32_t nro_marco){
+t_entrada_tabla_paginas* buscar_pagina_en_TLB(int32_t proceso, int32_t nro_pagina){
 	t_entrada_tabla_paginas* pagina = malloc(sizeof(t_entrada_tabla_paginas));
 	int i;
 	for(i=0;i<list_size(tlb);i++){
 
 		t_entrada_tlb* elementoLista = list_get(tlb,i);
 
-		if(elementoLista->pid == proceso && elementoLista->nro_marco == nro_marco){
+		if(elementoLista->pid == proceso && elementoLista->nroPagina == nro_pagina){
+
+			t_entrada_tabla_paginas* registroPag = elementoLista->pagina;
 
 			list_add(tlb,list_remove(tlb,i)); //LRU
 
-			pagina->nro_marco  = elementoLista->nro_marco;
-			pagina->presencia  = elementoLista->presencia;
-			pagina->modificado = elementoLista->modificado;
-			pagina->uso = elementoLista->uso;
+			pagina->nro_marco  = registroPag->nro_marco;
+			pagina->presencia  = registroPag->presencia;
+			pagina->modificado = registroPag->modificado;
+			pagina->uso = registroPag->uso;
 			return pagina;
 		}
 
@@ -222,15 +224,13 @@ t_entrada_tabla_paginas* buscar_pagina_en_TLB(int32_t proceso, int32_t nro_marco
 }
 
 //Cargar una entrada en la TLB
-void cargar_en_TLB(int32_t pid, t_entrada_tabla_paginas* pagina){
+void cargar_en_TLB(int32_t pid, int nroPagina, t_entrada_tabla_paginas* pagina){
 	log_info(logUMC,"Se carga la página al TLB");
 
 	t_entrada_tlb* entrada_tlb = malloc(sizeof(t_entrada_tlb));
 	entrada_tlb->pid = pid;
-	entrada_tlb->nro_marco  = pagina->nro_marco;
-	entrada_tlb->presencia  = pagina->presencia;
-	entrada_tlb->modificado = pagina->modificado;
-	entrada_tlb->uso = pagina->uso;
+	entrada_tlb->nroPagina = nroPagina;
+	entrada_tlb->pagina = pagina;
 
 	list_add(tlb,entrada_tlb);
 }

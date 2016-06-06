@@ -145,6 +145,8 @@ void atender_conexion(int* socket_conexion){
 
 					}else{
 
+						printf("tamaño1: %d",list_size(tlb));
+
 						if(config_umc->entradas_tlb){
 							//Cargar pagina en la TLB
 							pthread_mutex_lock(&mutex_tlb);
@@ -153,7 +155,9 @@ void atender_conexion(int* socket_conexion){
 								eliminar_menos_usado_en_TLB();
 							}
 
-							cargar_en_TLB(proceso_activo,entrada_pag_pedida);
+							cargar_en_TLB(proceso_activo,solicitud.nroPagina,entrada_pag_pedida);
+
+							printf("tamaño2: %d",list_size(tlb));
 
 							pthread_mutex_unlock(&mutex_tlb);
 						}
@@ -230,7 +234,7 @@ void atender_conexion(int* socket_conexion){
 								eliminar_menos_usado_en_TLB();
 							}
 
-							cargar_en_TLB(proceso_activo,entrada_pag_escritura);
+							cargar_en_TLB(proceso_activo,solicitud.nroPagina,entrada_pag_escritura);
 
 							pthread_mutex_unlock(&mutex_tlb);
 						}
