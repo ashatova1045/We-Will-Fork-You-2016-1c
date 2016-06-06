@@ -207,6 +207,9 @@ t_entrada_tabla_paginas* buscar_pagina_en_TLB(int32_t proceso, int32_t nro_marco
 		t_entrada_tlb* elementoLista = list_get(tlb,i);
 
 		if(elementoLista->pid == proceso && elementoLista->nro_marco == nro_marco){
+
+			list_add(tlb,list_remove(tlb,i)); //LRU
+
 			pagina->nro_marco  = elementoLista->nro_marco;
 			pagina->presencia  = elementoLista->presencia;
 			pagina->modificado = elementoLista->modificado;

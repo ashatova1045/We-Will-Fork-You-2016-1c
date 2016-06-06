@@ -151,9 +151,10 @@ void atender_conexion(int* socket_conexion){
 							if(list_size(tlb) == config_umc->entradas_tlb){
 								//Implementación de LRU
 								eliminar_menos_usado_en_TLB();
-							}else{
-								cargar_en_TLB(proceso_activo,entrada_pag_pedida);
 							}
+
+							cargar_en_TLB(proceso_activo,entrada_pag_pedida);
+
 							pthread_mutex_unlock(&mutex_tlb);
 						}
 
@@ -220,6 +221,19 @@ void atender_conexion(int* socket_conexion){
 						log_info(logUMC,"Se le informó a la cpu %d que no se pudo escribir la página %d",*socket_conexion,solicitud.nroPagina);
 
 					}else{
+
+						if(config_umc->entradas_tlb){
+							//Cargar pagina en la TLB
+							pthread_mutex_lock(&mutex_tlb);
+							if(list_size(tlb) == config_umc->entradas_tlb){
+								//Implementación de LRU
+								eliminar_menos_usado_en_TLB();
+							}
+
+							cargar_en_TLB(proceso_activo,entrada_pag_escritura);
+
+							pthread_mutex_unlock(&mutex_tlb);
+						}
 
 						//Busco los datos de la página como están ahora en memoria
 						char* datosDePaginaEscritura = datos_pagina_en_memoria(entrada_pag_escritura->nro_marco);
