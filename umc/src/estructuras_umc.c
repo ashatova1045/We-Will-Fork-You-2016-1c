@@ -38,16 +38,6 @@ void crear_estructuras(){
 //Función para crear la TLB
 void crearTLB(int entradasTLB){
 	tlb = list_create();
-	int i;
-	for(i = 0 ; i < entradasTLB ; i++) {
-		t_entrada_tlb* entrada = malloc(sizeof(t_entrada_tlb));
-
-		entrada->pid = -1;
-		entrada->nroPagina = -1;
-		entrada->pagina = NULL;
-
-		list_add(tlb, entrada);
-	}
 }
 
 char* i_to_s(int i){
@@ -200,23 +190,15 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 
 //Función para buscar una página en la TLB
 t_entrada_tabla_paginas* buscar_pagina_en_TLB(int32_t proceso, int32_t nro_pagina){
-	t_entrada_tabla_paginas* pagina = malloc(sizeof(t_entrada_tabla_paginas));
 	int i;
 	for(i=0;i<list_size(tlb);i++){
 
 		t_entrada_tlb* elementoLista = list_get(tlb,i);
 
 		if(elementoLista->pid == proceso && elementoLista->nroPagina == nro_pagina){
-
-			t_entrada_tabla_paginas* registroPag = elementoLista->pagina;
-
 			list_add(tlb,list_remove(tlb,i)); //LRU
 
-			pagina->nro_marco  = registroPag->nro_marco;
-			pagina->presencia  = registroPag->presencia;
-			pagina->modificado = registroPag->modificado;
-			pagina->uso = registroPag->uso;
-			return pagina;
+			return elementoLista->pagina;
 		}
 
 	}

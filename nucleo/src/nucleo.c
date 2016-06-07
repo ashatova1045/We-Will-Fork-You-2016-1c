@@ -435,15 +435,15 @@ void cerrar_socket_consola(int socket){
 	}
 	else{
 		t_consola* consola = list_find(lista_programas_actuales,matchSocket_Consola);
-		moverA_colaExit(sacarDe_colaNew(consola->pid));
-		moverA_colaExit(sacarDe_colaBlocked(consola->pid));
-		moverA_colaExit(sacarDe_colaReady(consola->pid));
+		if(consola){
+			moverA_colaExit(sacarDe_colaNew(consola->pid));
+			moverA_colaExit(sacarDe_colaBlocked(consola->pid));
+			moverA_colaExit(sacarDe_colaReady(consola->pid));
 
-		liberar_una_relacion_porsocket_cpu(relacion->cpu->socket);
-
-		enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(consola->pid),socket_umc);
-		elminar_consola_por_socket(socket);
-		enviar_a_cpu();
+			enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(consola->pid),socket_umc);
+			elminar_consola_por_socket(socket);
+			enviar_a_cpu();
+		}
 	}
 
 	pthread_mutex_unlock(&mutexKernel);

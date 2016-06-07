@@ -27,7 +27,7 @@ void atender_conexion(int* socket_conexion){
 	bool se_cerro = false;
 
 	while(!se_cerro){
-
+		log_info(logUMC,"\n\n\n\n");
 		//Me llega un pedido de una cpu o del nucleo
 		t_paquete* pedido = recibir_paquete(*socket_conexion);
 		log_info(logUMC,"Se recibio un pedido del socket %d",*socket_conexion);
@@ -117,16 +117,15 @@ void atender_conexion(int* socket_conexion){
 
 				if(config_umc->entradas_tlb){
 					//Poner semáforo mutex para acceder a la TLB
+					log_info(logUMC,"Se busca en la TLB");
 					pthread_mutex_lock(&mutex_tlb);
 					//Buscar la página en la TLB, si no esta la busco en la tabla de marcos
 					entrada_pag_pedida = buscar_pagina_en_TLB(proceso_activo,solicitud.nroPagina);
 					pthread_mutex_unlock(&mutex_tlb);
-
+					log_warning(logUMC,"Página no encontrada en la TLB");
 				}
 
 				if(entrada_pag_pedida == NULL){
-					log_warning(logUMC,"Página no encontrada en la TLB");
-
 					//Protejo con un semáforo el acceso a la tabla de paginas
 					pthread_mutex_lock(&mutex_pags);
 
@@ -145,9 +144,9 @@ void atender_conexion(int* socket_conexion){
 
 					}else{
 
-						printf("tamaño1: %d",list_size(tlb));
 
 						if(config_umc->entradas_tlb){
+						log_debug(logUMC,"Tamaño viejo TLB: %d",list_size(tlb));
 							//Cargar pagina en la TLB
 							pthread_mutex_lock(&mutex_tlb);
 							if(list_size(tlb) == config_umc->entradas_tlb){
@@ -157,7 +156,7 @@ void atender_conexion(int* socket_conexion){
 
 							cargar_en_TLB(proceso_activo,solicitud.nroPagina,entrada_pag_pedida);
 
-							printf("tamaño2: %d",list_size(tlb));
+							log_debug(logUMC,"Tamaño nuevo TLB: %d",list_size(tlb));
 
 							pthread_mutex_unlock(&mutex_tlb);
 						}
