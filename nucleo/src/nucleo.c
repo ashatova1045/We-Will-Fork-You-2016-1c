@@ -576,10 +576,9 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				}
 				break;
 			case TERMINO_MAL_PROGRAMA: //sigusr1
-				{log_debug(logNucleo,"Fin programa incorrecto del socket cpu: %d",socket);
+				{log_warning(logNucleo,"Llego SIGUSR1 al cpu de socket: %d",socket);
 
 				t_pcb *pcb_devuelto = deserializar(paquete.datos);
- 				log_debug(logNucleo,"Envie a la umc el codigo de que finalizo el programa con el pid: %d", pcb_devuelto->pid );
 
 				destruir_pcb(sacarDe_colaExec(pcb_devuelto->pid));
 				moverA_colaReady(pcb_devuelto);
