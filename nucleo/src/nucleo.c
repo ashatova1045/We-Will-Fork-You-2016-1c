@@ -95,6 +95,15 @@ void liberar_una_relacion_porsocket_cpu(int socketcpu){
 
 }
 
+void eliminar_cpu_por_socket(int socketcpu){
+	bool matchSocket_Cpu(void *cpu) {
+						return ((t_cpu*)cpu)->socket == socketcpu;
+					}
+
+	t_cpu* cpu = list_remove_by_condition(lista_cpus_conectadas,matchSocket_Cpu);
+	free(cpu);
+}
+
 t_consola* matchear_consola_por_pid(int pid){
 
 	bool matchPID_Consola(void *consola) {
@@ -545,12 +554,14 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				break;
 
 			case FINALIZA_PROGRAMA:
-			{
+				{
 				log_debug(logNucleo,"Fin programa, recibi pcb serializado del socket: %d",socket);
 
 				t_pcb *pcb_devuelto = deserializar(paquete.datos);
 				enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(pcb_devuelto->pid),socket_umc);
 				log_debug(logNucleo,"Envie a la umc el codigo de que finalizo el programa con el pid: %d", pcb_devuelto->pid );
+
+				destruir_pcb(sacarDe_colaExec(pcb_devuelto->pid));
 
 				moverA_colaExit(pcb_devuelto);
 
@@ -562,7 +573,24 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				elminar_consola_por_socket(consola->socket);
 				enviar_a_cpu();
 
-			}
+				}
+				break;
+			case TERMINO_MAL_PROGRAMA: //sigusr1
+				{log_debug(logNucleo,"Fin programa incorrecto del socket cpu: %d",socket);
+
+				t_pcb *pcb_devuelto = deserializar(paquete.datos);
+ 				log_debug(logNucleo,"Envie a la umc el codigo de que finalizo el programa con el pid: %d", pcb_devuelto->pid );
+
+				destruir_pcb(sacarDe_colaExec(pcb_devuelto->pid));
+				moverA_colaReady(pcb_devuelto);
+
+				liberar_una_relacion_porsocket_cpu(socket);
+				eliminar_cpu_por_socket(socket);
+
+				enviar_a_cpu();
+
+				}
+
 				break;
 			case WAIT:
 				{t_pedido_wait *pedido_wait = malloc(sizeof(t_pedido_wait));

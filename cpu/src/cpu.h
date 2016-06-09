@@ -2,6 +2,7 @@
 #define CPU_H_
 
 #include <stdio.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <commons/config.h>
 #include <commons/log.h>
@@ -19,5 +20,6 @@ int32_t quantumCpu, tamPag;
 t_pcb* pcb_ejecutandose;
 bool termino_programa;
 t_log* logcpu;
+bool llego_sugus;
 
 #endif /* CPU_H_ */

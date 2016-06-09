@@ -275,7 +275,7 @@ int grabar_valor(t_nombre_variable identificador_variable, void* valorGrabar){
 	return codResp;
 }
  */
-void signal(t_nombre_semaforo identificador_semaforo){
+void signall(t_nombre_semaforo identificador_semaforo){
 	log_info(logcpu,"Se solicita ejecutar la función signal para el semáforo %s", identificador_semaforo);
 
 	enviar(SIGNAL,strlen(identificador_semaforo)+1,identificador_semaforo,socket_nucleo);
@@ -391,7 +391,7 @@ void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
 
 	kernel_functions =(AnSISOP_kernel) {
 		.AnSISOP_wait = wait,
-		.AnSISOP_signal = signal
+		.AnSISOP_signal = signall
 	};
 
  }

@@ -164,6 +164,19 @@ void correr_pcb() {
 		//Destuyo la instruccion
 		free(instruccion_actual);
 		puts("Fin instruccion");
+
+		//si llego susgus mientras corria
+		if(llego_sugus){
+			puts("Se va a cerrar porque llego SIGUSR1");
+			t_pcb_serializado pcb_serializado = serializar(*pcb_ejecutandose);
+
+			enviar(TERMINO_MAL_PROGRAMA,pcb_serializado.tamanio,pcb_serializado.contenido_pcb,socket_nucleo);
+
+			destruir_pcb(pcb_ejecutandose);
+			free(pcb_serializado.contenido_pcb);
+			log_warning(logcpu,"--------------------");
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	if(!termino_programa){
@@ -181,10 +194,23 @@ void matar_hilo_ejecucion() {
 //	pthread_cancel(hilo_ejecucion);	//fixme llamar a la misma funcion que la senal sigusr1
 }
 
-int main() {
+void sugus(int param){
+	puts("\n\nLlego SIGUSR1");
+	llego_sugus= true;
+	//aprovecho si no esta corriendo nada
+	if(!pcb_ejecutandose){
+		puts("Cerrando el proceso (no hay nada corriendo)");
+		exit(EXIT_FAILURE);
+	}
+}
 
+int main() {
 	//Creo archivo de log
 	logcpu = log_create("logCPU.log", "cpu", false, LOG_LEVEL_DEBUG);
+
+	pcb_ejecutandose=NULL;
+	llego_sugus= false;
+	signal(SIGUSR1,sugus);
 
 	inicializar_primitivas();
 

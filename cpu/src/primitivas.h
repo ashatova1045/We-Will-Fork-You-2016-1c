@@ -46,7 +46,7 @@ int	imprimir(t_valor_variable valor_mostrar);
 void imprimirTexto(char*);
 void entradaSalida(t_nombre_dispositivo, int);
 void wait(t_nombre_semaforo identificador_semaforo);
-void signal(t_nombre_semaforo identificador_semaforo);
+void signall(t_nombre_semaforo identificador_semaforo);
 int grabar_valor(t_nombre_variable identificador_variable, void* valorGrabar);
 void finalizar();
 
