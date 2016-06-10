@@ -20,7 +20,7 @@
 #include "../../general/operaciones_swap.h"
 
 //Creo el entero para referenciar al socket del swap
-int socketServerPedido, socketswap;
+int socketServerPedido, socketswap, socket_nucleo;
 char* codigo; //fixme
 int d; //fixme
 

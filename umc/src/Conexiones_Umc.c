@@ -350,8 +350,18 @@ void atender_conexion(int* socket_conexion){
 			//Si me llega un codigo de error porque se desconecto el socket
 			case ERROR_COD_OP:
 
-				log_warning(logUMC,"Se desconecto el socket %d",*socket_conexion);
+				//Si el socket que se desconectó es del núcleo se cierra
+				if(*socket_conexion==socket_nucleo){
+
+					log_warning(logUMC,"Se desconectó el núcleo");
+					exit(EXIT_FAILURE);
+
+				//Si el socket que se cerró es de una cpu
+				}else{
+
+				log_warning(logUMC,"Se desconecto la cpu con el socket %d",*socket_conexion);
 				se_cerro = true;
+				}
 
 				break;
 		}
@@ -414,6 +424,9 @@ void manejar_paquete(int socket,t_paquete paq){
 		//Handshake con nucleo
 		case HS_NUCLEO_UMC:
 			log_info(logUMC,"El nucleo pidio handshake");
+
+			//Guardo el socket del núcleo
+			socket_nucleo=socket;
 
 			//Borro el descriptor de archivos para usar los hilos en lugar de los select
 			FD_CLR(socket,&set_de_fds);
