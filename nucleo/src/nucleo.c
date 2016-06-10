@@ -428,8 +428,10 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 
 			cargar_programa(socket,nuevo_pcb->pid);
 
-			if (inicializo_bien)
+			if (inicializo_bien){
+				sacarDe_colaNew(nuevo_pcb->pid);
 				moverA_colaReady(nuevo_pcb);
+			}
 
 			enviar_a_cpu();
 
@@ -540,6 +542,7 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				log_debug(logNucleo,"Fin quantum, recibi pcb serializado del socket: %d",socket);
 				t_pcb *pcb_devuelto = deserializar(paquete.datos);
 				log_debug(logNucleo,"PCB deserializado");
+				sacarDe_colaExec(pcb_devuelto->pid);
 
 				moverA_colaReady(pcb_devuelto);
 				liberar_una_relacion(pcb_devuelto);
