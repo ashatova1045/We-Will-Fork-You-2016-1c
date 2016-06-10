@@ -69,6 +69,15 @@ void relacionar_cpu_programa(t_cpu *cpu, t_consola *programa, t_pcb *pcb){
 	log_debug(logNucleo, "Movi a la cola Exec el pcb con pid: %d", pcb->pid);
 }
 
+void elminar_consola_por_pid(int pid){
+	bool matchconsola(void *consola) {
+						return ((t_consola*)consola)->pid == pid;
+					}
+
+	free(list_remove_by_condition(lista_programas_actuales,matchconsola));
+}
+
+
 void liberar_una_relacion(t_pcb *pcb_devuelto){
 
 	bool matchPID(void *relacion) {
@@ -78,6 +87,11 @@ void liberar_una_relacion(t_pcb *pcb_devuelto){
 	t_relacion *rel = list_remove_by_condition(lista_relacion,matchPID);
 	rel->cpu->corriendo= false;
 	rel->programa->corriendo= false;
+
+	if(rel->programa->socket==-1){ //esta consola ya se murio
+		log_warning(logNucleo,"Aprovecho para eliminar del sistema la consola cerrada del PID %d",rel->programa->pid);
+		elminar_consola_por_pid(rel->programa->pid);
+	}
 	free(rel);
 
 }
@@ -91,6 +105,12 @@ void liberar_una_relacion_porsocket_cpu(int socketcpu){
 	t_relacion *rel = list_remove_by_condition(lista_relacion,matchsocketcpu);
 	rel->cpu->corriendo= false;
 	rel->programa->corriendo= false;
+
+	if(rel->programa->socket==-1){ //esta consola ya se murio
+		log_warning(logNucleo,"Aprovecho para eliminar del sistema la consola cerrada del PID %d",rel->programa->pid);
+		elminar_consola_por_pid(rel->programa->pid);
+	}
+
 	free(rel);
 
 }
@@ -425,13 +445,35 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 
 void cerrar_socket_consola(int socket){
 	pthread_mutex_lock(&mutexKernel);
-	printf("Se cerro la consola %d\n",socket);
-	log_warning(logNucleo, "Se cerro %d\n",socket);
+	printf("Se cerro la consola %d",socket);
+	log_warning(logNucleo, "Se cerro la consola %d",socket);
 
 	bool matchSocket_Consola(void *consola) {
 						return ((t_consola*)consola)->socket == socket;
 					}
 
+	t_consola* consola = list_find(lista_programas_actuales,matchSocket_Consola);
+	if(consola){
+			log_warning(logNucleo,"Se marco la consola %d como cerrada",socket);
+			consola->socket= -1 ; //lo marco como cerrado
+
+			t_relacion* relacion = 	matchear_relacion_por_socketconsola(socket);
+
+			if (!relacion){
+				moverA_colaExit(sacarDe_colaNew(consola->pid));
+				moverA_colaExit(sacarDe_colaBlocked(consola->pid));
+				moverA_colaExit(sacarDe_colaReady(consola->pid));
+
+				enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(consola->pid),socket_umc);
+				elminar_consola_por_socket(socket);
+				log_warning(logNucleo,"Ninguna cpu estaba corriendo el PID %d, asi que la elimine",consola->pid);
+
+				enviar_a_cpu();
+			}else
+				log_warning(logNucleo,"La consola del programa con PID %d se cerro. Cuando el PCB vuelva de la CPU %d se eliminara.",relacion->programa->pid,relacion->cpu->socket);
+	}
+
+/*
 	//t_consola* consola = list_remove_by_condition(lista_programas_actuales,matchSocket_Consola);
 	t_relacion* relacion = 	matchear_relacion_por_socketconsola(socket);
 
@@ -454,7 +496,7 @@ void cerrar_socket_consola(int socket){
 			enviar_a_cpu();
 		}
 	}
-
+*/
 	pthread_mutex_unlock(&mutexKernel);
 
 }
@@ -688,9 +730,9 @@ void cerrar_socket_cpu(int socket){
 
 		moverA_colaExit(sacarDe_colaExec(relacion->programa->pid));
 
-		elminar_consola_por_socket(relacion->programa->socket);
-
 		liberar_una_relacion_porsocket_cpu(cpu->socket);
+
+		elminar_consola_por_socket(relacion->programa->socket);
 	}
 
 	free(cpu);

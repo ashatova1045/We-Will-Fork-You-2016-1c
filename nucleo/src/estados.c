@@ -62,6 +62,8 @@ void moverA_colaNew(t_pcb *pcb)
 
 void moverA_colaExit(t_pcb *pcb)
 {
+	if(!pcb) return;
+
 	pthread_mutex_lock(&colaExitMutex);
 	queue_push(colaExit, pcb);
 	pthread_mutex_unlock(&colaExitMutex);
@@ -98,7 +100,7 @@ t_pcb *sacarDe_colaNew(uint32_t pid)
 	pthread_mutex_lock(&colaReadyMutex);
 	t_pcb *pcb = sacar_pcb_por_pid(colaNew->elements, pid);
 	if(pcb)
-		log_debug(logEstados, "El PCB: %d salio de la cola New");
+		log_debug(logEstados, "El PCB: %d salio de la cola New",pid);
 	pthread_mutex_unlock(&colaReadyMutex);
 	return pcb;
 }
