@@ -1,0 +1,11 @@
+#!./../consola/Debug/consola
+begin
+variables i,b
+    i = 0
+    :inicio_for
+    i = i + 1
+    print i
+    b = i - 10
+    jnz b inicio_for
+    #fuera del for
+end

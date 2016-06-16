@@ -165,8 +165,8 @@ void correr_pcb() {
 		//Destuyo la instruccion
 		free(instruccion_actual);
 		puts("Fin instruccion");
-		log_info(logcpu, "\n\n");
 		log_info(logcpu, "Fin de instruccion");
+		log_info(logcpu, "\n\n");
 
 
 		//si llego susgus mientras corria

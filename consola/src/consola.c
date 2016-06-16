@@ -87,10 +87,10 @@ int main(int argc, char **argv) {
 	log_info(logconsola,"Programa enviado al kernel");
 	free(programabuf);
 
+	puts("El programa esta corriendo correctamente. Espere un momento por favor.");
 	t_paquete* actualizacion;
 	do {
 		log_info(logconsola,"Eperando mensajes del kernel");
-		puts("El programa esta corriendo correctamente. Espere un momento por favor.");
 		actualizacion = recibir_paquete(socket_kernel);
 
 		log_info(logconsola,"Nuevo mensaje del kernel!\nTamano: %d\nCodigo de operacion: %d",

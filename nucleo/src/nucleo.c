@@ -255,8 +255,8 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 		posicion_nueva_instruccion.size = tamano_instruccion;
 		nvopcb->indice_codigo[i] = posicion_nueva_instruccion;
 
-//		printf("pag %d offset %d size %d\n",posicion_nueva_instruccion.pag,posicion_nueva_instruccion.offset,posicion_nueva_instruccion.size);
-//		printf("%.*s\n",posicion_nueva_instruccion.size,(char*)paquete.datos+metadata->instrucciones_serializado[i].start);
+		log_trace(logNucleo,"instruccion %d pag %d offset %d size %d",i,posicion_nueva_instruccion.pag,posicion_nueva_instruccion.offset,posicion_nueva_instruccion.size);
+		log_trace(logNucleo,"%.*s",posicion_nueva_instruccion.size,(char*)paquete.datos+metadata->instrucciones_serializado[i].start);
 
 		if(tamano_instruccion<tamano_pagina_restante){
 			offset_actual += tamano_instruccion;
@@ -453,7 +453,7 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 
 void cerrar_socket_consola(int socket){
 	pthread_mutex_lock(&mutexKernel);
-	printf("Se cerro la consola %d",socket);
+	printf("Se cerro la consola %d\n",socket);
 	log_warning(logNucleo, "Se cerro la consola %d",socket);
 
 	bool matchSocket_Consola(void *consola) {

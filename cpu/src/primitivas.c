@@ -107,7 +107,7 @@ t_valor_variable dereferenciar(t_puntero direccion_variable){
 	char* rta_umc = pedir_lectura_de_umc(pedido);
 
 	//esta funcion tiene que devolver un t_valor_variable
-	t_valor_variable valor = *rta_umc;
+	t_valor_variable valor = *(t_valor_variable *)rta_umc;
 
 	free(rta_umc);
 
@@ -126,10 +126,11 @@ void asignar(t_puntero	direccion_variable,	t_valor_variable valor){
 	pedido.tamanioDatos = posf.size;
 	pedido.buffer = (char *)&valor;
 
+	t_pedido_almacenarBytes_serializado *pedidoserializado = serializar_pedido_almacenar(&pedido);
 
 	log_info(logcpu,"Se solicita asignar la dirección logica %d con el valor %d (posicion fisica: pag %d, offset %d)", direccion_variable,valor,posf.pag,posf.offset);
 
-	enviar(ESCRITURA_PAGINA,sizeof(pedido),&pedido,socket_umc);
+	enviar(ESCRITURA_PAGINA,pedidoserializado->tamano,pedidoserializado->pedido_serializado,socket_umc);
 
 	t_paquete *paquete_respuesta = recibir_paquete(socket_umc);
 
@@ -152,6 +153,8 @@ void asignar(t_puntero	direccion_variable,	t_valor_variable valor){
 			break;
 	}
 
+	free(pedidoserializado->pedido_serializado);
+	free(pedidoserializado);
 	destruir_paquete(paquete_respuesta);
 }
 
