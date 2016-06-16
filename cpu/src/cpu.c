@@ -186,6 +186,7 @@ void correr_pcb() {
 
 		free(pcb_serializado.contenido_pcb);
 		destruir_pcb(pcb_ejecutandose);
+		puts("Fin de quantum");
 	}
 }
 

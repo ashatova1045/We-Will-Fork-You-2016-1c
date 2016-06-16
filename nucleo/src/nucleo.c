@@ -292,9 +292,15 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 //<<<<<<<<<< fin
 
 //>>>>>>> Inicializacion de indice de stack
-	nvopcb->cant_entradas_indice_stack=0;
+	nvopcb->cant_entradas_indice_stack=1;
+	nvopcb->indice_stack= malloc(sizeof(registro_indice_stack));
+	nvopcb->indice_stack[0].cant_variables = 0;
+	nvopcb->indice_stack[0].cant_argumentos=0;
+
+
 	nvopcb->fin_stack.pag=result_pag;
 	nvopcb->fin_stack.offset=0;
+	nvopcb->fin_stack.size=4;
 //<<<<<<<< fin
 	return nvopcb;
 }

@@ -1,0 +1,7 @@
+#!./../consola/Debug/consola
+begin
+	variables a,b,c,d,e,f,g
+	f = 1
+	f = f + 1
+	f = f + 5
+end

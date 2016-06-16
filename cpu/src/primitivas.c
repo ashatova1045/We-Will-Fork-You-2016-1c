@@ -3,106 +3,155 @@
 
 int pc;
 
-t_posicion* definirVariable(t_nombre_variable identificador_variable){
+t_puntero pos_fisica_a_logica(t_posMemoria posfisica){
+	return posfisica.pag*tamPag+posfisica.offset;
+}
 
-	t_posicion* posicion = malloc(sizeof(t_posicion));
+t_posMemoria pos_logica_a_fisica(t_puntero poslogica){
+	t_posMemoria respuesta;
+	respuesta.pag = poslogica/tamPag;
+	respuesta.offset = poslogica % tamPag;
+	respuesta.size = 4; //todas las variables pesan 4
+	return respuesta;
+}
 
-	log_info(logcpu,"Se solicita definir la variable %d\n", identificador_variable);
+t_puntero definirVariable(t_nombre_variable identificador_variable){
+	log_info(logcpu,"Se solicita definir la variable %c", identificador_variable);
 
-	enviar(DEFINIR_VARIABLE,sizeof(t_nombre_variable),&identificador_variable,socket_nucleo);
+	if(pcb_ejecutandose->fin_stack.pag == pcb_ejecutandose->cant_pags_totales){
+		log_warning(logcpu,"STACK OVERFLOW");
+		puts("STACK OVERFLOW");
+		//todo explotar
+	}
 
-	t_paquete *respuesta_defVar = recibir_paquete(socket_nucleo);
-	switch (respuesta_defVar->cod_op) {
+	int entrada_actual = pcb_ejecutandose->cant_entradas_indice_stack-1;
+
+	//incremento cant_varialbes para poder serializar
+	pcb_ejecutandose->indice_stack[entrada_actual].cant_variables++;
+	int cant_variables = pcb_ejecutandose->indice_stack[entrada_actual].cant_variables;
+
+	//aumento el tamaño de las variables
+	pcb_ejecutandose->indice_stack[entrada_actual].variables=realloc(pcb_ejecutandose->indice_stack[entrada_actual].variables,cant_variables*sizeof(t_variable));
+
+
+	//creo la nueva variable
+	t_variable nueva_variable;
+	nueva_variable.id = identificador_variable;
+	nueva_variable.posicionVar = pcb_ejecutandose->fin_stack; 	//me fijo donde va a ir la nueva variable (al final)
+
+	//me muevo 4 lugares a la derecha para que la proxima variable no pise a esta
+	pcb_ejecutandose->fin_stack.offset += 4;
+
+	//me aseguro de nunca pasarme de la pagina
+	if(pcb_ejecutandose->fin_stack.offset >= tamPag){
+		pcb_ejecutandose->fin_stack.offset = 0;
+		pcb_ejecutandose->fin_stack.pag++;
+	}
+
+	pcb_ejecutandose->indice_stack[entrada_actual].variables[cant_variables-1]=nueva_variable;
+
+	int poslogica = pos_fisica_a_logica(nueva_variable.posicionVar);
+	log_info(logcpu,"Se definio la variable %c\n Posicion fisica: Pagina %d, offset %d\nPosicion logica: %d", identificador_variable,nueva_variable.posicionVar.pag,nueva_variable.posicionVar.offset,poslogica);
+
+	return poslogica;
+}
+
+t_puntero obtenerPosicionVariable(t_nombre_variable identificador_variable){
+	log_info(logcpu,"Se solicita obtener la posición de %c", identificador_variable);
+
+	registro_indice_stack* stack_actual = &pcb_ejecutandose->indice_stack[pcb_ejecutandose->cant_entradas_indice_stack-1];
+
+	//las variables son letras
+	if(isalpha(identificador_variable)){
+		log_debug(logcpu,"%c parece ser una variable",identificador_variable);
+		int i;
+		for(i=0;stack_actual->cant_variables;i++){
+			if(stack_actual->variables[i].id == identificador_variable){
+				t_puntero poslogica = pos_fisica_a_logica(stack_actual->variables[i].posicionVar);
+				log_debug(logcpu,"La posicion logica de la variable %c es %d",identificador_variable,poslogica);
+				return poslogica;
+			}
+		}
+	}
+
+	////los argumentos son numeros
+	if(isdigit(identificador_variable)){
+		int numero_variable = identificador_variable - '0';
+		log_debug(logcpu,"%c parece ser un argumento",identificador_variable);
+
+		if(numero_variable >= stack_actual->cant_argumentos)
+			log_error(logcpu,"Es imposible que %d sea un argumento, porque solo hay %d argumentos",numero_variable,stack_actual->cant_argumentos);
+
+		t_puntero poslogica = pos_fisica_a_logica(stack_actual->argumentos[numero_variable]);
+		log_debug(logcpu,"La posicion logica del argumento %d es %d",numero_variable,poslogica);
+		return poslogica;
+	}
+
+	log_error(logcpu,"No se pudo encontrar nada llamado %c",identificador_variable);
+	//idealmente nunca llega a esto
+	return -1;
+}
+
+t_valor_variable dereferenciar(t_puntero direccion_variable){
+
+	t_posMemoria posfisica = pos_logica_a_fisica(direccion_variable);
+
+	log_debug(logcpu,"Se solicita dereferenciar la dirección\nLogica: %d\nFisica: pag %d, offset %d", direccion_variable, posfisica.pag, posfisica.offset);
+
+	t_pedido_solicitarBytes pedido;
+	pedido.nroPagina = posfisica.pag;
+	pedido.offset = posfisica.offset;
+	pedido.tamanioDatos = posfisica.size;
+
+	//pido a la umc lo que esta en ese pedido
+	char* rta_umc = pedir_lectura_de_umc(pedido);
+
+	//esta funcion tiene que devolver un t_valor_variable
+	t_valor_variable valor = *rta_umc;
+
+	free(rta_umc);
+
+	log_info(logcpu,"Valor dereferenciado = %d",valor);
+	return valor;
+
+}
+
+void asignar(t_puntero	direccion_variable,	t_valor_variable valor){
+
+	t_posMemoria posf = pos_logica_a_fisica(direccion_variable);
+
+	t_pedido_almacenarBytes pedido;
+	pedido.nroPagina = posf.pag;
+	pedido.offset = posf.offset;
+	pedido.tamanioDatos = posf.size;
+	pedido.buffer = &valor;
+
+
+	log_info(logcpu,"Se solicita asignar la dirección logica %d con el valor %d (posicion fisica: pag %d, offset %d)", direccion_variable,valor,posf.pag,posf.offset);
+
+	enviar(ESCRITURA_PAGINA,sizeof(pedido),&pedido,socket_umc);
+
+	t_paquete *paquete_respuesta = recibir_paquete(socket_umc);
+
+	switch (paquete_respuesta->cod_op) {
 		case OK:
-			posicion = (t_posicion*)respuesta_defVar->datos;
-			log_debug(logcpu,"Se ha obtenido el valor correctamente");
+			log_info(logcpu,"Valor guardado correctamente");
 			break;
 		case NO_OK:
-			log_error(logcpu,"El nucleo reportó un error");
+			log_info(logcpu,"FALLO LA ASIGNACION");
 			break;
+		case ERROR_COD_OP:
+			perror("Murio la UMC");
+			log_error(logcpu,"Murio la UMC");
+			exit(EXIT_FAILURE);
 		default:
-			log_error(logcpu,"Se desconectó el núcleo!");
-			destruir_paquete(respuesta_defVar);
+			perror("Codigo de operacion desconocido");
+			log_error(logcpu,"Codigo de operacion desconocido");
 			exit(EXIT_FAILURE);
 			break;
 	}
 
-	destruir_paquete(respuesta_defVar);
-
-	return posicion;
-
-}
-
-t_posicion* obtenerPosicionVariable(t_nombre_variable identificador_variable){
-	t_posicion* posicion = malloc(sizeof(t_posicion));
-
-	log_info(logcpu,"Se solicita obtener la posición de %s\n", identificador_variable);
-
-	enviar(OBTENER_POSICION,sizeof(t_nombre_variable),&identificador_variable,socket_nucleo);
-
-	t_paquete *respuesta_posicion = recibir_paquete(socket_nucleo);
-	switch (respuesta_posicion->cod_op) {
-		case OK:
-			posicion->offset = (int)respuesta_posicion->datos;
-			log_info(logcpu,"La petición de grabación ha sido realizada correctamente");
-			break;
-		case NO_OK:
-			posicion->offset = -1;
-			log_error(logcpu,"El nucleo reportó un error al grabar la variable");
-			break;
-		default:
-			log_error(logcpu,"Se desconectó el núcleo!");
-			destruir_paquete(respuesta_posicion);
-			exit(EXIT_FAILURE);
-			break;
-	}
-
-	destruir_paquete(respuesta_posicion);
-
-	return posicion;
-}
-
-t_valor_variable dereferenciar(t_posicion* direccion_variable){
-
-	t_valor_variable* valorVariable = malloc(sizeof(t_valor_variable));
-
-	log_info(logcpu,"Se solicita dereferenciar la dirección %d\n", direccion_variable);
-
-	enviar(DEREFERENCIAR,sizeof(t_nombre_variable),direccion_variable,socket_nucleo);
-
-	t_paquete *respuesta_deref = recibir_paquete(socket_nucleo);
-	switch (respuesta_deref->cod_op) {
-		case OK:
-			valorVariable = (t_valor_variable*)respuesta_deref->datos;
-			log_debug(logcpu,"Se ha obtenido el valor correctamente");
-			break;
-		case NO_OK:
-			log_error(logcpu,"El nucleo reportó un error");
-			break;
-		default:
-			log_error(logcpu,"Se desconectó el núcleo!");
-			destruir_paquete(respuesta_deref);
-			exit(EXIT_FAILURE);
-			break;
-	}
-
-	destruir_paquete(respuesta_deref);
-
-	return *valorVariable;
-
-}
-
-void asignar(t_posicion	direccion_variable,	t_valor_variable valor){
-
-	t_asignar* paquete_asignar = malloc(sizeof(t_asignar));
-
-	paquete_asignar->direccion_variable = direccion_variable;
-	paquete_asignar->valor = valor;
-
-	log_info(logcpu,"Se solicita asignar la dirección %d con el valor %s\n", direccion_variable,valor);
-
-	enviar(ASIGNAR,sizeof(t_asignar),paquete_asignar,socket_nucleo);
-
+	destruir_paquete(paquete_respuesta);
 }
 
 t_valor_variable obtenerValorCompartida(t_nombre_compartida	variable){
@@ -149,32 +198,9 @@ t_valor_variable asignarValorCompartida(t_nombre_compartida	variable, t_valor_va
 	return valor_variable;
 }
 
-t_puntero_instruccion irAlLabel(t_nombre_etiqueta etiqueta){
-	t_puntero_instruccion* instruccion = malloc(sizeof(t_puntero_instruccion));
-	log_info(logcpu,"Se solicita la primera instrucción ejecutable de %s\n", etiqueta);
-
-	enviar(OBTENER_INSTRUCCION,sizeof(t_nombre_etiqueta),etiqueta,socket_nucleo);
-
-	t_paquete *respuesta_label = recibir_paquete(socket_nucleo);
-	switch (respuesta_label->cod_op) {
-		case OK:
-			instruccion = (t_puntero_instruccion*)respuesta_label->datos;
-			log_info(logcpu,"Se ha obtenido la instrucción solicitada correctamente");
-			break;
-		case NO_OK:
-			*instruccion = -1;
-			log_error(logcpu,"El nucleo reportó un error al obtener la instrucción solicitada");
-			break;
-		default:
-			log_error(logcpu,"Se desconectó el núcleo!");
-			destruir_paquete(respuesta_label);
-			exit(EXIT_FAILURE);
-			break;
-	}
-
-	destruir_paquete(respuesta_label);
-
-	return *instruccion;
+void irAlLabel(t_nombre_etiqueta etiqueta){
+	pcb_ejecutandose->pc = metadata_buscar_etiqueta(etiqueta,pcb_ejecutandose->indice_etiquetas,pcb_ejecutandose->tamano_etiquetas);
+	log_info(logcpu,"Entrando al label: %s", etiqueta);
 }
 
 void llamarConRetorno(t_nombre_etiqueta	etiqueta, t_puntero donde_retornar){
@@ -382,10 +408,11 @@ void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
 		.AnSISOP_entradaSalida =entradaSalida,
 		.AnSISOP_obtenerValorCompartida = obtenerValorCompartida,
 		.AnSISOP_asignarValorCompartida = asignarValorCompartida,
-		// .AnSISOP_definirVariable = dummy_definirVariable,
-		// .AnSISOP_obtenerPosicionVariable = dummy_obtenerPosicionVariable,
-		// .AnSISOP_dereferenciar = dummy_dereferenciar, .AnSISOP_asignar =
-		// dummy_asignar, .AnSISOP_imprimir = dummy_imprimir,
+		.AnSISOP_irAlLabel = irAlLabel,
+		.AnSISOP_definirVariable = definirVariable,
+		.AnSISOP_obtenerPosicionVariable = obtenerPosicionVariable,
+		.AnSISOP_dereferenciar = dereferenciar,
+		.AnSISOP_asignar = asignar
 
 	};
 

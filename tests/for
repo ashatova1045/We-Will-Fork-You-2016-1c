@@ -1,0 +1,9 @@
+#!./../consola/Debug/consola
+begin
+	textPrint Corriendo 0
+	:inicio
+	textPrint Corriendo 1
+	textPrint Corriendo 2
+	textPrint Corriendo 3
+	goto inicio
+end

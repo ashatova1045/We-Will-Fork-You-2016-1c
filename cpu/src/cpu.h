@@ -22,4 +22,6 @@ bool termino_programa;
 t_log* logcpu;
 bool llego_sugus;
 
+char* pedir_lectura_de_umc(t_pedido_solicitarBytes pedido);
+
 #endif /* CPU_H_ */
