@@ -1,0 +1,20 @@
+#!/usr/bin/ansisop
+begin
+	f 0
+end
+
+function f
+	variables a
+	io HDD1 5
+	a=$0+1
+	print a
+	g a
+end
+
+function g
+	variables a
+	io HDD1 1
+	a=$0+1
+	print a
+	f a
+end

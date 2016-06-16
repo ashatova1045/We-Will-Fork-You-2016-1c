@@ -133,7 +133,6 @@ int enviar(uint16_t cod_op, int tamano_datos_en_bytes, void* datos, int destino_
 
 static t_paquete armar_paquete_de_error(){
 	t_paquete paquete = armar_paquete(ERROR_COD_OP,ERROR_TAMANO,ERROR_DATOS);
-	paquete.datos = strdup("E");
 	return paquete;
 }
 
@@ -190,7 +189,8 @@ t_paquete* recibir_paquete(int socket_receptor_fd){
 
 void destruir_paquete(t_paquete* paquete)
 {
-	free(paquete->datos);
+	if(paquete->cod_op != ERROR_COD_OP)
+		free(paquete->datos);
 	free(paquete);
 }
 

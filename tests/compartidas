@@ -1,0 +1,14 @@
+#!./../consola/Debug/consola
+begin
+variables i,b
+    i = 0
+    :inicio_for
+    i = i + 1
+    wait SEM1
+    !UnaVar = !UnaVar +1
+    print !UnaVar
+    signal SEM1
+    b = i - 10
+    jnz b inicio_for
+    #fuera del for
+end

@@ -1,8 +1,6 @@
 #include "primitivas.h"
 #include "cpu.h"
 
-int pc;
-
 t_puntero pos_fisica_a_logica(t_posMemoria posfisica){
 	return posfisica.pag*tamPag+posfisica.offset;
 }
@@ -16,28 +14,60 @@ t_posMemoria pos_logica_a_fisica(t_puntero poslogica){
 }
 
 t_puntero definirVariable(t_nombre_variable identificador_variable){
-	log_info(logcpu,"Se solicita definir la variable %c", identificador_variable);
+	log_info(logcpu,"Se solicita definir %c", identificador_variable);
 
 	if(pcb_ejecutandose->fin_stack.pag == pcb_ejecutandose->cant_pags_totales){
 		log_warning(logcpu,"STACK OVERFLOW");
 		puts("STACK OVERFLOW");
 		//todo explotar
+		exit(EXIT_FAILURE);
 	}
 
 	int entrada_actual = pcb_ejecutandose->cant_entradas_indice_stack-1;
+	registro_indice_stack* stack_Actual = &pcb_ejecutandose->indice_stack[entrada_actual];
 
-	//incremento cant_varialbes para poder serializar
-	pcb_ejecutandose->indice_stack[entrada_actual].cant_variables++;
-	int cant_variables = pcb_ejecutandose->indice_stack[entrada_actual].cant_variables;
+	int poslogica;
 
-	//aumento el tamaño de las variables
-	pcb_ejecutandose->indice_stack[entrada_actual].variables=realloc(pcb_ejecutandose->indice_stack[entrada_actual].variables,cant_variables*sizeof(t_variable));
+	//las variables son letras
+	if(isalpha(identificador_variable)){
+		log_debug(logcpu,"%c es una variable",identificador_variable);
 
+		//incremento cant_varialbes para poder serializar
+		stack_Actual->cant_variables++;
+		int cant_variables = stack_Actual->cant_variables;
 
-	//creo la nueva variable
-	t_variable nueva_variable;
-	nueva_variable.id = identificador_variable;
-	nueva_variable.posicionVar = pcb_ejecutandose->fin_stack; 	//me fijo donde va a ir la nueva variable (al final)
+		//aumento el tamaño de las variables
+		stack_Actual->variables=realloc(stack_Actual->variables,cant_variables*sizeof(t_variable));
+
+		//creo la nueva variable
+		t_variable nueva_variable;
+		nueva_variable.id = identificador_variable;
+		nueva_variable.posicionVar = pcb_ejecutandose->fin_stack; 	//me fijo donde va a ir la nueva variable (al final)
+
+		stack_Actual->variables[cant_variables-1] = nueva_variable;
+
+		poslogica = pos_fisica_a_logica(nueva_variable.posicionVar);
+		log_info(logcpu,"Se definio la variable %c\n Posicion fisica: Pagina %d, offset %d\nPosicion logica: %d", identificador_variable,nueva_variable.posicionVar.pag,nueva_variable.posicionVar.offset,poslogica);
+
+	}
+
+	//los argumentos son numeros
+	if(isdigit(identificador_variable)){
+		log_debug(logcpu,"%c es un argumento",identificador_variable);
+
+		//incremento cant_varialbes para poder serializar
+		stack_Actual->cant_argumentos++;
+		int cant_argumentos = stack_Actual->cant_argumentos;
+
+		//aumento el tamaño de las variables
+		stack_Actual->argumentos=realloc(stack_Actual->argumentos,cant_argumentos*sizeof(t_posMemoria));
+
+		//el nuevo argumento va al final(donde marca el fin del stack ahora)
+		stack_Actual->argumentos[cant_argumentos-1] = pcb_ejecutandose->fin_stack;
+
+		poslogica = pos_fisica_a_logica(pcb_ejecutandose->fin_stack);
+		log_info(logcpu,"Se definio el argumento %c\n Posicion fisica: Pagina %d, offset %d\nPosicion logica: %d", identificador_variable,pcb_ejecutandose->fin_stack.pag,pcb_ejecutandose->fin_stack.offset,poslogica);
+	}
 
 	//me muevo 4 lugares a la derecha para que la proxima variable no pise a esta
 	pcb_ejecutandose->fin_stack.offset += 4;
@@ -47,11 +77,6 @@ t_puntero definirVariable(t_nombre_variable identificador_variable){
 		pcb_ejecutandose->fin_stack.offset = 0;
 		pcb_ejecutandose->fin_stack.pag++;
 	}
-
-	pcb_ejecutandose->indice_stack[entrada_actual].variables[cant_variables-1]=nueva_variable;
-
-	int poslogica = pos_fisica_a_logica(nueva_variable.posicionVar);
-	log_info(logcpu,"Se definio la variable %c\n Posicion fisica: Pagina %d, offset %d\nPosicion logica: %d", identificador_variable,nueva_variable.posicionVar.pag,nueva_variable.posicionVar.offset,poslogica);
 
 	return poslogica;
 }
@@ -65,7 +90,7 @@ t_puntero obtenerPosicionVariable(t_nombre_variable identificador_variable){
 	if(isalpha(identificador_variable)){
 		log_debug(logcpu,"%c parece ser una variable",identificador_variable);
 		int i;
-		for(i=0;stack_actual->cant_variables;i++){
+		for(i=stack_actual->cant_variables-1;i>=0;i--){
 			if(stack_actual->variables[i].id == identificador_variable){
 				t_puntero poslogica = pos_fisica_a_logica(stack_actual->variables[i].posicionVar);
 				log_debug(logcpu,"La posicion logica de la variable %c es %d",identificador_variable,poslogica);
@@ -208,12 +233,43 @@ void irAlLabel(t_nombre_etiqueta etiqueta){
 }
 
 void llamarConRetorno(t_nombre_etiqueta	etiqueta, t_puntero donde_retornar){
+	log_info(logcpu,"Llamando a la funcion %s", etiqueta);
 
+	//agrego nuevo indice al stack
+	pcb_ejecutandose->cant_entradas_indice_stack++;
+	int tamano_stack = pcb_ejecutandose->cant_entradas_indice_stack;
+	pcb_ejecutandose->indice_stack = realloc(pcb_ejecutandose->indice_stack,sizeof(registro_indice_stack)*tamano_stack);
+
+	registro_indice_stack* stack_actual = &pcb_ejecutandose->indice_stack[tamano_stack-1];
+	stack_actual->cant_argumentos=0;
+	stack_actual->cant_variables=0;
+	stack_actual->argumentos = NULL;
+	stack_actual->variables = NULL;
+
+	stack_actual->pos_retorno = pcb_ejecutandose->pc;
+	stack_actual->pos_var_retorno = pos_logica_a_fisica(donde_retornar);
+
+	irAlLabel(etiqueta);
 }
 
-t_puntero_instruccion retornar(t_valor_variable retorno){
-	t_puntero_instruccion* instruccion = malloc(sizeof(t_puntero_instruccion));
-	return *instruccion;
+void retornar(t_valor_variable retorno){
+	log_info(logcpu,"Retornando de la funcion! Devolvio %d", retorno);
+
+	int tamano_stack = pcb_ejecutandose->cant_entradas_indice_stack;
+	registro_indice_stack* stack_actual = &pcb_ejecutandose->indice_stack[tamano_stack-1];
+
+	//donde tengo que guardar lo que devuelve la funcion
+	t_posMemoria pos_retorno = stack_actual->pos_var_retorno;
+	t_puntero pos_retorno_logica = pos_fisica_a_logica(pos_retorno);
+
+	//lo guardo ahi
+	asignar(pos_retorno_logica,retorno);
+
+	pcb_ejecutandose->cant_entradas_indice_stack--;
+
+
+	pcb_ejecutandose->pc = stack_actual->pos_retorno;
+	log_info(logcpu,"Vuelvo al PC %d", pcb_ejecutandose->pc);
 }
 
 void imprimir(t_valor_variable valor_mostrar){
@@ -248,40 +304,6 @@ void entradaSalida(t_nombre_dispositivo dispositivo, int tiempo){
 	free(paquete_e_s_serializado);
 }
 
-/*
-int grabar_valor(t_nombre_variable identificador_variable, void* valorGrabar){
-	int codResp;
-	t_grabar_valor* paquete_grabar_valor = malloc(sizeof(t_grabar_valor));
-
-	paquete_grabar_valor->variable = identificador_variable;
-	paquete_grabar_valor->valorGrabar = valorGrabar;
-
-	log_info(logcpu,"Se solicita grabar en %s el valor %s\n", identificador_variable, (char*)valorGrabar);
-
-	enviar(GRABAR_VALOR,sizeof(paquete_grabar_valor),paquete_grabar_valor,socket_nucleo);
-
-	t_paquete *respuesta_grabar_valor = recibir_paquete(socket_nucleo);
-	switch (respuesta_grabar_valor->cod_op) {
-		case OK:
-			codResp = 0;
-			log_info(logcpu,"La petición de grabación ha sido realizada correctamente");
-			break;
-		case NO_OK:
-			codResp = -1;
-			log_error(logcpu,"El nucleo reportó un error al grabar la variable");
-			break;
-		default:
-			log_error(logcpu,"Se desconectó el núcleo!");
-			destruir_paquete(respuesta_grabar_valor);
-			exit(EXIT_FAILURE);
-			break;
-	}
-
-	destruir_paquete(respuesta_grabar_valor);
-
-	return codResp;
-}
- */
 void signall(t_nombre_semaforo identificador_semaforo){
 	log_info(logcpu,"Se solicita ejecutar la función signal para el semáforo %s", identificador_semaforo);
 
@@ -334,53 +356,6 @@ void finalizar() {
 	log_info(logcpu,"PRIMITIVA: Fin");
 }
 
-/*
- void dummy_imprimir(t_valor_variable valor) {
-	 printf("Imprimir %d\n", valor);
- }
-t_puntero dummy_definirVariable(t_nombre_variable variable) {
-	uint32_t puntero = apilarVariable(variable);
-	printf("definir la variable %c\n", variable);
-	log_trace(logcpu,
-			"Llamada a definirVariable, el identificador es: %c y esta en la posicion %d",
-			variable, puntero);
-	return POSICION_MEMORIA;
-}
-
-t_puntero dummy_obtenerPosicionVariable(t_nombre_variable variable) {
-	uint32_t puntero = obtenerOffsetVarible(variable);
-	printf("Obtener posicion de %c\n", variable);
-	if (puntero == 0) {
-		//PCB_enEjecucion.lastErrorCode = 3;
-		quantumRestante = 0;
-		log_error(logcpu,
-				"Se solicito una posicion de una variable inexistente %c",
-				variable);
-	} else {
-		log_trace(logcpu,
-				"Llamada a obtenerPosicionVariable, el identificador es: %c, y esta en %d",
-				variable, puntero);
-	}
-	return POSICION_MEMORIA;
-}
-
-t_valor_variable dummy_dereferenciar(t_puntero puntero) {
-
-	printf("Dereferenciar %d y su valor es: %d\n", puntero, CONTENIDO_VARIABLE);
-	log_trace(logcpu, "Llamada a dereferenciar, direccion: %d", puntero);
-	return CONTENIDO_VARIABLE; //Revisar
-	//return obtenerValor((uint32_t) puntero); Revisar
-
-}
-
-void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
- printf("Asignando en %d el valor %d\n", puntero, variable);
- modificarVariable( (uint32_t) variable, (uint32_t) valor );
- log_trace(logcpu, "Llamada a asignar [ %d ] = %d ", variable, valor );
- }
-
-*/
-
  void inicializar_primitivas(){
 
 	 functions = (AnSISOP_funciones) {
@@ -394,8 +369,9 @@ void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
 		.AnSISOP_definirVariable = definirVariable,
 		.AnSISOP_obtenerPosicionVariable = obtenerPosicionVariable,
 		.AnSISOP_dereferenciar = dereferenciar,
-		.AnSISOP_asignar = asignar
-
+		.AnSISOP_asignar = asignar,
+		.AnSISOP_llamarConRetorno = llamarConRetorno,
+		.AnSISOP_retornar = retornar
 	};
 
 	kernel_functions =(AnSISOP_kernel) {

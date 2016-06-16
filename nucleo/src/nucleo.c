@@ -296,6 +296,8 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 	nvopcb->indice_stack= malloc(sizeof(registro_indice_stack));
 	nvopcb->indice_stack[0].cant_variables = 0;
 	nvopcb->indice_stack[0].cant_argumentos=0;
+	nvopcb->indice_stack[0].argumentos = NULL;
+	nvopcb->indice_stack[0].variables = NULL;
 
 
 	nvopcb->fin_stack.pag=result_pag;
