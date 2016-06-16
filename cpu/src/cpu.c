@@ -31,13 +31,6 @@ void conectar_cpu() {
 	puts("Handshake de nucleo correcto!");
 	log_info(logcpu, "Handshake de nucleo correcto!");
 
-	t_paquete *paqNucleo = recibir_paquete(socket_nucleo);
-	quantumCpu = (*(int32_t*) paqNucleo->datos);
-
-	log_info(logcpu, "Quantum del CPU = : %d", quantumCpu);
-
-	destruir_paquete(paqNucleo);
-
 	if (handshake(socket_umc, HS_CPU_UMC, OK_HS_CPU) == -1) {
 		log_error(logcpu, "Handshake de umc incorrecto");
 		puts("No se pudo hacer un hansdhake con la umc");
@@ -152,6 +145,8 @@ void correr_pcb() {
 		log_info(logcpu, "Corriendo instruccion %d de %d",
 				quantum_actual, quantumCpu);
 
+		usleep(retardo*1000);
+
 		char *instruccion_actual = fetch_instruction();
 		log_info(logcpu,"Instruccion a correr:\n%s",instruccion_actual);
 		printf("Instruccion a correr:\n%s\n",instruccion_actual);
@@ -247,6 +242,16 @@ int main() {
 			matar_hilo_ejecucion();
 			break;
 			//En caso de que el paquete recibido sea de la umc y no del nucleo
+		case QUANTUM:
+			quantumCpu = (*(int32_t*) paquete_actual->datos);
+
+			log_info(logcpu, "Quantum del CPU: %d", quantumCpu);
+			break;
+		case RETARDOQUANTUM:
+			retardo = (*(int32_t*) paquete_actual->datos);
+
+			log_info(logcpu, "Retardo del CPU: %d", retardo);
+			break;
 		case ERROR_COD_OP:
 			log_error(logcpu, "Se cerro el nucleo");
 			se_cerro_nucleo = true;

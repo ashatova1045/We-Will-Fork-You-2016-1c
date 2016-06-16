@@ -12,6 +12,24 @@
 #include "../../general/pcb.h"
 #include "../../general/Operaciones_umc.h"
 #include "nucleo.h"
+#include <sys/inotify.h>
+
+
+//copiado de https://github.com/sisoputnfrba/so-inotify-example/blob/master/src/inotify-example.c
+
+// El tamaño de un evento es igual al tamaño de la estructura de inotify
+// mas el tamaño maximo de nombre de archivo que nosotros soportemos
+// en este caso el tamaño de nombre maximo que vamos a manejar es de 24
+// caracteres. Esto es porque la estructura inotify_event tiene un array
+// sin dimension ( Ver C-Talks I - ANSI C ).
+#define EVENT_SIZE  ( sizeof (struct inotify_event) + 24 )
+
+// El tamaño del buffer es igual a la cantidad maxima de eventos simultaneos
+// que quiero manejar por el tamaño de cada uno de los eventos. En este caso
+// Puedo manejar hasta 1024 eventos simultaneos.
+#define BUF_LEN     ( 1024 * EVENT_SIZE )
+
+
 
 
 /*semaforo = malloc(sizeof(semaforo_t));
@@ -28,6 +46,9 @@ t_log* logEstados;
 int tamano_pag_umc;
 t_nucleoConfig* config_nucleo;
 pthread_mutex_t mutexKernel =PTHREAD_MUTEX_INITIALIZER;
+
+t_config* config;
+int file_descriptor_inotify;
 
 
 int roundup(x, y){
@@ -168,8 +189,11 @@ t_log* crearLogEstados(){
 	return logEstados;
 }
 
-t_nucleoConfig* cargarConfiguracion(t_config* config){
-	t_nucleoConfig* datosNucleo = (t_nucleoConfig*)malloc(sizeof(t_nucleoConfig));
+t_nucleoConfig* cargarConfiguracion(t_config* config, t_nucleoConfig* datosNucleo){
+	pthread_mutex_lock(&mutexKernel);
+
+	config = config_create("../nucleo/nucleo.cfg");
+
 	datosNucleo->puerto_prog=config_get_int_value(config,"PUERTO_PROG");
 	datosNucleo->puerto_cpu=config_get_int_value(config,"PUERTO_CPU");
 	datosNucleo->puerto_umc=config_get_int_value(config,"PUERTO_UMC");
@@ -182,6 +206,8 @@ t_nucleoConfig* cargarConfiguracion(t_config* config){
 	datosNucleo->io_retardo=config_get_array_value(config,"IO_RETARDO");
 	datosNucleo->shared_vars=config_get_array_value(config,"SHARED_VARS");
 	datosNucleo->tamano_stack=config_get_int_value(config,"TAMANO_STACK");
+	pthread_mutex_unlock(&mutexKernel);
+
 	return datosNucleo;
 }
 
@@ -351,6 +377,9 @@ void enviar_a_cpu(){
 	log_debug(logNucleo,"Corriendo el PCB (PID %d) del programa (socket %d)en el CPU (socket %d)",pcb_ready->pid,programa_alpedo->socket,cpu_libre->socket);
 	relacionar_cpu_programa(cpu_libre,programa_alpedo,pcb_ready);
 	log_info(logNucleo, "Pude relacionar cpu con programa");
+
+	enviar(QUANTUM,sizeof(int32_t),&config_nucleo->quantum, cpu_libre->socket);
+	enviar(RETARDOQUANTUM,sizeof(int32_t),&config_nucleo->quantum_sleep, cpu_libre->socket);
 
 	t_pcb_serializado serializado = serializar(*pcb_ready);
 	log_trace(logNucleo,"Se serializo un pcb");
@@ -539,7 +568,6 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 	switch (paquete.cod_op) {
 			case HS_CPU_NUCLEO:
 				enviar(OK_HS_CPU,1,&socket,socket);
-				enviar(QUANTUM,sizeof(int32_t),&config_nucleo->quantum, socket);
 				puts("Handshake exitoso");
 				log_debug(logNucleo,"Handshake exitoso con cpu de socket %d",socket);
 				cargar_cpu(socket);
@@ -824,6 +852,66 @@ void cargar_varCompartidas(){
 	free(varCompartArray);
 }
 
+void configurarinotify(void* param){
+	char buffer[BUF_LEN];
+
+	// El file descriptor creado por inotify, es el que recibe la información sobre los eventos ocurridos
+	// para leer esta información el descriptor se lee como si fuera un archivo comun y corriente pero
+	// la diferencia esta en que lo que leemos no es el contenido de un archivo sino la información
+	// referente a los eventos ocurridos
+	log_trace(logNucleo,"inotify esta listo");
+	while(true){
+		int length = read(file_descriptor_inotify, buffer, BUF_LEN);
+		puts("Cambio algo!");
+		if (length < 0) {
+			perror("Fallo read inotify");
+			exit(EXIT_FAILURE);
+		}
+
+		int offset = 0;
+
+		// Luego del read buffer es un array de n posiciones donde cada posición contiene
+		// un eventos ( inotify_event ) junto con el nombre de este.
+		while (offset < length) {
+
+			// El buffer es de tipo array de char, o array de bytes. Esto es porque como los
+			// nombres pueden tener nombres mas cortos que 24 caracteres el tamaño va a ser menor
+			// a sizeof( struct inotify_event ) + 24.
+			struct inotify_event *event = (struct inotify_event *) &buffer[offset];
+
+			// El campo "len" nos indica la longitud del tamaño del nombre
+	//		if (event->len) {
+				// Dentro de "mask" tenemos el evento que ocurrio y sobre donde ocurrio
+				// sea un archivo o un directorio
+				if (event->mask & IN_CREATE) {
+					if (event->mask & IN_ISDIR) {
+						printf("The directory %s was created.\n", event->name);
+					} else {
+						printf("The file %s was created.\n", event->name);
+					}
+				} else if (event->mask & IN_DELETE) {
+					if (event->mask & IN_ISDIR) {
+						printf("The directory %s was deleted.\n", event->name);
+					} else {
+						printf("The file %s was deleted.\n", event->name);
+					}
+				} else if (event->mask & IN_CLOSE_WRITE) {
+					if (event->mask & IN_ISDIR) {
+						printf("The directory %s was modified.\n", event->name);
+					} else {
+						printf("Se modifico %s\n", event->name);
+
+						config_nucleo = cargarConfiguracion(config,config_nucleo);
+						printf("quantum %d\nretardo quantum %d\n",config_nucleo->quantum,config_nucleo->quantum_sleep);
+
+					}
+				}
+	//		}
+			offset += sizeof (struct inotify_event) + event->len;
+		}
+	}
+}
+
 int main(int argc, char **argv){
 
 //Declaracion de variables Locales
@@ -841,13 +929,34 @@ int main(int argc, char **argv){
 	log_info(logNucleo, "Ejecucion del Proceso NUCLEO");
 
 //Levanta archivo de config del proceso Nucleo
-	t_config* config = config_create("../nucleo/nucleo.cfg");
-	config_nucleo = cargarConfiguracion(config);
+	config_nucleo = (t_nucleoConfig*)malloc(sizeof(t_nucleoConfig));
+	config_nucleo = cargarConfiguracion(config, config_nucleo);
 
 
 	//tamano_stack=config_nucleo->tamano_stack;
 
 	log_info(logNucleo, "Configuracion Cargada");
+
+
+
+
+
+	// Al inicializar inotify este nos devuelve un descriptor de archivo
+	file_descriptor_inotify = inotify_init();
+	if (file_descriptor_inotify < 0) {
+		perror("Fallo inotify_init");
+		exit(EXIT_FAILURE);
+	}
+	// Creamos un monitor sobre un path indicando que eventos queremos escuchar
+	if(inotify_add_watch(file_descriptor_inotify, "../nucleo/nucleo.cfg", IN_CLOSE_WRITE)==-1){
+		perror("Fallo inotify_add_watch");
+		exit(EXIT_FAILURE);
+	}
+	pthread_t thread;
+	pthread_create(&thread,NULL,(void*)configurarinotify,NULL);
+
+
+
 
 	printf("El puerto para Proceso Consola es: %d \n", config_nucleo->puerto_prog);
 	printf("El puerto para Proceso CPU es: %d \n", config_nucleo->puerto_cpu);

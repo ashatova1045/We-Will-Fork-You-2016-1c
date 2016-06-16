@@ -16,7 +16,7 @@
 #include "primitivas.h"
 
 int socket_umc, socket_nucleo;
-int32_t quantumCpu, tamPag;
+int32_t quantumCpu,retardo, tamPag;
 t_pcb* pcb_ejecutandose;
 bool termino_programa;
 t_log* logcpu;
