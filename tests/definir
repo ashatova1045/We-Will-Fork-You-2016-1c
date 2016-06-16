@@ -1,7 +1,7 @@
 #!./../consola/Debug/consola
 begin
-	variables a,b,c,d,e,f,g
-	f = 1
-	f = f + 1
-	f = f + 5
+	variables a
+	a = 1
+	print a
+	a = 2
 end

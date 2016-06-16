@@ -124,7 +124,7 @@ void asignar(t_puntero	direccion_variable,	t_valor_variable valor){
 	pedido.nroPagina = posf.pag;
 	pedido.offset = posf.offset;
 	pedido.tamanioDatos = posf.size;
-	pedido.buffer = &valor;
+	pedido.buffer = (char *)&valor;
 
 
 	log_info(logcpu,"Se solicita asignar la dirección logica %d con el valor %d (posicion fisica: pag %d, offset %d)", direccion_variable,valor,posf.pag,posf.offset);
@@ -138,7 +138,8 @@ void asignar(t_puntero	direccion_variable,	t_valor_variable valor){
 			log_info(logcpu,"Valor guardado correctamente");
 			break;
 		case NO_OK:
-			log_info(logcpu,"FALLO LA ASIGNACION");
+			log_warning(logcpu,"FALLO LA ASIGNACION");
+			//todo explotar
 			break;
 		case ERROR_COD_OP:
 			perror("Murio la UMC");
@@ -212,33 +213,10 @@ t_puntero_instruccion retornar(t_valor_variable retorno){
 	return *instruccion;
 }
 
-int	imprimir(t_valor_variable valor_mostrar){
-	int cantCarImp;
+void imprimir(t_valor_variable valor_mostrar){
+	log_info(logcpu,"Se solicita imprimir el valor %d de una variable", valor_mostrar);
 
-	log_info(logcpu,"Se solicita imprimir el valor de la variable %s\n", valor_mostrar);
-
-	enviar(IMPRIMIR_VARIABLE,sizeof(t_valor_variable),&valor_mostrar,socket_nucleo);
-
-	t_paquete *respuesta_imprime_variable = recibir_paquete(socket_nucleo);
-	switch (respuesta_imprime_variable->cod_op) {
-		case OK:
-			cantCarImp = (int)respuesta_imprime_variable->datos;
-			log_info(logcpu,"Se ha impreso por pantalla el valor de la variable");
-			break;
-		case NO_OK:
-			cantCarImp = -1;
-			log_error(logcpu,"El nucleo reportó un error al imprimir el valor de la variable");
-			break;
-		default:
-			log_error(logcpu,"Se desconectó el núcleo!");
-			destruir_paquete(respuesta_imprime_variable);
-			exit(EXIT_FAILURE);
-			break;
-	}
-
-	destruir_paquete(respuesta_imprime_variable);
-
-	return cantCarImp;
+	enviar(IMPRIMIR_VARIABLE,sizeof(int32_t),&valor_mostrar,socket_nucleo);
 }
 
 void imprimirTexto(char* texto) {
@@ -404,6 +382,7 @@ void dummy_asignar(t_puntero puntero, t_valor_variable variable) {
 
 	 functions = (AnSISOP_funciones) {
 		.AnSISOP_imprimirTexto = imprimirTexto,
+		.AnSISOP_imprimir = imprimir,
 		.AnSISOP_finalizar = finalizar,
 		.AnSISOP_entradaSalida =entradaSalida,
 		.AnSISOP_obtenerValorCompartida = obtenerValorCompartida,

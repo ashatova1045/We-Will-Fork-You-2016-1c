@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../../sockets/Sockets.h"
-#include "../../general/estructura_variable.h"
 #include <pthread.h>
 #include <unistd.h>
 #include <commons/config.h>
@@ -100,14 +99,11 @@ int main(int argc, char **argv) {
 		switch (actualizacion->cod_op) {
 			case IMPRIMIR_TEXTO:
 				log_info(logconsola,"Mostrando por pantalla el texto: %s",actualizacion->datos);
-				puts("TEXTO:");
 				puts(actualizacion->datos);
 				break;
 			case IMPRIMIR_VARIABLE:
-				{t_variable_completa* variable = actualizacion->datos;
-				log_info(logconsola,"Mostrando por pantalla la variable: %c con valor %d",variable->nombre, variable->valor);
-				printf("VARIABLE: nombre %c - valor %d",variable->nombre,variable->valor);
-				}
+				log_info(logconsola,"Mostrando por pantalla el valor de variable: %d",*(int32_t*)actualizacion->datos);
+				printf("%d\n",*(int32_t*)actualizacion->datos);
 				break;
 			case TERMINO_BIEN_PROGRAMA:
 				log_info(logconsola,"Termino correctamente!");

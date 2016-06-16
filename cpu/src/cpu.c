@@ -148,7 +148,8 @@ void correr_pcb() {
 	termino_programa = false;
 	int quantum_actual;
 	for (quantum_actual = 1; quantum_actual <= quantumCpu && !termino_programa; quantum_actual++) {
-		log_info(logcpu, "\n\n\n\nCorriendo instruccion %d de %d",
+		log_info(logcpu, "\n\n");
+		log_info(logcpu, "Corriendo instruccion %d de %d",
 				quantum_actual, quantumCpu);
 
 		char *instruccion_actual = fetch_instruction();
@@ -164,6 +165,9 @@ void correr_pcb() {
 		//Destuyo la instruccion
 		free(instruccion_actual);
 		puts("Fin instruccion");
+		log_info(logcpu, "\n\n");
+		log_info(logcpu, "Fin de instruccion");
+
 
 		//si llego susgus mientras corria
 		if(llego_sugus){
