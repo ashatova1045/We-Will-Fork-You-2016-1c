@@ -844,6 +844,7 @@ int main(int argc, char **argv){
 	t_config* config = config_create("../nucleo/nucleo.cfg");
 	config_nucleo = cargarConfiguracion(config);
 
+
 	//tamano_stack=config_nucleo->tamano_stack;
 
 	log_info(logNucleo, "Configuracion Cargada");
