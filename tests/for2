@@ -5,7 +5,7 @@ variables i,b
     :inicio_for
     i = i + 1
     print i
-    b = i - 10
+    b = i - 1000
     jnz b inicio_for
     #fuera del for
 end

@@ -2,7 +2,7 @@
 #include "estructuras_swap.h"
 
 t_log* crearLog(){
-	t_log *logSwap = log_create("logSwap.log", "swap.c", false, LOG_LEVEL_INFO);
+	t_log *logSwap = log_create("logSwap.log", "swap.c", false, LOG_LEVEL_TRACE);
 	return logSwap;
 }
 
@@ -20,7 +20,10 @@ void levantarConfiguracion(t_config* config){
 
 int inicializaSwapFile(){
 	// Inicializa variables
-	char* array = malloc(datosSwap->cantidad_paginas);
+	char *array = malloc(datosSwap->cantidad_paginas/8);
+	int i;
+	for(i=0;i<datosSwap->cantidad_paginas/8;i++)
+		array[i]=0;
 	int cantBytes = (datosSwap->cantidad_paginas) / 8;
 
 	int codRet = 0;
@@ -156,7 +159,6 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 		for(i=0;i<=pagscodigo;i++){
 			int posicion_posta = encontrar_posicion(pedido->idPrograma,i);
 			char* bufferCorrido = pedido->codigo+(i*tamanioPagina);
-			puts(bufferCorrido);
 			codOp = grabarArchivo(posicion_posta,bufferCorrido);
 			if(codOp == NO_OK)
 				break;
@@ -301,7 +303,7 @@ int encontrar_espacio(int cantidadPaginas) {
 	for (i = 0; i < max; i++) {
 		if (bitarray_test_bit(bitarray, i) == false) {
 			int j;
-			for (j = 0; j < cantidadPaginas; j++) {
+			for (j = 0; j < cantidadPaginas && i+j < max; j++) {
 				if (bitarray_test_bit(bitarray, i + j))
 					break;
 			}
@@ -335,10 +337,12 @@ void agregarNuevoProceso(int posicion, int cantidadPaginas, t_pedido_inicializar
 
 void compactar(){
 
+	log_info(logSwap,"Compactando...");
+	puts("COMPACTANDO");
+	puts("Bitmap antes de la compactacion");
 	loggearBitmap(); // Log del bitmap antes de la compactación
 
 	log_info(logSwap,"Comienza proceso de compactación");
-	log_info(logSwap,"Compactando...");
 	usleep((datosSwap->retardo_compactacion)*1000); // retardo en microsegundos
 
 	//Ordena lista por posicion
@@ -352,7 +356,9 @@ void compactar(){
 
 	limpiarBitmapAuxiliar();
 
+	puts("Bitmap despues de la compactacion");
 	loggearBitmap(); // Log del bitmap después de la compactación
+	puts("Compactación finalizada");
 
 	log_info(logSwap,"Compactación finalizada");
 }
