@@ -66,6 +66,10 @@ void manejar_socket_umc(t_paquete* paquete){
 		 printf("Tamano de los datos: %d\n",paquete->tamano_datos);
 		 printf("Tamaño de los frames: %d\n",*((int*)paquete->datos));
 		 tamanioPagina = *((int*)paquete->datos);
+		 // Se sobreescribe el tamaño de página por el que envía la UMC
+		 datosSwap->tamanio_pagina = tamanioPagina;
+		 // Inicializa archivo Swap
+		 inicializaSwapFile(datosSwap);
 		 break;
 	default:
 		manejarOperaciones(paquete);
@@ -141,8 +145,12 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 
 	if(verificarPaginasLibres(cantidadPaginas) == 0){
 
+		log_info(logSwap,"Hay espacio disponible");
+		log_info(logSwap,"Buscando espacio contiguo...");
+
 		int posicion = encontrar_espacio(cantidadPaginas);
 		if (posicion == -1){
+			log_info(logSwap,"No hay espacio contiguo");
 			compactar();
 			posicion = encontrar_espacio(cantidadPaginas);
 		}
@@ -261,7 +269,7 @@ void finalizarPrograma(t_paquete* paquete){
 				posAux++;
 			}
 
-			printf("Se limplia el bitmap \n");
+			printf("Se limpia el bitmap \n");
 
 			loggearBitmap();
 

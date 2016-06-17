@@ -16,11 +16,6 @@ int main(int argc, char** argv) {
 	printf("Se conecta al puerto %d \n",datosSwap->puerto_escucha);
 	log_info(logSwap, "Se conecta al puerto");
 
-	// Inicializa archivo Swap
-	if(inicializaSwapFile(datosSwap) == -1){
-		return 0;
-	}
-
 	lista_procesos = list_create();
 
 	// Inicializa la conexión y queda a espera de procesos UMC
