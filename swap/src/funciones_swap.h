@@ -1,27 +1,50 @@
-#ifndef FUNCIONES_SWAP_H_
-#define FUNCIONES_SWAP_H_
+#ifndef ESTRUCTURASSWAP_H_
+#define ESTRUCTURASSWAP_H_
 
-#include "estructuras_swap.h"
+#include <stdbool.h>
+#include <commons/config.h>
+#include <commons/log.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
-t_log* crearLog();
-void levantarConfiguracion(t_config*);
-void manejar_socket_umc(t_paquete*);
-int inicializaSwapFile();
-void manejarOperaciones(t_paquete* paquete);
-void inicializarNuevoPrograma(t_paquete* paquete);
-void leerPagina(t_paquete* paquete);
-void escribirPagina(t_paquete* paquete);
-void finalizarPrograma(t_paquete* paquete);
-int verificarPaginasLibres(int cantidadPaginas);
-int encontrar_espacio(int cantidadPaginas);
-void agregarNuevoProceso(int posicion,int cantidadPaginas,t_pedido_inicializar_swap* pedido);
-void compactar();
-int encontrarPrimerVacio();
-t_control_swap* buscarProcesoACorrer(int primerPosicionVacia);
-void moverProcesos(void *proceso);
-void actualizarBitMap(int cantPags);
-bool ordenarPorPosicion(void *p1, void *p2);
-void loggearBitmap();
-void limpiarBitmapAuxiliar();
+#include "../../sockets/Sockets.h"
 
-#endif /* FUNCIONES_SWAP_H_ */
+#include <commons/collections/list.h>
+#include <commons/bitarray.h>
+
+#include <stdint.h>
+
+#include "../../general/Operaciones_umc.h"
+#include "../../general/operaciones_swap.h"
+
+#include <stddef.h>
+#include <sys/types.h>
+
+
+typedef struct{
+	int puerto_escucha;
+	char* nombre_swap;
+	int cantidad_paginas;
+	int tamanio_pagina;
+	int retardo_acceso;
+	int retardo_compactacion;
+}t_swapcfg;
+
+typedef struct{
+	int PId;
+	int cantPaginas;
+	int posicion;
+}t_control_swap;
+
+t_bitarray* bitarray;
+FILE* swapFile;
+int tamanioPagina;
+int primerPosicionVacia;
+
+int socket_memoria;
+t_swapcfg* datosSwap;
+t_log* logSwap;
+t_list* lista_procesos;
+
+#endif /* ESTRUCTURAS_SWAP_H_ */

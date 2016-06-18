@@ -38,7 +38,6 @@ typedef struct{
 }t_control_swap;
 
 t_bitarray* bitarray;
-t_bitarray* bitarray_aux;
 FILE* swapFile;
 int tamanioPagina;
 int primerPosicionVacia;
