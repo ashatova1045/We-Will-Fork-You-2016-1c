@@ -20,9 +20,9 @@ void levantarConfiguracion(t_config* config){
 
 int inicializaSwapFile(){
 	// Inicializa variables
-	char* array = malloc(datosSwap->cantidad_paginas);
+	char* array = malloc((datosSwap->cantidad_paginas)/8);
 	int i;
-	for(i=0;i<datosSwap->cantidad_paginas;i++)
+	for(i=0;i<((datosSwap->cantidad_paginas))/8;i++)
 	        array[i]=0;
 
 	int cantBytes = (datosSwap->cantidad_paginas) / 8;
@@ -195,7 +195,7 @@ void leerPagina(t_paquete* paquete){
 
 	//Buscar el proceso en la lista
 	int codOp = NO_OK;
-	printf("PID Enviado: %d - Página: %d",pid_enviado,pagina);
+
 	int posicion_posta = encontrar_posicion(pid_enviado,pagina);
 
 	if(posicion_posta != -1){
@@ -271,7 +271,6 @@ void finalizarPrograma(t_paquete* paquete){
 			}
 
 			printf("Se limpia el bitmap \n");
-
 			loggearBitmap();
 
 			free(list_remove(lista_procesos,i));
@@ -333,8 +332,6 @@ void agregarNuevoProceso(int posicion, int cantidadPaginas, t_pedido_inicializar
 		posAux++;
 	}
 
-	loggearBitmap();
-
 	t_control_swap* controlSwap = malloc(sizeof(t_control_swap));
 	controlSwap->PId = pedido->idPrograma;
 	controlSwap->cantPaginas = pedido->pagRequeridas;
@@ -347,11 +344,11 @@ void agregarNuevoProceso(int posicion, int cantidadPaginas, t_pedido_inicializar
 
 void compactar(){
 
+	puts("Bitmap antes de la compactación");
 	loggearBitmap(); // Log del bitmap antes de la compactación
 
 	log_info(logSwap,"Compactando...");
 	puts("COMPACTANDO");
-	puts("Bitmap antes de la compactacion");
 
 	log_info(logSwap,"Comienza proceso de compactación");
 	usleep((datosSwap->retardo_compactacion)*1000); // retardo en microsegundos
@@ -367,6 +364,7 @@ void compactar(){
 	primerPosicionVacia = 0;
 	list_iterate(lista_procesos,moverProcesos);
 
+	puts("Bitmap luego de la compactación");
 	loggearBitmap(); // Log del bitmap después de la compactación
 	puts("Compactación finalizada");
 
