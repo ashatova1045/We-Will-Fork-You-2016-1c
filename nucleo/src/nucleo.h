@@ -68,6 +68,13 @@ typedef struct{
 
 }t_relacion;
 
+typedef struct{
+	int socket;
+	t_pcb* pcb;
+	t_paquete *paquete;
+	t_metadata_program* metadata;
+} t_new_ready_args;
+
 
 void cargar_cpu(int32_t socket);
 void cargar_programa(int32_t socket, int pid);

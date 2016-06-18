@@ -331,9 +331,12 @@ void enviar_a_cpu(){
 	if(!cpu_libre){
 		return;
 	}
+	log_info(logNucleo, "la CPU del socket %d esta libre y lista para ejecutar", cpu_libre->socket);
 
 	t_pcb *pcb_ready;
 	pcb_ready=queue_pop(colaReady);
+	log_info(logEstados, "El PCB con el pid %d salio de la cola Ready y esta listo"
+			" para ser enviado al CPU del socket %d", pcb_ready->pid, cpu_libre->socket);
 	if(!pcb_ready){
 		return;
 	}
@@ -403,6 +406,23 @@ bool inicializar_programa(t_pcb* nuevo_pcb,t_paquete paquete, t_metadata_program
 return false;
 }
 
+void manejar_new_ready_NvoPrograma(void *args){
+	int socket = ((t_new_ready_args *)args)->socket;
+	t_pcb * nuevo_pcb = ((t_new_ready_args *)args)->pcb;
+	t_paquete *paquete = ((t_new_ready_args *)args)->paquete;
+	t_metadata_program* metadata = ((t_new_ready_args *)args)->metadata;
+	//envio el inicializar a umc
+	bool inicializo_bien = inicializar_programa(nuevo_pcb,*paquete,metadata);
+	metadata_destruir(metadata);
+	//agrego consola a la lista
+	cargar_programa(socket,nuevo_pcb->pid);
+	if (inicializo_bien){
+		sacarDe_colaNew(nuevo_pcb->pid);
+		moverA_colaReady(nuevo_pcb);
+	}
+	enviar_a_cpu();
+}
+
 void manejar_socket_consola(int socket,t_paquete paquete){
 	pthread_mutex_lock(&mutexKernel);
 	log_debug(logNucleo,"Llego un mensaje del socketConsola  %d. codop %d",socket,paquete.cod_op);
@@ -426,23 +446,33 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			nuevo_pcb = armar_nuevo_pcb(paquete,metadata);
 			log_debug(logNucleo, "Se armo el nuevo pcb, su id es: %d", nuevo_pcb->pid);
 			moverA_colaNew(nuevo_pcb);
+//---------------------------------
+			t_new_ready_args args;
+			args.pcb=nuevo_pcb;
+			args.paquete=&paquete;
+			args.metadata=metadata;
+			args.socket = socket;
 
-			//envio el inicializar a umc
-			bool inicializo_bien = inicializar_programa(nuevo_pcb,paquete,metadata);
+			//Defino el hilo para manejar la inicializacion del programa
+			pthread_t  new_ready_thread;
 
-			metadata_destruir(metadata);
+			//Hilo con formato datachable
+			log_debug(logNucleo,"Creando el hilo para el pcb del programa de socket %d", socket);
 
-			//agrego consola a la lista
+			pthread_attr_t attr;
+			pthread_attr_init(&attr);
+			pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
 
-			cargar_programa(socket,nuevo_pcb->pid);
-
-			if (inicializo_bien){
-				sacarDe_colaNew(nuevo_pcb->pid);
-				moverA_colaReady(nuevo_pcb);
+			if(pthread_create(&new_ready_thread,&attr,(void*)manejar_new_ready_NvoPrograma, (void *)&args)){
+				log_error(logNucleo,"Error al crear el hilo para el programa del socket %d", socket);
+				exit(EXIT_FAILURE);
 			}
+			else{
+				log_info(logNucleo,"Se creo el hilo para el pcb del programa de socket %d", socket);
+			}
+			pthread_attr_destroy(&attr);
 
-			enviar_a_cpu();
-
+// ----------------------------------------
 			log_debug(logNucleo,"Termino la inicializacion del programa");
 			break;
 
