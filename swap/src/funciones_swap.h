@@ -22,6 +22,5 @@ void moverProcesos(void *proceso);
 void actualizarBitMap(int cantPags);
 bool ordenarPorPosicion(void *p1, void *p2);
 void loggearBitmap();
-void limpiarBitmapAuxiliar();
 
 #endif /* FUNCIONES_SWAP_H_ */

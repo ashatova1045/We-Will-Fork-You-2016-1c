@@ -166,7 +166,6 @@ void atender_conexion(int* socket_conexion){
 						//Busco los datos de la página y se los envío a la cpu
 						char* datosDePagina=datos_pagina_en_memoria(entrada_pag_pedida->nro_marco);
 
-						log_info(logUMC,"Leido: %.*s",solicitud.tamanioDatos,datosDePagina+solicitud.offset);
 						enviar(BUFFER_LEIDO,solicitud.tamanioDatos,datosDePagina+solicitud.offset,*socket_conexion);
 						log_info(logUMC,"Se le envio el contenido de la pagina %d a la cpu %d",solicitud.nroPagina,*socket_conexion);
 					}
@@ -176,7 +175,6 @@ void atender_conexion(int* socket_conexion){
 					//Busco los datos de la página y se los envío a la cpu
 					char* datosDePagina=datos_pagina_en_memoria(entrada_pag_pedida->nro_marco);
 
-					log_info(logUMC,"Leido: %.*s",solicitud.tamanioDatos,datosDePagina+solicitud.offset);
 					enviar(BUFFER_LEIDO,solicitud.tamanioDatos,datosDePagina+solicitud.offset,*socket_conexion);
 					log_info(logUMC,"Se le envio el contenido de la pagina %d a la cpu %d",solicitud.nroPagina,*socket_conexion);
 				}
@@ -193,7 +191,7 @@ void atender_conexion(int* socket_conexion){
 				//Deserializo el paquete que me llego
 				t_pedido_almacenarBytes *pedido_almacenar;
 				pedido_almacenar=deserializar_pedido_almacenar(pedido->datos);
-				log_info(logUMC,"Se pidio escribir en la pagina %d con el offset %d la cantidad de bytes %d. Se pidio escribir buffer: %.*s",pedido_almacenar->nroPagina,pedido_almacenar->offset,pedido_almacenar->tamanioDatos,pedido_almacenar->tamanioDatos,pedido_almacenar->buffer);
+				log_info(logUMC,"Se pidio escribir en la pagina %d con el offset %d la cantidad de bytes %d. Se pidio escribir buffer: %.*s",pedido_almacenar->nroPagina,pedido_almacenar->offset,pedido_almacenar->tamanioDatos,pedido_almacenar->buffer);
 
 				t_entrada_tabla_paginas* entrada_pag_escritura = NULL;
 
@@ -244,13 +242,13 @@ void atender_conexion(int* socket_conexion){
 						char* datosDePaginaEscritura = datos_pagina_en_memoria(entrada_pag_escritura->nro_marco);
 
 						//Modifico los datos de la página
-						log_info(logUMC,"Se pidieron almacenar los datos %s de la pagina %d del proceso %d", pedido_almacenar->buffer,pedido_almacenar->nroPagina,proceso_activo);
+						log_info(logUMC,"Se pidieron almacenar los datos de la pagina %d del proceso %d",pedido_almacenar->nroPagina,proceso_activo);
 						memcpy(datosDePaginaEscritura+pedido_almacenar->offset,pedido_almacenar->buffer,pedido_almacenar->tamanioDatos);
-						log_info(logUMC,"Se almacenaron los datos %s de la pagina %d del proceso %d", pedido_almacenar->buffer,pedido_almacenar->nroPagina,proceso_activo);
+						log_info(logUMC,"Se almacenaron los datos de la pagina %d del proceso %d",pedido_almacenar->nroPagina,proceso_activo);
 
 						//Pongo el bit de modificado de la página en true
 						entrada_pag_escritura->modificado=true;
-						log_info(logUMC,"El bit de modificado de la pagina %d del proceso %d es %d",solicitud.nroPagina,proceso_activo,entrada_pag_escritura);
+						log_info(logUMC,"El bit de modificado de la pagina %d del proceso %d es %d",solicitud.nroPagina,proceso_activo,entrada_pag_escritura->modificado);
 
 						//Envío el aviso de que se escribio en la página
 						log_info(logUMC,"Se escribio en la página correctamente");

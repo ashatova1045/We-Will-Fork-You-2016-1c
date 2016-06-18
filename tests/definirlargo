@@ -1,0 +1,51 @@
+#!./../consola/Debug/consola
+begin
+	variables a
+
+	wait SEM1
+	wait SEM1
+	wait SEM1
+	a = 0
+	a = 0
+	a = 0
+	a = 0
+	a = 0
+		a = 0
+	a = 0
+	a = 0
+
+			a = 0
+	a = 0
+	a = 0
+		a = 0
+	a = 0
+	a = 0
+	a = 0
+	a = 0
+		a = 0
+	a = 0
+		a = 0
+	a = 0
+	a = 0
+	a = 0
+		a = 0
+	a = 0
+	a = 0
+	a = 0
+	a = 0
+		a = 0
+	a = 0
+	a = 0
+	a = 0
+	a = 0
+		a = 0
+	a = 0
+	a = 0
+	a = 0
+	a = 0
+		a = 0
+	a = 0
+	a = 0
+	a = 0
+	a = 0
+end

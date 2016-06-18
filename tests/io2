@@ -1,6 +1,6 @@
 #!./../consola/Debug/consola
 begin
 	textPrint A punto de correr DISCO 1
-	io DISCO 1
+	io DISCO 10
 	textPrint Corri DISCO 1
 end

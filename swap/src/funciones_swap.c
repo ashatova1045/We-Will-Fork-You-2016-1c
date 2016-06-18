@@ -2,7 +2,7 @@
 #include "estructuras_swap.h"
 
 t_log* crearLog(){
-	t_log *logSwap = log_create("logSwap.log", "swap.c", false, LOG_LEVEL_INFO);
+	t_log *logSwap = log_create("logSwap.log", "swap.c", false, LOG_LEVEL_TRACE);
 	return logSwap;
 }
 
@@ -20,16 +20,17 @@ void levantarConfiguracion(t_config* config){
 
 int inicializaSwapFile(){
 	// Inicializa variables
-	char* array = malloc(datosSwap->cantidad_paginas);
+	char* array = malloc((datosSwap->cantidad_paginas)/8);
+	int i;
+	for(i=0;i<((datosSwap->cantidad_paginas))/8;i++)
+	        array[i]=0;
+
 	int cantBytes = (datosSwap->cantidad_paginas) / 8;
 
 	int codRet = 0;
 
 	// Crea estructura bitmap
 	bitarray = bitarray_create(array, cantBytes);
-
-	//Crea bitmap auxiliar para la compactación
-	bitarray_aux = bitarray_create(array, cantBytes);
 
 	// Crea archivo SWAP
 	char command[128];
@@ -66,6 +67,10 @@ void manejar_socket_umc(t_paquete* paquete){
 		 printf("Tamano de los datos: %d\n",paquete->tamano_datos);
 		 printf("Tamaño de los frames: %d\n",*((int*)paquete->datos));
 		 tamanioPagina = *((int*)paquete->datos);
+		 // Se sobreescribe el tamaño de página por el que envía la UMC
+		 datosSwap->tamanio_pagina = tamanioPagina;
+		 // Inicializa archivo Swap
+		 inicializaSwapFile(datosSwap);
 		 break;
 	default:
 		manejarOperaciones(paquete);
@@ -141,8 +146,12 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 
 	if(verificarPaginasLibres(cantidadPaginas) == 0){
 
+		log_info(logSwap,"Hay espacio disponible");
+		log_info(logSwap,"Buscando espacio contiguo...");
+
 		int posicion = encontrar_espacio(cantidadPaginas);
 		if (posicion == -1){
+			log_info(logSwap,"No hay espacio contiguo");
 			compactar();
 			posicion = encontrar_espacio(cantidadPaginas);
 		}
@@ -156,7 +165,6 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 		for(i=0;i<=pagscodigo;i++){
 			int posicion_posta = encontrar_posicion(pedido->idPrograma,i);
 			char* bufferCorrido = pedido->codigo+(i*tamanioPagina);
-			puts(bufferCorrido);
 			codOp = grabarArchivo(posicion_posta,bufferCorrido);
 			if(codOp == NO_OK)
 				break;
@@ -187,6 +195,7 @@ void leerPagina(t_paquete* paquete){
 
 	//Buscar el proceso en la lista
 	int codOp = NO_OK;
+
 	int posicion_posta = encontrar_posicion(pid_enviado,pagina);
 
 	if(posicion_posta != -1){
@@ -261,8 +270,7 @@ void finalizarPrograma(t_paquete* paquete){
 				posAux++;
 			}
 
-			printf("Se limplia el bitmap \n");
-
+			printf("Se limpia el bitmap \n");
 			loggearBitmap();
 
 			free(list_remove(lista_procesos,i));
@@ -301,12 +309,15 @@ int encontrar_espacio(int cantidadPaginas) {
 	for (i = 0; i < max; i++) {
 		if (bitarray_test_bit(bitarray, i) == false) {
 			int j;
-			for (j = 0; j < cantidadPaginas; j++) {
+			for (j = 0; j < cantidadPaginas && i+j < max; j++) {
 				if (bitarray_test_bit(bitarray, i + j))
 					break;
 			}
-			if (j == cantidadPaginas)
+			if (j == cantidadPaginas){
 				return i;
+			}else{
+				break;
+			}
 		}
 	}
 	return -1;
@@ -321,8 +332,6 @@ void agregarNuevoProceso(int posicion, int cantidadPaginas, t_pedido_inicializar
 		posAux++;
 	}
 
-	loggearBitmap();
-
 	t_control_swap* controlSwap = malloc(sizeof(t_control_swap));
 	controlSwap->PId = pedido->idPrograma;
 	controlSwap->cantPaginas = pedido->pagRequeridas;
@@ -335,24 +344,29 @@ void agregarNuevoProceso(int posicion, int cantidadPaginas, t_pedido_inicializar
 
 void compactar(){
 
+	puts("Bitmap antes de la compactación");
 	loggearBitmap(); // Log del bitmap antes de la compactación
 
-	log_info(logSwap,"Comienza proceso de compactación");
 	log_info(logSwap,"Compactando...");
+	puts("COMPACTANDO");
+
+	log_info(logSwap,"Comienza proceso de compactación");
 	usleep((datosSwap->retardo_compactacion)*1000); // retardo en microsegundos
 
 	//Ordena lista por posicion
 	list_sort(lista_procesos,ordenarPorPosicion);
 
+	int z; //Limpia Bitmap
+	for(z=0;z<(bitarray_get_max_bit(bitarray));z++){
+		bitarray_clean_bit(bitarray,z);
+	}
+
 	primerPosicionVacia = 0;
 	list_iterate(lista_procesos,moverProcesos);
 
-	//Reemplaza el bitmap fragmentado por el compactado
-	bitarray = bitarray_aux;
-
-	limpiarBitmapAuxiliar();
-
+	puts("Bitmap luego de la compactación");
 	loggearBitmap(); // Log del bitmap después de la compactación
+	puts("Compactación finalizada");
 
 	log_info(logSwap,"Compactación finalizada");
 }
@@ -366,7 +380,7 @@ void moverProcesos(void *proceso){
 	char* buffer = malloc(tamanioPagina*cantPags);
 
 	//Leer buffer del proceso
-	fseek(swapFile,posProc*cantPags,SEEK_SET);
+	fseek(swapFile,posProc*tamanioPagina,SEEK_SET);
 	fread(buffer,tamanioPagina,cantPags,swapFile);
 
 	//Actualiza lista de procesos
@@ -407,7 +421,7 @@ t_control_swap* buscarProcesoACorrer(int primerPosicionVacia){
 
 void actualizarBitMap(int cantPags){
 	while(cantPags>0){
-		bitarray_set_bit(bitarray_aux,primerPosicionVacia);
+		bitarray_set_bit(bitarray,primerPosicionVacia);
 		primerPosicionVacia++;
 		cantPags--;
 	}
@@ -430,11 +444,4 @@ void loggearBitmap(){
 		}
 	}
 	printf("\n");
-}
-
-void limpiarBitmapAuxiliar(){
-	int i;
-	for(i=0;i<(datosSwap->cantidad_paginas);i++){
-		bitarray_clean_bit(bitarray_aux,i);
-	}
 }
