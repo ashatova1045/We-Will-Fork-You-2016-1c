@@ -46,7 +46,6 @@ t_log* logEstados;
 int tamano_pag_umc;
 t_nucleoConfig* config_nucleo;
 pthread_mutex_t mutexKernel =PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutex_cargarPrograma =PTHREAD_MUTEX_INITIALIZER;
 
 t_config* config;
 int file_descriptor_inotify;
@@ -362,11 +361,11 @@ void enviar_a_cpu(){
 
 	t_pcb *pcb_ready;
 	pcb_ready=queue_pop(colaReady);
-	log_info(logEstados, "El PCB con el pid %d salio de la cola Ready y esta listo"
-			" para ser enviado al CPU del socket %d", pcb_ready->pid, cpu_libre->socket);
 	if(!pcb_ready){
 		return;
 	}
+	log_info(logEstados, "El PCB con el pid %d salio de la cola Ready y esta listo"
+			" para ser enviado al CPU del socket %d", pcb_ready->pid, cpu_libre->socket);
 	log_info(logNucleo, "Se levanto el pcb con id %d", pcb_ready->pid);
 
 	bool matchPID(void *programa) {
@@ -449,11 +448,13 @@ void manejar_new_ready_NvoPrograma(void *args){
 	//agrego consola a la lista
 	free(datos);
 
-	pthread_mutex_lock(&mutex_cargarPrograma);
+	pthread_mutex_lock(&mutexKernel);
 	cargar_programa(socket,nuevo_pcb->pid);
 	if (inicializo_bien){
 		sacarDe_colaNew(nuevo_pcb->pid);
 		moverA_colaReady(nuevo_pcb);
+		log_info(logNucleo,"Se envia mensaje a la consola del socket %d que pudo poner en Ready su PCB ", socket);
+		enviar(OK, sizeof(int32_t),&socket,socket); //que le mando? basura?
 	}
 	else{
 		t_pcb *pcb_fallido= sacarDe_colaNew(nuevo_pcb->pid);
@@ -463,7 +464,7 @@ void manejar_new_ready_NvoPrograma(void *args){
 	}
 
 	enviar_a_cpu();
-	pthread_mutex_unlock(&mutex_cargarPrograma);
+	pthread_mutex_unlock(&mutexKernel);
 }
 
 void manejar_socket_consola(int socket,t_paquete paquete){
