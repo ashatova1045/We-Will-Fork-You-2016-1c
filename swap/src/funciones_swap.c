@@ -25,7 +25,8 @@ int inicializaSwapFile(){
 	for(i=0;i<((datosSwap->cantidad_paginas))/8;i++)
 	        array[i]=0;
 
-	int cantBytes = (datosSwap->cantidad_paginas) / 8;
+	//Se agrega un byte para evitar errores en la creacón del bitmap
+	int cantBytes = ((datosSwap->cantidad_paginas)/8)+1 ;
 
 	int codRet = 0;
 
@@ -135,6 +136,9 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 
 	printf("ProcessID: %d\n",pedido->idPrograma);
 	printf("Cantidad de Paginas: %d\n",pedido->pagRequeridas);
+
+	printf("Estado del bitmap \n");
+	loggearBitmap();
 
 	int cantidadPaginas = pedido->pagRequeridas;
 
@@ -292,7 +296,7 @@ void finalizarPrograma(t_paquete* paquete){
 int verificarPaginasLibres(int cantidadPaginas) {
 	// Revisa el bitmap si hay lugar para el proceso
 	int paginasPendientes = cantidadPaginas;
-	int i, max = bitarray_get_max_bit(bitarray);
+	int i, max = datosSwap->cantidad_paginas;
 	for (i = 0; i < max; i++) {
 		if (bitarray_test_bit(bitarray, i) == false) {
 			paginasPendientes--;
@@ -305,7 +309,7 @@ int verificarPaginasLibres(int cantidadPaginas) {
 }
 
 int encontrar_espacio(int cantidadPaginas) {
-	int i, max = bitarray_get_max_bit(bitarray);
+	int i, max =  datosSwap->cantidad_paginas;
 	for (i = 0; i < max; i++) {
 		if (bitarray_test_bit(bitarray, i) == false) {
 			int j;
@@ -357,7 +361,8 @@ void compactar(){
 	list_sort(lista_procesos,ordenarPorPosicion);
 
 	int z; //Limpia Bitmap
-	for(z=0;z<(bitarray_get_max_bit(bitarray));z++){
+	int max =  datosSwap->cantidad_paginas;
+	for(z=0;z<max;z++){
 		bitarray_clean_bit(bitarray,z);
 	}
 
@@ -397,7 +402,7 @@ void moverProcesos(void *proceso){
 }
 
 int encontrarPrimerVacio(){
-	int i, max = bitarray_get_max_bit(bitarray);
+	int i, max =  datosSwap->cantidad_paginas;
 	for (i = 0; i < max; i++) {
 		if (bitarray_test_bit(bitarray, i) == false) {
 			return i;
