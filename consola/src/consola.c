@@ -87,16 +87,24 @@ int main(int argc, char **argv) {
 	log_info(logconsola,"Programa enviado al kernel");
 	free(programabuf);
 
-	puts("El programa esta corriendo correctamente. Espere un momento por favor.");
-	t_paquete* actualizacion;
+	t_paquete* actualizacion = NULL;
 	do {
 		log_info(logconsola,"Eperando mensajes del kernel");
+		destruir_paquete(actualizacion);
 		actualizacion = recibir_paquete(socket_kernel);
 
 		log_info(logconsola,"Nuevo mensaje del kernel!\nTamano: %d\nCodigo de operacion: %d",
 					actualizacion->tamano_datos,
 					actualizacion->cod_op);
 		switch (actualizacion->cod_op) {
+			case OK:
+				log_info(logconsola,"El programa esta corriendo correctamente. Espere un momento por favor");
+				puts("El programa esta corriendo correctamente. Espere un momento por favor");
+				break;
+			case NO_OK:
+				log_error(logconsola,"No hay memoria para correr este programa.");
+				puts("No hay memoria para correr este programa.");
+				break;
 			case IMPRIMIR_TEXTO:
 				log_info(logconsola,"Mostrando por pantalla el texto: %s",actualizacion->datos);
 				puts(actualizacion->datos);
@@ -123,7 +131,8 @@ int main(int argc, char **argv) {
 		}
 	} while (	actualizacion->cod_op != TERMINO_BIEN_PROGRAMA &&
 				actualizacion->cod_op != TERMINO_MAL_PROGRAMA &&
-				actualizacion->cod_op != ERROR_COD_OP);
+				actualizacion->cod_op != ERROR_COD_OP &&
+				actualizacion->cod_op != NO_OK);
 
 	close(socket_kernel);
 	log_info(logconsola,"Socket cerrado");
