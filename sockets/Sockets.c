@@ -189,6 +189,9 @@ t_paquete* recibir_paquete(int socket_receptor_fd){
 
 void destruir_paquete(t_paquete* paquete)
 {
+	if(!paquete)
+		return;
+	
 	if(paquete->cod_op != ERROR_COD_OP)
 		free(paquete->datos);
 	free(paquete);
