@@ -19,12 +19,12 @@ void crear_estructuras(){
 
 	//Inicializo variables del bitarray
 	char* arrayFrames = malloc(config_umc->cant_marcos);
-	int bytesDeArray = ((config_umc->cant_marcos)/8);
+	int bytesDeArray = ((config_umc->cant_marcos)/8)+1;
 
 	//Creo el bitmap de frames
 	bitmap_frames = bitarray_create(arrayFrames,bytesDeArray);
 
-	int max = bitarray_get_max_bit(bitmap_frames);
+	int max = config_umc->cant_marcos;
 
 	log_info(logUMC,"Bitarray de frames creado correctamente con %d frames",max);
 
@@ -341,7 +341,7 @@ void destruir_estructuras(){
 int verificarFramesLibres(int cantidadFrames) {
 	// Revisa el bitmap si hay lugar para el proceso
 	int paginasPendientes = cantidadFrames;
-	int i, max = bitarray_get_max_bit(bitmap_frames);
+	int i, max = config_umc->cant_marcos;
 	for (i = 0; i < max; i++) {
 		if (bitarray_test_bit(bitmap_frames, i) == false) {
 			paginasPendientes--;
@@ -354,7 +354,7 @@ int verificarFramesLibres(int cantidadFrames) {
 }
 
 int cantidadFramesLibres() {
-	int max = bitarray_get_max_bit(bitmap_frames);
+	int max = config_umc->cant_marcos;
 	int i, framesLibres = 0;
 	for (i = 0; i < max; i++) {
 		if (bitarray_test_bit(bitmap_frames, i) == false) {
@@ -365,7 +365,7 @@ int cantidadFramesLibres() {
 }
 
 int encontrarPrimerVacio(){
-	int i, max = bitarray_get_max_bit(bitmap_frames);
+	int i, max = config_umc->cant_marcos;
 	for (i = 0; i < max; i++) {
 		if (bitarray_test_bit(bitmap_frames, i) == false) {
 			return i;
