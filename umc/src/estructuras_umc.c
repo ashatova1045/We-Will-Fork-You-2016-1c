@@ -129,6 +129,7 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 			t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pagina,entrada_diccionario);
 
 			entrada_pagina = entrada_pag_pedida_actualizada;
+			log_info(logUMC,"entrada_pag_pedida_actualizada PID: %d",entrada_pagina->nro_marco);
 
 		//Si el proceso no pidió la cantidad máxima de frames
 		}else if(paginasUsadas<config_umc->marco_x_proc){
@@ -156,6 +157,7 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 				memcpy(espacioEnMemoria,datos_pagina,config_umc->marco_size);
 
 				//Actualizo la entrada a la tabla de la página
+				log_info(logUMC,"frameAOcupar: %d",frameAOcupar);
 				entrada_pag_pedida->nro_marco=frameAOcupar;
 				entrada_pag_pedida->presencia=true;
 
@@ -215,6 +217,31 @@ void cargar_en_TLB(int32_t pid, int nroPagina, t_entrada_tabla_paginas* pagina){
 	entrada_tlb->pagina = pagina;
 
 	list_add(tlb,entrada_tlb);
+}
+
+actualizar_TLB(int32_t pid, int nroPagina, t_entrada_tabla_paginas* pagina){
+	log_info(logUMC,"Se actualiza la página en la TLB");
+
+	bool matchPID(void* entrada_tlb){
+		return ((t_entrada_tlb*)entrada_tlb)->pid == pid;
+	}
+	t_entrada_tlb* entrada_tlb = list_find(tlb,matchPID);
+	if(entrada_tlb != NULL){
+		entrada_tlb->pagina = pagina;
+	}
+}
+
+void eliminarPaginasEnTLB(int32_t pid){
+	log_info(logUMC,"Se borran la páginas en la TLB");
+
+	int i;
+	for(i=0;i<list_size(tlb);i++){
+		t_entrada_tlb* entrada_tlb = list_get(tlb,i);
+
+		if(entrada_tlb->pid == pid){
+			free(list_remove(tlb,i));
+		}
+	}
 }
 
 void eliminar_menos_usado_en_TLB(){
@@ -478,4 +505,3 @@ t_entrada_tabla_paginas* reemplazarPagina(int pagina,t_entrada_diccionario *entr
 	return entrada_pag_pedida;
 
 }
-

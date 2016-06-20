@@ -164,6 +164,7 @@ void atender_conexion(int* socket_conexion){
 						}
 
 						//Busco los datos de la página y se los envío a la cpu
+						log_info(logUMC,"Nro de marco: %d",entrada_pag_pedida->nro_marco);
 						char* datosDePagina=datos_pagina_en_memoria(entrada_pag_pedida->nro_marco);
 
 						enviar(BUFFER_LEIDO,solicitud.tamanioDatos,datosDePagina+solicitud.offset,*socket_conexion);
@@ -191,6 +192,7 @@ void atender_conexion(int* socket_conexion){
 				//Deserializo el paquete que me llego
 				t_pedido_almacenarBytes *pedido_almacenar;
 				pedido_almacenar=deserializar_pedido_almacenar(pedido->datos);
+
 				log_info(logUMC,"Se pidio escribir en la pagina %d con el offset %d la cantidad de bytes %d",pedido_almacenar->nroPagina,pedido_almacenar->offset,pedido_almacenar->tamanioDatos);
 
 				t_entrada_tabla_paginas* entrada_pag_escritura = NULL;
@@ -250,6 +252,17 @@ void atender_conexion(int* socket_conexion){
 						entrada_pag_escritura->modificado=true;
 						log_info(logUMC,"El bit de modificado de la pagina %d del proceso %d es %d",solicitud.nroPagina,proceso_activo,entrada_pag_escritura->modificado);
 
+
+						if(config_umc->entradas_tlb){
+							//Se actualiza la página modificada en la TLB
+							pthread_mutex_lock(&mutex_tlb);
+
+							actualizar_TLB(proceso_activo,solicitud.nroPagina,entrada_pag_escritura);
+
+							pthread_mutex_unlock(&mutex_tlb);
+						}
+
+
 						//Envío el aviso de que se escribio en la página
 						log_info(logUMC,"Se escribio en la página correctamente");
 						enviar(OK,1,&socket_conexion,*socket_conexion);
@@ -269,6 +282,17 @@ void atender_conexion(int* socket_conexion){
 					//Pongo el bit de modificado de la página en true
 					entrada_pag_escritura->modificado=true;
 					log_info(logUMC,"El bit de modificado de la pagina %d del proceso %d es %d",solicitud.nroPagina,proceso_activo,entrada_pag_escritura->modificado);
+
+
+					if(config_umc->entradas_tlb){
+						//Se actualiza la página modificada en la TLB
+						pthread_mutex_lock(&mutex_tlb);
+
+						actualizar_TLB(proceso_activo,solicitud.nroPagina,entrada_pag_escritura);
+
+						pthread_mutex_unlock(&mutex_tlb);
+					}
+
 
 					//Envío el aviso de que se escribio en la página
 					log_info(logUMC,"Se escribio en la página correctamente");
@@ -314,6 +338,10 @@ void atender_conexion(int* socket_conexion){
 
 					//Se marcan los frames asignados como libres en el bitmap
 					t_entrada_diccionario *entrada_diccionario = dictionary_remove(tablasDePagina,i_to_s(*programaAFinalizar));
+
+					//Se elimina de la TLB
+					eliminarPaginasEnTLB(*programaAFinalizar);
+
 					t_list* tablaDePaginas = entrada_diccionario->tablaDePaginas;
 					list_iterate(tablaDePaginas,eliminarPaginas);
 					list_destroy(tablaDePaginas);
@@ -606,6 +634,3 @@ char* leerDeSwap(int pid,int pagina){
 	return datos_pagina;
 }
 //------------------------------------------------------------------------------------------------------
-
-
-

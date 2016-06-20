@@ -93,4 +93,6 @@ void crearTLB(int entradasTLB);
 t_entrada_tabla_paginas* buscar_pagina_en_TLB(int32_t proceso, int32_t numeroPagina);
 void cargar_en_TLB(int32_t pid, int nroPagina, t_entrada_tabla_paginas* pagina);
 void eliminar_menos_usado_en_TLB();
+void eliminarPaginasEnTLB(int32_t pid);
+void actualizar_TLB(int32_t pid, int nroPagina, t_entrada_tabla_paginas* pagina);
 #endif /* ESTRUCTURAS_UMC_H_ */
