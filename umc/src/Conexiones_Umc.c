@@ -191,7 +191,7 @@ void atender_conexion(int* socket_conexion){
 				//Deserializo el paquete que me llego
 				t_pedido_almacenarBytes *pedido_almacenar;
 				pedido_almacenar=deserializar_pedido_almacenar(pedido->datos);
-				log_info(logUMC,"Se pidio escribir en la pagina %d con el offset %d la cantidad de bytes %d. Se pidio escribir buffer: %.*s",pedido_almacenar->nroPagina,pedido_almacenar->offset,pedido_almacenar->tamanioDatos,pedido_almacenar->buffer);
+				log_info(logUMC,"Se pidio escribir en la pagina %d con el offset %d la cantidad de bytes %d",pedido_almacenar->nroPagina,pedido_almacenar->offset,pedido_almacenar->tamanioDatos);
 
 				t_entrada_tabla_paginas* entrada_pag_escritura = NULL;
 
