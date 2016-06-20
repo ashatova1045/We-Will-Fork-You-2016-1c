@@ -67,9 +67,7 @@ void nuevaTablaDePaginas(int pid,int cantPaginas){
 		entradaTablaPaginas->nro_marco=-1;
 		entradaTablaPaginas->presencia=false;
 		entradaTablaPaginas->modificado=false;
-		entradaTablaPaginas->uso=false;
-
-		//Agrego la entrada a la lista
+		entradaTablaPaginas->uso=false;		//Agrego la entrada a la lista
 		list_add(tablaDePaginas,entradaTablaPaginas);
 
 	}
@@ -424,6 +422,7 @@ void eliminarPaginas(void *pagina){
 
 	//Inicializar varaibles
 	int32_t nro_marco = paginaABorrar->nro_marco;
+	log_info(logUMC,"Eliminar Páginas - Nro de marco: %d",nro_marco);
 
 	bitarray_clean_bit(bitmap_frames,nro_marco);
 
@@ -463,6 +462,7 @@ t_entrada_tabla_paginas* reemplazarPagina(int pagina,t_entrada_diccionario *entr
 		log_info(logUMC,"La página víctima del proceso %d está modificada",entrada_diccionario->pid);
 
 		//Busco los datos en memoria de la página víctima
+		log_info(logUMC,"Página Víctima - Nro de marco: %d",entrada_pag_victima->nro_marco);
 		char* datos_pagina_victima = datos_pagina_en_memoria(entrada_pag_victima->nro_marco);
 
 		//Busco el id de la página víctima
@@ -478,6 +478,7 @@ t_entrada_tabla_paginas* reemplazarPagina(int pagina,t_entrada_diccionario *entr
 	char* datos_pagina = leerDeSwap(entrada_diccionario->pid,pagina);
 
 	//Guardo la nueva página en la memoria
+	log_info(logUMC,"Guarda nueva página - entrada víctima - Nro de marco: %d",entrada_pag_victima->nro_marco);
 	char* espacioEnMemoria = (memoria_principal+(entrada_pag_victima->nro_marco*config_umc->marco_size));
 
 	memcpy(espacioEnMemoria,datos_pagina,config_umc->marco_size);
@@ -486,6 +487,7 @@ t_entrada_tabla_paginas* reemplazarPagina(int pagina,t_entrada_diccionario *entr
 	t_entrada_tabla_paginas *entrada_pag_pedida = list_get(tablaDePaginas,pagina);
 
 	//Actualizo la entrada a la tabla de la página
+	log_info(logUMC,"Actualiza Páginas - entrada_pag_pedida - Nro de marco: %d",entrada_pag_victima->nro_marco);
 	entrada_pag_pedida->nro_marco=entrada_pag_victima->nro_marco;
 	entrada_pag_pedida->presencia=true;
 	entrada_pag_pedida->modificado=false;
