@@ -29,7 +29,7 @@ void crear_estructuras(){
 	log_info(logUMC,"Bitarray de frames creado correctamente con %d frames",max);
 
 	//Crea la TLB
-	if((config_umc->entradas_tlb)>0){
+	if(config_umc->entradas_tlb){
 		log_info(logUMC,"Creación de TLB");
 		crearTLB(config_umc->entradas_tlb);
 	}

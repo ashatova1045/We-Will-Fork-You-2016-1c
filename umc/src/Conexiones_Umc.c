@@ -340,7 +340,9 @@ void atender_conexion(int* socket_conexion){
 					t_entrada_diccionario *entrada_diccionario = dictionary_remove(tablasDePagina,i_to_s(*programaAFinalizar));
 
 					//Se elimina de la TLB
-					eliminarPaginasEnTLB(*programaAFinalizar);
+					if(config_umc->entradas_tlb){
+						eliminarPaginasEnTLB(*programaAFinalizar);
+					}
 
 					t_list* tablaDePaginas = entrada_diccionario->tablaDePaginas;
 					list_iterate(tablaDePaginas,eliminarPaginas);
