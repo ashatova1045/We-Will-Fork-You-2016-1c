@@ -12,7 +12,6 @@ void levantarConfiguracion(t_config* config){
 		datosSwap->puerto_escucha = config_get_int_value(config,"PUERTO_ESCUCHA");
 		datosSwap->nombre_swap = config_get_string_value(config, "NOMBRE_SWAP");
 		datosSwap->cantidad_paginas = config_get_int_value(config, "CANTIDAD_PAGINAS");
-		datosSwap->tamanio_pagina = config_get_int_value(config, "TAMANIO_PAGINA");
 		datosSwap->retardo_acceso = config_get_int_value(config, "RETARDO_ACCESO");
 		datosSwap->retardo_compactacion = config_get_int_value(config, "RETARDO_COMPACTACION");
 	}
