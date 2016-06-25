@@ -217,7 +217,7 @@ void cargar_en_TLB(int32_t pid, int nroPagina, t_entrada_tabla_paginas* pagina){
 	list_add(tlb,entrada_tlb);
 }
 
-actualizar_TLB(int32_t pid, int nroPagina, t_entrada_tabla_paginas* pagina){
+void actualizar_TLB(int32_t pid, int nroPagina, t_entrada_tabla_paginas* pagina){
 	log_info(logUMC,"Se actualiza la página en la TLB");
 
 	bool matchPID(void* entrada_tlb){
