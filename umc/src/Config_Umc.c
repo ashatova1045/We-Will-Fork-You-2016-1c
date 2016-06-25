@@ -18,7 +18,7 @@ t_umcConfig* leerConfiguracion(t_config* config){
 	datosUmc->marco_x_proc = config_get_int_value(config,"MARCO_X_PROC");
 	datosUmc->entradas_tlb = config_get_int_value(config,"ENTRADAS_TLB");
 	datosUmc->retardo = config_get_int_value(config,"RETARDO");
-	datosUmc->esClockM = strcmp(config_get_string_value(config,"ALGORITMO"),"CLOCKM");
+	datosUmc->esClockM = strcmp(config_get_string_value(config,"ALGORITMO"),"CLOCK");
 
 	//Devuelvo la estructura de datos cargados
 	return datosUmc;
