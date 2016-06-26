@@ -77,7 +77,7 @@ t_consola* matchear_consola_por_pid(int pid);
 t_relacion* matchear_relacion_por_socketcpu(int socket);
 void elminar_consola_por_socket(int socket);
 t_log* crearLog();
-t_nucleoConfig* cargarConfiguracion(t_config* config, t_nucleoConfig* datosNucleo);
+t_nucleoConfig* cargarConfiguracion();
 void destruirNucleoConfig(t_nucleoConfig* datosADestruir);
 t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata);
 char* armar_codigo(t_pcb* nuevo_pcb,char* codigo,t_metadata_program* metadata);

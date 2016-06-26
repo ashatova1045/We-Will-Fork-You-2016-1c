@@ -190,26 +190,26 @@ t_log* crearLogEstados(){
 	return logEstados;
 }
 
-t_nucleoConfig* cargarConfiguracion(t_config* config, t_nucleoConfig* datosNucleo){
+t_nucleoConfig* cargarConfiguracion(){
 	pthread_mutex_lock(&mutexKernel);
 
 	config = config_create("../nucleo/nucleo.cfg");
 
-	datosNucleo->puerto_prog=config_get_int_value(config,"PUERTO_PROG");
-	datosNucleo->puerto_cpu=config_get_int_value(config,"PUERTO_CPU");
-	datosNucleo->puerto_umc=config_get_int_value(config,"PUERTO_UMC");
-	datosNucleo->ip_umc=config_get_string_value(config,"IP_UMC");
-	datosNucleo->quantum=config_get_int_value(config,"QUANTUM");
-	datosNucleo->quantum_sleep=config_get_int_value(config,"QUANTUM_SLEEP");
-	datosNucleo->semaf_ids=config_get_array_value(config,"SEMAF_IDS");
-	datosNucleo->semaf_init=config_get_array_value(config,"SEMAF_INIT");
-	datosNucleo->io_ids=config_get_array_value(config,"IO_IDS");
-	datosNucleo->io_retardo=config_get_array_value(config,"IO_RETARDO");
-	datosNucleo->shared_vars=config_get_array_value(config,"SHARED_VARS");
-	datosNucleo->tamano_stack=config_get_int_value(config,"TAMANO_STACK");
+	config_nucleo->puerto_prog=config_get_int_value(config,"PUERTO_PROG");
+	config_nucleo->puerto_cpu=config_get_int_value(config,"PUERTO_CPU");
+	config_nucleo->puerto_umc=config_get_int_value(config,"PUERTO_UMC");
+	config_nucleo->ip_umc=config_get_string_value(config,"IP_UMC");
+	config_nucleo->quantum=config_get_int_value(config,"QUANTUM");
+	config_nucleo->quantum_sleep=config_get_int_value(config,"QUANTUM_SLEEP");
+	config_nucleo->semaf_ids=config_get_array_value(config,"SEMAF_IDS");
+	config_nucleo->semaf_init=config_get_array_value(config,"SEMAF_INIT");
+	config_nucleo->io_ids=config_get_array_value(config,"IO_IDS");
+	config_nucleo->io_retardo=config_get_array_value(config,"IO_RETARDO");
+	config_nucleo->shared_vars=config_get_array_value(config,"SHARED_VARS");
+	config_nucleo->tamano_stack=config_get_int_value(config,"TAMANO_STACK");
 	pthread_mutex_unlock(&mutexKernel);
 
-	return datosNucleo;
+	return config_nucleo;
 }
 
 /*#define DESTRUIR_PP(nucleo_param) \
@@ -461,7 +461,7 @@ void respuesta_inicializar_programa(int* socket){
 	enviar_a_cpu();
 
 	pthread_mutex_unlock(&mutexKernel);
-
+	destruir_paquete(respuesta_umc);
 	free(socket);
 }
 
@@ -946,7 +946,7 @@ void configurarinotify(void* param){
 					} else {
 						printf("Se modifico %s\n", event->name);
 
-						config_nucleo = cargarConfiguracion(config,config_nucleo);
+						config_nucleo = cargarConfiguracion();
 						printf("quantum %d\nretardo quantum %d\n",config_nucleo->quantum,config_nucleo->quantum_sleep);
 
 					}
@@ -975,7 +975,7 @@ int main(int argc, char **argv){
 
 //Levanta archivo de config del proceso Nucleo
 	config_nucleo = (t_nucleoConfig*)malloc(sizeof(t_nucleoConfig));
-	config_nucleo = cargarConfiguracion(config, config_nucleo);
+	config_nucleo = cargarConfiguracion();
 
 
 	//tamano_stack=config_nucleo->tamano_stack;
