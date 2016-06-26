@@ -4,8 +4,10 @@
  echo "1. Prueba 1"
  echo "2. Prueba 2"
  echo "3. Prueba 3"
+ echo "4. Prueba 4"
 
-echo "Ingrese el numero de Prueba [1,2 o 3] para cargar la config correspondiente \c"
+echo "Ingrese el numero de Prueba [1,2,3 o 4] para cargar la config correspondiente \c"
+echo "Ingrese 0 para cargar la configuracion predeterminada"
 
 read numero
 
