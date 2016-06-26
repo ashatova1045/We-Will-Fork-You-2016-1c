@@ -665,7 +665,7 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				{
 				t_varCompartida varCompartida = deserializar_asignar_compartida(paquete.datos);
 
-				log_info(logNucleo, "CPU del socket %d pidio grabar valor %d de la variable %s", socket, varCompartida.id_var);
+				log_info(logNucleo, "CPU del socket %d pidio grabar valor %d de la variable %s", socket, varCompartida.valor, varCompartida.id_var);
 				if(!dictionary_has_key(variablesCompartidas,varCompartida.id_var)){
 					log_error(logNucleo,"La variable %s no se encuentra en el diccionario", varCompartida.id_var);
 					printf("La variable %s no se encuentra en el diccionario\n", varCompartida.id_var);
@@ -792,7 +792,6 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				break;
 		}
 	pthread_mutex_unlock(&mutexKernel);
-	//TODO manejar pedidos del CPU
 }
 
 void cerrar_socket_cpu(int socket){
@@ -1062,7 +1061,6 @@ int main(int argc, char **argv){
 		}
 	log_info(logNucleo, "Me pude conectar con proc_consola");
 
-	//TODO planificacion de los procesos
 
 	pthread_join(thread_cpu, NULL); //el padre espera a qe termina este hilo
 	pthread_join(thread_consola, NULL); //el padre espera a qe termina este hilo

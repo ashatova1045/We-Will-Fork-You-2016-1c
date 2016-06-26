@@ -36,7 +36,7 @@ int inicializaSwapFile(){
 	char command[128];
 	size_t tamanio_swap = datosSwap->tamanio_pagina * datosSwap->cantidad_paginas;
 
-	snprintf(command, sizeof(command), "dd if=/dev/zero of=%s bs=%d count=1",datosSwap->nombre_swap,tamanio_swap);
+	snprintf(command, sizeof(command), "dd if=/dev/zero of=%s bs=%zu count=1",datosSwap->nombre_swap,tamanio_swap);
 
 	if(system(command) != -1){
 		swapFile = fopen(datosSwap->nombre_swap,"r+");
