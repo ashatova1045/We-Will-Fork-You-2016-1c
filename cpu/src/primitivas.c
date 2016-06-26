@@ -339,8 +339,10 @@ void wait(t_nombre_semaforo identificador_semaforo){
 	}
 
 	destruir_paquete(respuesta_signal);
-//	free(pwaitser->contenido);
-//	free(pwaitser);
+	free(pedidowait);
+
+	free(pwaitser->contenido);
+	free(pwaitser);
 }
 
 void finalizar() {

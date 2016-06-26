@@ -172,6 +172,7 @@ void destruir_pcb (t_pcb *pcbADestruir){
 		free(pcbADestruir->indice_stack);
 
 	free(pcbADestruir);
+	pcbADestruir = NULL;
 }
 
 t_pedido_wait_serializado* serializar_wait(t_pedido_wait* pedido){
