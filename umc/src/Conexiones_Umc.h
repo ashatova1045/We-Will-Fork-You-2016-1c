@@ -25,7 +25,6 @@ char* codigo; //fixme
 int d; //fixme
 
 fd_set set_de_fds;
-//Declaro Semaforos
 
 void manejar_paquete(int socket,t_paquete paq);
 
@@ -38,5 +37,7 @@ void servidor_pedidos();
 char* leerDeSwap(int pid,int pagina);
 
 void escribirEnSwap(int pagina,char* datos_pagina,int pid);
+
+void eliminar_pagina_TLB(int proceso, int pagina);
 
 #endif /* CONEXIONES_UMC_H_ */
