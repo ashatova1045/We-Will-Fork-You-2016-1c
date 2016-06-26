@@ -389,6 +389,7 @@ void enviar_a_cpu(){
 	log_trace(logNucleo,"Se serializo un pcb");
 	enviar(CORRER_PCB,serializado.tamanio,serializado.contenido_pcb,cpu_libre->socket);
 	log_info(logNucleo,"Se envio un pcb a correr en la cpu %d",cpu_libre->socket);
+	free(serializado.contenido_pcb);
 }
 
 void inicializar_programa(t_pcb* nuevo_pcb,void *datos, t_metadata_program* metadata){
@@ -406,6 +407,7 @@ void inicializar_programa(t_pcb* nuevo_pcb,void *datos, t_metadata_program* meta
 	log_debug(logNucleo,"Pedido inicializar enviado. PID %d,paginas %d",pedido_inicializar.idPrograma,pedido_inicializar.pagRequeridas);
 	printf("Pedido inicializar enviado. PID %d,paginas %d\n",pedido_inicializar.idPrograma,pedido_inicializar.pagRequeridas);
 
+	free(pedido_inicializar.codigo);
 	free(inicializarserializado->pedido_serializado);
 	free(inicializarserializado);
 }
@@ -893,8 +895,6 @@ void cargar_varCompartidas(){
 
 		dictionary_put(variablesCompartidas,varCompartArray[i],valor);
 	}
-
-	free(varCompartArray);
 }
 
 void configurarinotify(void* param){
@@ -1048,6 +1048,7 @@ int main(int argc, char **argv){
 
 				break;
 		}
+	destruir_paquete(paquete_umc);
 
 	if (pthread_create(&thread_cpu, NULL, (void*)funcion_hilo_servidor, &conf_cpu)){
 	        perror("Error el crear el thread cpu.");
