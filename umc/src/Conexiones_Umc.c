@@ -638,16 +638,19 @@ char* leerDeSwap(int pid,int pagina){
 }
 
 void eliminar_pagina_TLB(int proceso, int pagina){
-	pthread_mutex_lock(&mutex_tlb);
-	int i;
-	for(i=0;i<list_size(tlb);i++){
-		t_entrada_tlb* entrada_eliminar = list_get(tlb,i);
+	if(config_umc->entradas_tlb){
 
-		if(entrada_eliminar->pid==proceso && entrada_eliminar->nroPagina==pagina){
-			free(list_remove(tlb,i));
+		pthread_mutex_lock(&mutex_tlb);
+		int i;
+		for(i=0;i<list_size(tlb);i++){
+			t_entrada_tlb* entrada_eliminar = list_get(tlb,i);
+
+			if(entrada_eliminar->pid==proceso && entrada_eliminar->nroPagina==pagina){
+				free(list_remove(tlb,i));
+			}
 		}
+		pthread_mutex_unlock(&mutex_tlb);
 	}
-	pthread_mutex_unlock(&mutex_tlb);
 }
 
 //------------------------------------------------------------------------------------------------------
