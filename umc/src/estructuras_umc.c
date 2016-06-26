@@ -276,13 +276,23 @@ t_entrada_tabla_paginas* elegir_victima_clock(t_entrada_diccionario *entrada_dic
 		entrada_pag_victima = list_get(tablaDePaginas,entrada_diccionario->manecilla);
 
 		//Si la página está en uso la marco como que ya no está en uso
-		if(entrada_pag_victima->uso && entrada_pag_victima->presencia){
+		if(entrada_pag_victima->presencia){
+
+			if(entrada_pag_victima->uso){
+
+				entrada_pag_victima->uso=false;
+
+			}else encontro_pag_victima=true;
+		}
+
+
+		/*if(entrada_pag_victima->uso && entrada_pag_victima->presencia){
 			entrada_pag_victima->uso=false;
 
 		//Si la página no está en uso devuelvo esa entrada
 		}else{
 			encontro_pag_victima=true;
-		}
+		}*/
 
 		incrementarManecilla(entrada_diccionario,tablaDePaginas);
 	}
