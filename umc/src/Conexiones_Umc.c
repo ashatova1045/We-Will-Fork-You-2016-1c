@@ -9,14 +9,15 @@
 //Sockets
 //------------------------------------------------------------------------------------------------------
 //Variables globales
+
 //mutex para la comunicación con el swap
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 //mutex para el acceso a la tabla de paginas
-pthread_mutex_t mutex_pags=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_pags = PTHREAD_MUTEX_INITIALIZER;
 
 //mutex para la tlb
-pthread_mutex_t mutex_tlb=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_tlb = PTHREAD_MUTEX_INITIALIZER;
 
 //Función para atender las conexiones de las cpus y el núcleo
 
@@ -205,10 +206,10 @@ void atender_conexion(int* socket_conexion){
 					entrada_pag_escritura = buscar_pagina_en_TLB(proceso_activo,pedido_almacenar->nroPagina);
 
 					pthread_mutex_unlock(&mutex_tlb);
+					log_warning(logUMC,"Página no encontrada en la TLB");
 				}
 
 				if(entrada_pag_escritura == NULL){
-					log_warning(logUMC,"Página no encontrada en la TLB");
 
 					//Protejo el acceso a la tabla de páginas
 					pthread_mutex_lock(&mutex_pags);
@@ -635,4 +636,18 @@ char* leerDeSwap(int pid,int pagina){
 
 	return datos_pagina;
 }
+
+void eliminar_pagina_TLB(int proceso, int pagina){
+	pthread_mutex_lock(&mutex_tlb);
+	int i;
+	for(i=0;i<list_size(tlb);i++){
+		t_entrada_tlb* entrada_eliminar = list_get(tlb,i);
+
+		if(entrada_eliminar->pid==proceso && entrada_eliminar->nroPagina==pagina){
+			free(list_remove(tlb,i));
+		}
+	}
+	pthread_mutex_unlock(&mutex_tlb);
+}
+
 //------------------------------------------------------------------------------------------------------

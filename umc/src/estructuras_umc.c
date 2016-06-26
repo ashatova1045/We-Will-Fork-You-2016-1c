@@ -127,7 +127,7 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 			t_entrada_tabla_paginas* entrada_pag_pedida_actualizada = reemplazarPagina(pagina,entrada_diccionario);
 
 			entrada_pagina = entrada_pag_pedida_actualizada;
-			log_info(logUMC,"entrada_pag_pedida_actualizada PID: %d",entrada_pagina->nro_marco);
+			log_info(logUMC,"entrada_pag_pedida_actualizada PID: %d",entrada_diccionario->pid);
 
 		//Si el proceso no pidió la cantidad máxima de frames
 		}else if(paginasUsadas<config_umc->marco_x_proc){
@@ -465,6 +465,8 @@ t_entrada_tabla_paginas* reemplazarPagina(int pagina,t_entrada_diccionario *entr
 		entrada_pag_victima = elegir_victima_clock_m(entrada_diccionario);
 	}else entrada_pag_victima = elegir_victima_clock(entrada_diccionario);
 
+	//Busco el id de la página víctima
+	int pagina_victima = list_get_index(tablaDePaginas,entrada_pag_victima);
 
 	//Si la página está modificada busco los datos y se los mando al swap
 	if(entrada_pag_victima->modificado==true){
@@ -476,13 +478,12 @@ t_entrada_tabla_paginas* reemplazarPagina(int pagina,t_entrada_diccionario *entr
 		char* datos_pagina_victima = datos_pagina_en_memoria(entrada_pag_victima->nro_marco);
 
 		//Busco el id de la página víctima
-		int pagina_victima = list_get_index(tablaDePaginas,entrada_pag_victima);
-
-		log_info(logUMC,"Se eligio como víctima la página %d del proceso %d",pagina_victima,entrada_diccionario->pid);
+		//int pagina_victima = list_get_index(tablaDePaginas,entrada_pag_victima);
 
 		//Escribo la página víctima en memoria
 		escribirEnSwap(pagina_victima,datos_pagina_victima,entrada_diccionario->pid);
 	}
+	log_info(logUMC,"Se eligio como víctima la página %d del proceso %d",pagina_victima,entrada_diccionario->pid);
 
 	//Le pido al swap la página
 	char* datos_pagina = leerDeSwap(entrada_diccionario->pid,pagina);
@@ -513,6 +514,8 @@ t_entrada_tabla_paginas* reemplazarPagina(int pagina,t_entrada_diccionario *entr
 	log_debug(logUMC,"El bit de presencia de la pagina victima del proceso %d ahora es %d",entrada_diccionario->pid,entrada_pag_victima->presencia);
 	log_debug(logUMC,"El numero de frame de la página víctima del proceso %d es %d",entrada_diccionario->pid,entrada_pag_victima->nro_marco);
 	log_debug(logUMC,"El bit de presencia de la página %d del proceso %d es %d",pagina,entrada_diccionario->pid,entrada_pag_pedida->presencia);
+
+	eliminar_pagina_TLB(entrada_diccionario->pid,pagina_victima);
 
 	return entrada_pag_pedida;
 
