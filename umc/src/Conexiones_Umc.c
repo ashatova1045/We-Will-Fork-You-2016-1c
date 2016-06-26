@@ -320,6 +320,9 @@ void atender_conexion(int* socket_conexion){
 					//Se marcan los frames asignados como libres en el bitmap
 					t_entrada_diccionario *entrada_diccionario = dictionary_remove(tablasDePagina,i_to_s(*programaAFinalizar));
 
+					//Libero el acceso a la tabla de páginas
+					pthread_mutex_unlock(&mutex_pags);
+
 					//Se elimina de la TLB
 					if(config_umc->entradas_tlb){
 						eliminarPaginasEnTLB(*programaAFinalizar);
@@ -331,9 +334,6 @@ void atender_conexion(int* socket_conexion){
 					free(entrada_diccionario);
 
 					log_info(logUMC,"Se eliminaron las estructuras del proceso %d",*programaAFinalizar);
-
-					//Libero el acceso a la tabla de páginas
-					pthread_mutex_unlock(&mutex_pags);
 
 					log_info(logUMC,"Se elimino el programa correctamente");
 					//enviar(OK,1,&socket_conexion,*socket_conexion);
