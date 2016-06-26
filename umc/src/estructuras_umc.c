@@ -217,18 +217,6 @@ void cargar_en_TLB(int32_t pid, int nroPagina, t_entrada_tabla_paginas* pagina){
 	list_add(tlb,entrada_tlb);
 }
 
-void actualizar_TLB(int32_t pid, int nroPagina, t_entrada_tabla_paginas* pagina){
-	log_info(logUMC,"Se actualiza la página en la TLB");
-
-	bool matchPID(void* entrada_tlb){
-		return ((t_entrada_tlb*)entrada_tlb)->pid == pid;
-	}
-	t_entrada_tlb* entrada_tlb = list_find(tlb,matchPID);
-	if(entrada_tlb != NULL){
-		entrada_tlb->pagina = pagina;
-	}
-}
-
 void eliminarPaginasEnTLB(int32_t pid){
 	log_info(logUMC,"Se borran la páginas en la TLB");
 
