@@ -40,4 +40,7 @@ void escribirEnSwap(int pagina,char* datos_pagina,int pid);
 
 void eliminar_pagina_TLB(int proceso, int pagina);
 
+//mutex para el acceso a la tabla de paginas
+pthread_mutex_t mutex_pags;
+
 #endif /* CONEXIONES_UMC_H_ */

@@ -13,9 +13,6 @@
 //mutex para la comunicación con el swap
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-//mutex para el acceso a la tabla de paginas
-pthread_mutex_t mutex_pags = PTHREAD_MUTEX_INITIALIZER;
-
 //mutex para la tlb
 pthread_mutex_t mutex_tlb = PTHREAD_MUTEX_INITIALIZER;
 
@@ -129,15 +126,10 @@ void atender_conexion(int* socket_conexion){
 				}
 
 				if(entrada_pag_pedida == NULL){
-					//Protejo con un semáforo el acceso a la tabla de paginas
-					pthread_mutex_lock(&mutex_pags);
 
 					//Busco la pagina en la tabla de paginas
 					log_info(logUMC,"Se busca en la tabla de páginas");
 					entrada_pag_pedida= buscar_pagina_en_tabla(proceso_activo,solicitud.nroPagina);
-
-					//Libero el acceso a la tabla de páginas
-					pthread_mutex_unlock(&mutex_pags);
 
 					if(entrada_pag_pedida==NULL){
 
@@ -210,15 +202,8 @@ void atender_conexion(int* socket_conexion){
 				}
 
 				if(entrada_pag_escritura == NULL){
-
-					//Protejo el acceso a la tabla de páginas
-					pthread_mutex_lock(&mutex_pags);
-
 					//Busco la página en la tabla de páginas
 					entrada_pag_escritura=buscar_pagina_en_tabla(proceso_activo,pedido_almacenar->nroPagina);
-
-					//Libero el acceso a la tabla de páginas
-					pthread_mutex_unlock(&mutex_pags);
 
 					if(entrada_pag_escritura==NULL){
 
@@ -320,6 +305,9 @@ void atender_conexion(int* socket_conexion){
 					//Se marcan los frames asignados como libres en el bitmap
 					t_entrada_diccionario *entrada_diccionario = dictionary_remove(tablasDePagina,i_to_s(*programaAFinalizar));
 
+					//Libero el acceso a la tabla de páginas
+					pthread_mutex_unlock(&mutex_pags);
+
 					//Se elimina de la TLB
 					if(config_umc->entradas_tlb){
 						eliminarPaginasEnTLB(*programaAFinalizar);
@@ -331,9 +319,6 @@ void atender_conexion(int* socket_conexion){
 					free(entrada_diccionario);
 
 					log_info(logUMC,"Se eliminaron las estructuras del proceso %d",*programaAFinalizar);
-
-					//Libero el acceso a la tabla de páginas
-					pthread_mutex_unlock(&mutex_pags);
 
 					log_info(logUMC,"Se elimino el programa correctamente");
 					//enviar(OK,1,&socket_conexion,*socket_conexion);

@@ -83,8 +83,14 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 
 	t_entrada_tabla_paginas *entrada_pagina;
 
+	//Protejo con un semáforo el acceso a la tabla de paginas
+	pthread_mutex_lock(&mutex_pags);
+
 	//Busco la entrada al diccionario de la página
 	t_entrada_diccionario *entrada_diccionario = dictionary_get(tablasDePagina,i_to_s(pid));
+
+	pthread_mutex_unlock(&mutex_pags);
+
 
 	//Busco la tabla de páginas del proceso
 	t_list *tablaDePaginas=entrada_diccionario->tablaDePaginas;

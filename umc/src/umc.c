@@ -70,6 +70,7 @@ int main(int argc, char **argv){
 	log_info(logUMC,"Se envió el tamaño de la página al swap");
 
 
+	mutex_pags = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
 
 	//Defino el hilo para el socket servidor
 	pthread_t  pedidosThread;
