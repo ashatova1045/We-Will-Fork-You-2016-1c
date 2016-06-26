@@ -46,6 +46,7 @@ t_log* logEstados;
 int tamano_pag_umc;
 t_nucleoConfig* config_nucleo;
 pthread_mutex_t mutexKernel =PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutexRecibirumc =PTHREAD_MUTEX_INITIALIZER;
 
 t_config* config;
 int file_descriptor_inotify;
@@ -390,7 +391,7 @@ void enviar_a_cpu(){
 	log_info(logNucleo,"Se envio un pcb a correr en la cpu %d",cpu_libre->socket);
 }
 
-bool inicializar_programa(t_pcb* nuevo_pcb,void *datos, t_metadata_program* metadata){
+void inicializar_programa(t_pcb* nuevo_pcb,void *datos, t_metadata_program* metadata){
 	t_pedido_inicializar pedido_inicializar;
 
 	pedido_inicializar.idPrograma = nuevo_pcb->pid;
@@ -403,68 +404,65 @@ bool inicializar_programa(t_pcb* nuevo_pcb,void *datos, t_metadata_program* meta
 
 	enviar(NUEVO_PROGRAMA,inicializarserializado->tamano,inicializarserializado->pedido_serializado,socket_umc);
 	log_debug(logNucleo,"Pedido inicializar enviado. PID %d,paginas %d",pedido_inicializar.idPrograma,pedido_inicializar.pagRequeridas);
+	printf("Pedido inicializar enviado. PID %d,paginas %d\n",pedido_inicializar.idPrograma,pedido_inicializar.pagRequeridas);
 
 	free(inicializarserializado->pedido_serializado);
 	free(inicializarserializado);
+}
 
+void respuesta_inicializar_programa(int* socket){
+	pthread_mutex_lock(&mutexRecibirumc); //por las dudas, ya que recibir_paquete es una funcion "medio larga"
 	t_paquete *respuesta_umc=recibir_paquete(socket_umc);
+	pthread_mutex_unlock(&mutexRecibirumc);
+
 	log_info(logNucleo,"Recibi respuesta umc");
+
+	if(respuesta_umc->cod_op == ERROR_COD_OP){
+		puts("Se desconecto la umc");
+		log_error(logNucleo,"Murio la UMC");
+		exit(EXIT_FAILURE);
+	}
+
+	int32_t pid_respuesta = *(int32_t*)respuesta_umc->datos;
+
+
+	pthread_mutex_lock(&mutexKernel);
+
+	cargar_programa(*socket,pid_respuesta);
+
+	t_pcb* pcb_respuesta = sacarDe_colaNew(pid_respuesta);
 
 	switch (respuesta_umc->cod_op) {
 		case OK:
-			puts("Inicializacion correcta");
+			printf("Inicializacion correcta del PID %d\n",pid_respuesta);
 //			log_info(logNucleo,"Inicializacion correcta. UMC envio OK");
-			return true;
+
+			moverA_colaReady(pcb_respuesta);
+			log_info(logNucleo,"Se envia mensaje a la consola del socket %d que pudo poner en Ready su PCB ", socket);
+			enviar(OK, 1,&socket,*socket); //que le mando? basura?
+
 			break;
 		case NO_OK:
-			puts("Inicializacion incorrecta");
-			log_warning(logNucleo,"Inicializacion incorrecta. UMC envio NO_OK");
+			printf("Inicializacion incorrecta del PID %d\n",pid_respuesta);
+			log_warning(logNucleo,"Inicializacion incorrecta del PID %d. UMC envio NO_OK",pid_respuesta);
 			//responder a la consola que no se puede ejecutar el programa <-- Se hace en void manejar_new_ready_NvoPrograma(void *args)
 			//destruir lo inicializado
-			break;
-		case ERROR_COD_OP:
-			puts("Se desconecto la umc");
-			log_error(logNucleo,"Murio la UMC");
-			exit(EXIT_FAILURE);
-			//responder a la consola que no se puede ejecutar el programa
-			//destruir lo inicializado
+
+			moverA_colaExit(pcb_respuesta);
+			log_warning(logNucleo,"Se envia mensaje a la consola del socket %d que no pudo poner en Ready su PCB ", socket);
+			enviar(NO_OK, 1,&socket,*socket);
+
 			break;
 		default:
+			log_warning(logNucleo,"Atencion! Llego un codigo de operacion inesperado a respuesta_inicializar_programa()");
 			break;
-	}
-return false;
-}
-
-void manejar_new_ready_NvoPrograma(void *args){
-	int socket = ((t_new_ready_args *)args)->socket;
-	t_pcb * nuevo_pcb = ((t_new_ready_args *)args)->pcb;
-	void *datos = ((t_new_ready_args *)args)->datos;
-	t_metadata_program* metadata = ((t_new_ready_args *)args)->metadata;
-
-	//envio el inicializar a umc
-	bool inicializo_bien = inicializar_programa(nuevo_pcb,datos,metadata);
-
-	metadata_destruir(metadata);
-	//agrego consola a la lista
-	free(datos);
-
-	pthread_mutex_lock(&mutexKernel);
-	cargar_programa(socket,nuevo_pcb->pid);
-	if (inicializo_bien){
-		sacarDe_colaNew(nuevo_pcb->pid);
-		moverA_colaReady(nuevo_pcb);
-		log_info(logNucleo,"Se envia mensaje a la consola del socket %d que pudo poner en Ready su PCB ", socket);
-		enviar(OK, sizeof(int32_t),&socket,socket); //que le mando? basura?
-	}
-	else{
-		t_pcb *pcb_fallido= sacarDe_colaNew(nuevo_pcb->pid);
-		moverA_colaExit(pcb_fallido);
-		log_info(logNucleo,"Se envia mensaje a la consola del socket %d que no pudo poner en Ready su PCB ", socket);
-		enviar(NO_OK, sizeof(int32_t),&socket,socket); //que le mando? basura?
 	}
 
 	enviar_a_cpu();
+
 	pthread_mutex_unlock(&mutexKernel);
+
+	free(socket);
 }
 
 void manejar_socket_consola(int socket,t_paquete paquete){
@@ -490,12 +488,12 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			nuevo_pcb = armar_nuevo_pcb(paquete,metadata);
 			log_debug(logNucleo, "Se armo el nuevo pcb, su id es: %d", nuevo_pcb->pid);
 			moverA_colaNew(nuevo_pcb);
+
+			//envio el inicializar a umc
+			inicializar_programa(nuevo_pcb,paquete.datos,metadata);
+			metadata_destruir(metadata);
+
 //---------------------------------
-			t_new_ready_args args;
-			args.pcb=nuevo_pcb;
-			args.datos= strdup(paquete.datos);
-			args.metadata=metadata;
-			args.socket = socket;
 
 			//Defino el hilo para manejar la inicializacion del programa
 			pthread_t  new_ready_thread;
@@ -507,7 +505,10 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			pthread_attr_init(&attr);
 			pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
 
-			if(pthread_create(&new_ready_thread,&attr,(void*)manejar_new_ready_NvoPrograma, (void *)&args)){
+			int* socket_actual = malloc(sizeof(int));
+			*socket_actual = socket;
+
+			if(pthread_create(&new_ready_thread,&attr,(void*)respuesta_inicializar_programa,socket_actual)){
 				log_error(logNucleo,"Error al crear el hilo para el programa del socket %d", socket);
 				exit(EXIT_FAILURE);
 			}

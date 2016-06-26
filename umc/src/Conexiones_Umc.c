@@ -77,7 +77,7 @@ void atender_conexion(int* socket_conexion){
 					log_info(logUMC,"No hay espacio sufuciente para el programa %d",pedido_inicializar->idPrograma);
 
 					//Le aviso al núcleo de que no hay espacio
-					enviar(NO_OK,1,socket_conexion,*socket_conexion);
+					enviar(NO_OK,sizeof(int32_t),&pedido_inicializar->idPrograma,*socket_conexion);
 					log_debug(logUMC,"Se informó al nucleo de que no hay espacio para el programa %d",pedido_inicializar->idPrograma);
 
 				//Si la respuesta es que hay espacio para el programa
@@ -89,7 +89,7 @@ void atender_conexion(int* socket_conexion){
 					log_info(logUMC,"Se creo la tabla de paginas del programa %d ",pedido_inicializar->idPrograma);
 
 					//Le aviso al nucleo que hay espacio para el nuevo programa
-					enviar(OK,1,socket_conexion,*socket_conexion);
+					enviar(OK,sizeof(int32_t),&pedido_inicializar->idPrograma,*socket_conexion);
 					log_debug(logUMC,"Se informo al kernel que hay paginas para el programa %d",pedido_inicializar->idPrograma);
 
 				//Si la respuesta es que se desconecto el socket
