@@ -252,18 +252,7 @@ void atender_conexion(int* socket_conexion){
 
 						//Pongo el bit de modificado de la página en true
 						entrada_pag_escritura->modificado=true;
-						log_info(logUMC,"El bit de modificado de la pagina %d del proceso %d es %d",solicitud.nroPagina,proceso_activo,entrada_pag_escritura->modificado);
-
-
-						if(config_umc->entradas_tlb){
-							//Se actualiza la página modificada en la TLB
-							pthread_mutex_lock(&mutex_tlb);
-
-							actualizar_TLB(proceso_activo,pedido_almacenar->nroPagina,entrada_pag_escritura);
-
-							pthread_mutex_unlock(&mutex_tlb);
-						}
-
+						log_info(logUMC,"El bit de modificado de la pagina %d del proceso %d es %d",pedido_almacenar->nroPagina,proceso_activo,entrada_pag_escritura->modificado);
 
 						//Envío el aviso de que se escribio en la página
 						log_info(logUMC,"Se escribio en la página correctamente");
@@ -284,16 +273,6 @@ void atender_conexion(int* socket_conexion){
 					//Pongo el bit de modificado de la página en true
 					entrada_pag_escritura->modificado=true;
 					log_info(logUMC,"El bit de modificado de la pagina %d del proceso %d es %d",solicitud.nroPagina,proceso_activo,entrada_pag_escritura->modificado);
-
-
-					if(config_umc->entradas_tlb){
-						//Se actualiza la página modificada en la TLB
-						pthread_mutex_lock(&mutex_tlb);
-
-						actualizar_TLB(proceso_activo,pedido_almacenar->nroPagina,entrada_pag_escritura);
-
-						pthread_mutex_unlock(&mutex_tlb);
-					}
 
 
 					//Envío el aviso de que se escribio en la página
