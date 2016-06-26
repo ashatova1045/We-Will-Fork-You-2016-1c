@@ -8,6 +8,6 @@ rm ../nucleo/logEstados.log
 rm ../nucleo/logNucleo.log
 rm ../umc/logUMC.log
 rm ../cpu/logCPU.log
-
+rm ../tests/consola.log
 
 echo "Fin"
