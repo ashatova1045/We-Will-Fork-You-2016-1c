@@ -33,7 +33,4 @@ void generarReporteDeDatosProceso(int idProceso);
 
 void generarReporteDeProceso(int idProceso);
 
-//mutex para el acceso a la variable de retardo
-pthread_mutex_t mutex_retardo;
-
 #endif /* CONSOLA_UMC_H_ */

@@ -16,12 +16,7 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 //mutex para la tlb
 pthread_mutex_t mutex_tlb = PTHREAD_MUTEX_INITIALIZER;
 
-//mutex para el acceso a la variable de retardo
-pthread_mutex_t mutex_retardo;
-
 //Función para atender las conexiones de las cpus y el núcleo
-
-
 void atender_conexion(int* socket_conexion){
 	
 	int32_t proceso_activo;
@@ -40,8 +35,8 @@ void atender_conexion(int* socket_conexion){
 
 				//Simulo el tiempo de acceso a memoria con el tiempo de retardo ingresado en la configuracion
 
-				//Desbloqueo el acceso a la variable retardo
-				pthread_mutex_unlock(&mutex_retardo);
+				//Bloqueo el acceso a la variable retardo
+				pthread_mutex_lock(&mutex_retardo);
 
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
@@ -113,7 +108,7 @@ void atender_conexion(int* socket_conexion){
 				//Simulo el tiempo de acceso a memoria con el retardo ingresado en la configuracion
 
 				//Desbloqueo el acceso a la variable retardo
-				pthread_mutex_unlock(&mutex_retardo);
+				pthread_mutex_lock(&mutex_retardo);
 
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
@@ -195,8 +190,8 @@ void atender_conexion(int* socket_conexion){
 				log_info(logUMC,"Llego un pedido de escritura de página");
 
 				//Simulo el tiempo de acceso a memoria con el retardo ingresado en la configuración
-				//Desbloqueo el acceso a la variable retardo
-				pthread_mutex_unlock(&mutex_retardo);
+				//Bloqueo el acceso a la variable retardo
+				pthread_mutex_lock(&mutex_retardo);
 
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);

@@ -12,6 +12,8 @@ t_umcConfig* config_umc;
 
 t_umcConfig* leerConfiguracion(t_config* config);
 
+//mutex para el acceso a la variable de retardo
+pthread_mutex_t mutex_retardo;
 
 void eliminarConfigUmc(t_umcConfig* datosUmcAEliminar);
 

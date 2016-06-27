@@ -18,6 +18,7 @@
 #include "estructuras_umc.h"
 #include "../../general/Operaciones_umc.h"
 #include "../../general/operaciones_swap.h"
+#include "Config_Umc.h"
 
 //Creo el entero para referenciar al socket del swap
 int socketServerPedido, socketswap, socket_nucleo;
