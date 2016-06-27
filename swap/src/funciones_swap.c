@@ -256,36 +256,37 @@ void finalizarPrograma(t_paquete* paquete){
 	puts("FINALIZA PROGRAMA");
 
 
-	int i,codOp = NO_OK;
+	int codOp = NO_OK;
 
-	for(i=0;i<list_size(lista_procesos);i++){
-		t_control_swap* controlSwap = list_get(lista_procesos,i);
+	bool matchswap(void* constrolswapentrada){
+		return ((t_control_swap*)constrolswapentrada)->PId == pid_enviado;
+	}
 
-		if(controlSwap->PId == pid_enviado){
+	t_control_swap* controlSwap = list_remove_by_condition(lista_procesos,matchswap);
 
-			int posAux = controlSwap->posicion;
-			int cantidadPaginas = controlSwap->cantPaginas;
+	if(controlSwap){
 
-			// Establece como libre los bitmaps que ocupó el proceso
-			int pagina_actual;
-			for(pagina_actual=0;pagina_actual<cantidadPaginas;pagina_actual++){
-				bitarray_clean_bit(bitarray,posAux);
-				posAux++;
-			}
+		int posAux = controlSwap->posicion;
+		int cantidadPaginas = controlSwap->cantPaginas;
 
-			printf("Se limpia el bitmap \n");
-			loggearBitmap();
-
-			free(list_remove(lista_procesos,i));
-
-			codOp = OK;
-			log_info(logSwap,"Finalización del programa exitosa");
-			puts("Finalización del programa exitosa");
-		}else{
-			log_error(logSwap,"La finalización del programa ha fallado");
-			puts("La finalización del programa ha fallado");
+		// Establece como libre los bitmaps que ocupó el proceso
+		int pagina_actual;
+		for(pagina_actual=0;pagina_actual<cantidadPaginas;pagina_actual++){
+			bitarray_clean_bit(bitarray,posAux);
+			posAux++;
 		}
 
+		printf("Se limpia el bitmap \n");
+		loggearBitmap();
+
+		free(controlSwap);
+
+		codOp = OK;
+		log_info(logSwap,"Finalización del programa exitosa");
+		puts("Finalización del programa exitosa");
+	}else{
+		log_error(logSwap,"La finalización del programa ha fallado");
+		puts("La finalización del programa ha fallado");
 	}
 
 	// Responde a la UMC el resultado de la operación
