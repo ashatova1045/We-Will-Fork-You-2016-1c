@@ -16,6 +16,9 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 //mutex para la tlb
 pthread_mutex_t mutex_tlb = PTHREAD_MUTEX_INITIALIZER;
 
+//mutex para el acceso a la variable de retardo
+pthread_mutex_t mutex_retardo;
+
 //Función para atender las conexiones de las cpus y el núcleo
 
 
@@ -36,8 +39,15 @@ void atender_conexion(int* socket_conexion){
 				log_info(logUMC,"Llego el aviso de un nuevo programa");
 
 				//Simulo el tiempo de acceso a memoria con el tiempo de retardo ingresado en la configuracion
+
+				//Desbloqueo el acceso a la variable retardo
+				pthread_mutex_unlock(&mutex_retardo);
+
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
+
+				//Desbloqueo el acceso a la variable retardo
+				pthread_mutex_unlock(&mutex_retardo);
 
 				//Deserializo el programa
 				t_pedido_inicializar *pedido_inicializar=deserializar_pedido_inicializar(pedido->datos);
@@ -101,9 +111,15 @@ void atender_conexion(int* socket_conexion){
 
 			case LECTURA_PAGINA:
 				//Simulo el tiempo de acceso a memoria con el retardo ingresado en la configuracion
+
+				//Desbloqueo el acceso a la variable retardo
+				pthread_mutex_unlock(&mutex_retardo);
+
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
 
+				//Desbloqueo el acceso a la variable retardo
+				pthread_mutex_unlock(&mutex_retardo);
 
 				t_pedido_solicitarBytes solicitud=*((t_pedido_solicitarBytes*)pedido->datos);
 
@@ -179,8 +195,14 @@ void atender_conexion(int* socket_conexion){
 				log_info(logUMC,"Llego un pedido de escritura de página");
 
 				//Simulo el tiempo de acceso a memoria con el retardo ingresado en la configuración
+				//Desbloqueo el acceso a la variable retardo
+				pthread_mutex_unlock(&mutex_retardo);
+
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
+
+				//Desbloqueo el acceso a la variable retardo
+				pthread_mutex_unlock(&mutex_retardo);
 
 				//Deserializo el paquete que me llego
 				t_pedido_almacenarBytes *pedido_almacenar;

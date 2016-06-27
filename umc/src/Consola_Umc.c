@@ -43,7 +43,13 @@ void ingresarRetardo(){
 	//Se ingresa por teclado el retardo
 	scanf("%d",&milisegundos);
 
+	//Bloqueo el acceso a la variable retardo
+	pthread_mutex_lock(&mutex_retardo);
+
 	config_umc->retardo=milisegundos;
+
+	//Desbloqueo el acceso a la variable retardo
+	pthread_mutex_unlock(&mutex_retardo);
 
 	printf("\nSe actualizo el retardo, el nuevo retardo es de %d milisegundos\n",config_umc->retardo);
 	getchar();
