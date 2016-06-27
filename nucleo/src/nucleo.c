@@ -815,10 +815,11 @@ void cerrar_socket_cpu(int socket){
 		enviar(TERMINO_MAL_PROGRAMA,1,cpu,relacion->programa->socket);
 
 		moverA_colaExit(sacarDe_colaExec(relacion->programa->pid));
+		enviar(FINALIZA_PROGRAMA,sizeof(relacion->programa->pid),&relacion->programa->pid,socket_umc);
 
 		liberar_una_relacion_porsocket_cpu(cpu->socket);
-
 		elminar_consola_por_socket(relacion->programa->socket);
+
 	}
 
 	free(cpu);
