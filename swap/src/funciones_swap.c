@@ -136,7 +136,7 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 	printf("ProcessID: %d\n",pedido->idPrograma);
 	printf("Cantidad de Paginas: %d\n",pedido->pagRequeridas);
 
-	printf("Estado del bitmap \n");
+	printf("Estado del bitmap antes:\n");
 	loggearBitmap();
 
 	int cantidadPaginas = pedido->pagRequeridas;
@@ -172,6 +172,9 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 			if(codOp == NO_OK)
 				break;
 		}
+
+		printf("Estado del bitmap despues:\n");
+		loggearBitmap();
 
 	}else{
 		//fallar

@@ -175,7 +175,7 @@ void atender_conexion(int* socket_conexion){
 						log_info(logUMC,"Se le envio el contenido de la pagina %d a la cpu %d",solicitud.nroPagina,*socket_conexion);
 					}
 				}else{
-					log_info(logUMC,"Página encontrada en la TLB");
+					log_info(logUMC,"Página encontrada en la TLB - frame %d",entrada_pag_pedida->nro_marco);
 
 					//Busco los datos de la página y se los envío a la cpu
 					char* datosDePagina=datos_pagina_en_memoria(entrada_pag_pedida->nro_marco);

@@ -2,7 +2,11 @@
 #include "Config_Umc.h"
 #include "Conexiones_Umc.h"
 
+pthread_mutex_t memoriaposta;
+
 void crear_estructuras(){
+	memoriaposta = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
+
 	//creo la memoria_principal
 	int espacio_total = config_umc->cant_marcos*config_umc->marco_size;
 	memoria_principal = malloc(espacio_total);
@@ -140,6 +144,8 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 
 			log_info(logUMC,"El proceso %d aun no pidio el máximo número de frames permitidos",pid);
 
+			pthread_mutex_lock(&memoriaposta);
+
 			//Busco la cantidad de frames
 			int framesLibres = cantidadFramesLibres();
 
@@ -151,7 +157,7 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 				//Traigo el primer frame libre
 				int frameAOcupar = encontrarPrimerVacio();
 
-				log_debug(logUMC,"Se va a ocupar el frame %d",frameAOcupar);
+				log_debug(logUMC,"Se va a ocupar el frame libre %d",frameAOcupar);
 
 				//Le pido al swap la página
 				char* datos_pagina = leerDeSwap(pid,pagina);
@@ -161,12 +167,13 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 				memcpy(espacioEnMemoria,datos_pagina,config_umc->marco_size);
 
 				//Actualizo la entrada a la tabla de la página
-				log_info(logUMC,"frameAOcupar: %d",frameAOcupar);
 				entrada_pag_pedida->nro_marco=frameAOcupar;
 				entrada_pag_pedida->presencia=true;
 
 				//Cambio bit de uso porque me la acaban de pedir
 				entrada_pag_pedida->uso=true;
+
+				log_info(logUMC,"PID %d - PAGINA %d - FRAME %d - presencia true - uso true - modificada %d",pid,pagina,frameAOcupar,entrada_pag_pedida->modificado);
 
 				//Marco el frame como ocupado en el bitmap
 				bitarray_set_bit(bitmap_frames,frameAOcupar);
@@ -176,9 +183,10 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 				log_info(logUMC,"La página %d del proceso %d ahora está en memoria en el frame %d",pagina,pid,frameAOcupar);
 				log_info(logUMC,"El bit de presencia de la pagina %d del proceso %d es %d",pagina,pid,entrada_pagina->presencia);
 
+				pthread_mutex_unlock(&memoriaposta);
 			//Si no hay frames libres y el proceso tiene frames usados
 			}else if(paginasUsadas>0){
-
+				pthread_mutex_unlock(&memoriaposta);
 				log_info(logUMC,"No quedan frames libres en memoria, uso una del proceso %d",pid);
 
 				//Reemplazo una página del proceso
@@ -187,7 +195,12 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 				entrada_pagina = entrada_pag_pedida_actualizada;
 
 			//Si no hay frames libres y el proceso no usó ninguno
-			}else entrada_pagina=NULL;
+			}else{
+				entrada_pagina=NULL;
+				pthread_mutex_unlock(&memoriaposta);
+			}
+
+
 		}
 
 	}
@@ -404,21 +417,25 @@ int encontrarPrimerVacio(){
 }
 
 void usarBitMapDesdePos(int cantFrames, int desdeEstaPosicion){
+	pthread_mutex_lock(&memoriaposta);
 	int posicionAux = desdeEstaPosicion;
 	while(cantFrames>0){
 		bitarray_set_bit(bitmap_frames,posicionAux);
 		posicionAux++;
 		cantFrames--;
 	}
+	pthread_mutex_lock(&memoriaposta);
 }
 
 void limpiarBitMapDesdePos(int cantFrames, int desdeEstaPosicion){
+	pthread_mutex_lock(&memoriaposta);
 	int posicionAux = desdeEstaPosicion;
 	while(cantFrames>0){
 		bitarray_clean_bit(bitmap_frames,posicionAux);
 		posicionAux++;
 		cantFrames--;
 	}
+	pthread_mutex_unlock(&memoriaposta);
 }
 
 void eliminarPaginas(void *pagina){
@@ -428,12 +445,15 @@ void eliminarPaginas(void *pagina){
 	int32_t nro_marco = paginaABorrar->nro_marco;
 	log_info(logUMC,"Eliminar Páginas - Nro de marco: %d",nro_marco);
 
+	pthread_mutex_lock(&memoriaposta);
 	bitarray_clean_bit(bitmap_frames,nro_marco);
+	pthread_mutex_unlock(&memoriaposta);
 
 	free(pagina);
 }
 
 void loggearBitmap(){
+	pthread_mutex_lock(&memoriaposta);
 	int i;
 	for(i=0;i<(config_umc->cant_marcos);i++){
 		if(bitarray_test_bit(bitmap_frames,i)){
@@ -443,6 +463,7 @@ void loggearBitmap(){
 		}
 	}
 	printf("\n");
+	pthread_mutex_unlock(&memoriaposta);
 }
 
 //Funcion para reemplazar una página del proceso
