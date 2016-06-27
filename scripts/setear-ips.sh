@@ -19,7 +19,7 @@ find ../configuraciones/* -type f -exec \
 
 sed -i 's/^IP_NUCLEO=.*$/IP_NUCLEO='$ip_nucleo'/g' ../consola/consola.cfg
 
-sed -i 's/^IP_UMC=.*$/IP_UMCP='$ip_umc'/g' ../cpu/cpu.cfg
+sed -i 's/^IP_UMC=.*$/IP_UMC='$ip_umc'/g' ../cpu/cpu.cfg
 sed -i 's/^IP_NUCLEO=.*$/IP_NUCLEO='$ip_nucleo'/g' ../cpu/cpu.cfg
 
 echo "Fin"
