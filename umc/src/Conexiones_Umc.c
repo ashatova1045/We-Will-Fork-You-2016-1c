@@ -286,10 +286,13 @@ void atender_conexion(int* socket_conexion){
 				break;
 
 			case CAMBIO_PROCESO_ACTIVO:
+				if(config_umc->entradas_tlb){
+					eliminarPaginasEnTLB(proceso_activo);
+				}
 
 				proceso_activo=*((int32_t*)pedido->datos);
 				log_info(logUMC,"Se informo que el pid del programa es: %d",proceso_activo);
-				//TODO Buscar y devolver estructuras del nuevo proceso
+
 				break;
 
 			case FINALIZA_PROGRAMA:
