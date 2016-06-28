@@ -150,9 +150,9 @@ void atender_conexion(int* socket_conexion){
 
 					}else{
 
-						log_info(logUMC,"Se va a agregar la página %d a la TLB", solicitud.nroPagina);
 						if(config_umc->entradas_tlb){
-						log_debug(logUMC,"Tamaño viejo TLB: %d",list_size(tlb));
+							log_info(logUMC,"Se va a agregar la página %d a la TLB", solicitud.nroPagina);
+							log_debug(logUMC,"Tamaño viejo TLB: %d",list_size(tlb));
 							//Cargar pagina en la TLB
 							pthread_mutex_lock(&mutex_tlb);
 							if(list_size(tlb) == config_umc->entradas_tlb){

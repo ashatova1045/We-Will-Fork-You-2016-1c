@@ -22,7 +22,10 @@ void crear_estructuras(){
 	log_info(logUMC,"Diccionario de tablas de pagina creado correctamente");
 
 	//Inicializo variables del bitarray
-	char* arrayFrames = malloc(config_umc->cant_marcos);
+	char* arrayFrames = malloc(config_umc->cant_marcos/8+1);
+	int i;
+	for(i=0;i<config_umc->cant_marcos/8+1;i++)
+		arrayFrames[i] = 0;
 	int bytesDeArray = ((config_umc->cant_marcos)/8)+1;
 
 	//Creo el bitmap de frames

@@ -137,6 +137,7 @@ void correr_pcb() {
 			&pcb_ejecutandose->pid, socket_umc);
 	log_debug(logcpu, "Se envio el cambio de proceso activo %d",
 			pcb_ejecutandose->pid);
+	printf("Corriendo PID %d\n",pcb_ejecutandose->pid);
 
 	termino_programa = false;
 	int quantum_actual;
@@ -159,7 +160,7 @@ void correr_pcb() {
 
 		//Destuyo la instruccion
 		free(instruccion_actual);
-		puts("Fin instruccion");
+		printf("Fin instruccion\n\n");
 		log_info(logcpu, "Fin de instruccion");
 		log_info(logcpu, "\n\n");
 
@@ -191,7 +192,6 @@ void correr_pcb() {
 
 void matar_hilo_ejecucion() {
 	log_warning(logcpu, "El programa se cerro forzosamente");
-//	pthread_cancel(hilo_ejecucion);	//fixme llamar a la misma funcion que la senal sigusr1
 }
 
 void sugus(int param){
