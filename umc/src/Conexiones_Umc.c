@@ -286,8 +286,11 @@ void atender_conexion(int* socket_conexion){
 				break;
 
 			case CAMBIO_PROCESO_ACTIVO:
+
 				if(config_umc->entradas_tlb){
+					pthread_mutex_lock(&mutex_tlb);
 					eliminarPaginasEnTLB(proceso_activo);
+					pthread_mutex_unlock(&mutex_tlb);
 				}
 
 				proceso_activo=*((int32_t*)pedido->datos);
