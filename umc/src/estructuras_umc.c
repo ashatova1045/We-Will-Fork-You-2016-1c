@@ -444,9 +444,12 @@ void limpiarBitMapDesdePos(int cantFrames, int desdeEstaPosicion){
 void eliminarPaginas(void *pagina){
 	t_entrada_tabla_paginas* paginaABorrar = (t_entrada_tabla_paginas*)pagina;
 
-	//Inicializar varaibles
+	//Inicializar variables
 	int32_t nro_marco = paginaABorrar->nro_marco;
-	log_info(logUMC,"Eliminar Páginas - Nro de marco: %d",nro_marco);
+
+	if(paginaABorrar->nro_marco>-1){
+	log_info(logUMC,"Se elimino la pagina que estaba en el marco: %d",nro_marco);
+	}
 
 	pthread_mutex_lock(&memoriaposta);
 	bitarray_clean_bit(bitmap_frames,nro_marco);

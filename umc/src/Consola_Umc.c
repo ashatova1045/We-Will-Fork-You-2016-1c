@@ -58,13 +58,12 @@ void ingresarRetardo(){
 //Defino funcion de comando dump-Estructura memoria-Todos los procesos
 void rEstructurasDeMemoriaTodas(){
 
-	//generar reporte de tabla de paginas de todos los procesos
+	//Generar reporte de tabla de paginas de todos los procesos
 	if(dictionary_size(tablasDePagina) > 0){
 		int idProceso = 1;
 		for(idProceso=1;idProceso<=dictionary_size(tablasDePagina);idProceso++){
 			generarReporteDeProceso(idProceso);
 		}
-		printf("\nTablas de paginas de todos los procesos\n");
 	}else{
 		printf("No hay estructuras cargadas en memoria");
 	}
@@ -86,9 +85,9 @@ void rEstructuraDeMemoriaProceso(){
 	scanf("%d",&idProceso);
 
 	if(dictionary_size(tablasDePagina) > 0){
+
 		generarReporteDeProceso(idProceso);
 
-		printf("\nTabla de paginas del proceso: %d\n",idProceso);
 	}else{
 		printf("No hay estructuras cargadas en memoria");
 	}
@@ -105,7 +104,6 @@ void rDatosMemoriaTodos(){
 		for(idProceso=1;idProceso<=dictionary_size(tablasDePagina);idProceso++){
 			generarReporteDeDatosProceso(idProceso);
 		}
-		printf("\nDatos en memoria de todos los procesos\n");
 	}else{
 		printf("No hay estructuras cargadas en memoria");
 	}
@@ -129,9 +127,9 @@ void rDatosMemoriaProceso(){
 	scanf("%d",&idProceso);
 
 	if(dictionary_size(tablasDePagina) > 0){
+
 		generarReporteDeDatosProceso(idProceso);
 
-		printf("\nDatos en memoria del proceso: %d\n",idProceso);
 	}else{
 		printf("No hay estructuras cargadas en memoria");
 	}
@@ -185,7 +183,7 @@ void limpiarTLB(){
 				free(list_remove(tlb,0));
 			}
 			crearTLB(cantEntradas);
-			printf("\nSe limpio la tabla de paginas\n");
+			printf("\nSe limpio la TLB\n");
 	}else{
 		printf("La TLB no está disponible");
 	}
@@ -227,7 +225,6 @@ void marcarPaginas(){
 	}
 
 	getchar();
-	// Marcar las paginas del proceso ingresado como leidas
 }
 
 //Defino la función para ejecutar la consola
@@ -279,25 +276,21 @@ void generarReporteDeProceso(int idProceso){
 
 	for(i=0;i<list_size(tablaPaginas);i++){
 		t_entrada_tabla_paginas* entPag = list_get(tablaPaginas,i);
-		if(entPag->nro_marco != -1){
-			if((entPag->presencia) == 1){
-				printf("La página %d del proceso está en memoria! \n",entPag->nro_marco);
-			}else{
-				printf("La página %d del proceso no está en memoria! \n",entPag->nro_marco);
-			}
 
-			if((entPag->uso) == 1){
-				printf("La página %d del proceso está en uso! \n",entPag->nro_marco);
-			}else{
-				printf("La página %d del proceso no está en uso! \n",entPag->nro_marco);
-			}
+		int pagina=list_get_index(tablaPaginas,entPag);
 
-			if((entPag->modificado) == 1){
-				printf("La página %d del proceso está modificada! \n",entPag->nro_marco);
-			}else{
-				printf("La página %d del proceso no está modificada! \n",entPag->nro_marco);
-			}
+		if((entPag->presencia) == 1){
+
+			printf("Pagina: %d | Presencia: %d | Marco: %d |  ",pagina,entPag->presencia,entPag->nro_marco);
+
+		}else{
+
+			printf("Pagina: %d| Presencia: %d |  ",pagina,entPag->presencia);
 		}
+
+		printf("Uso: %d | ",entPag->uso);
+
+		printf("Modificada: %d | \n",entPag->modificado);
 	}
 }
 
@@ -313,12 +306,17 @@ void generarReporteDeDatosProceso(int idProceso){
 	int i;
 
 	for(i=0;i<list_size(tablaPaginas);i++){
+
 		t_entrada_tabla_paginas* entPag = list_get(tablaPaginas,i);
+
 		if(entPag->nro_marco != -1){
+
 			//Busco los datos de la página y se los envío a la cpu
 			char* datosDePagina = datos_pagina_en_memoria(entPag->nro_marco);
+
 			printf("Datos:\n");
-			printf("%s",datosDePagina);
+
+			printf("%.*s",config_umc->marco_size,datosDePagina);
 
 		}
 	}
