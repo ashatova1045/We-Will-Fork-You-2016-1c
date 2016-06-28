@@ -112,6 +112,7 @@ void liberar_una_relacion(t_pcb *pcb_devuelto){
 
 	if(rel->programa->socket==-1){ //esta consola ya se murio
 		log_warning(logNucleo,"Aprovecho para eliminar del sistema la consola cerrada del PID %d",rel->programa->pid);
+		moverA_colaExit(sacarDe_colaReady(rel->programa->pid));
 		elminar_consola_por_pid(rel->programa->pid);
 	}
 	free(rel);
@@ -130,6 +131,7 @@ void liberar_una_relacion_porsocket_cpu(int socketcpu){
 
 	if(rel->programa->socket==-1){ //esta consola ya se murio
 		log_warning(logNucleo,"Aprovecho para eliminar del sistema la consola cerrada del PID %d",rel->programa->pid);
+		moverA_colaExit(sacarDe_colaReady(rel->programa->pid));
 		elminar_consola_por_pid(rel->programa->pid);
 	}
 
@@ -542,9 +544,9 @@ void cerrar_socket_consola(int socket){
 	t_consola* consola = list_find(lista_programas_actuales,matchSocket_Consola);
 	if(consola){
 			log_warning(logNucleo,"Se marco la consola %d como cerrada",socket);
-			consola->socket= -1 ; //lo marco como cerrado
-
 			t_relacion* relacion = 	matchear_relacion_por_socketconsola(socket);
+
+			consola->socket= -1 ; //lo marco como cerrado
 
 			if (!relacion){
 				moverA_colaExit(sacarDe_colaNew(consola->pid));
