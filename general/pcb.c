@@ -110,7 +110,7 @@ t_pcb* deserializar(char* pcbs)
 		offset += sizeof(t_posMemoria);
 	}
 
-	pcb->tamano_etiquetas = pcbs[offset];
+	pcb->tamano_etiquetas = *((u_int32_t*)(pcbs +offset));
 	offset += sizeof(pcb->tamano_etiquetas);
 
 	pcb->indice_etiquetas = malloc(pcb->tamano_etiquetas*sizeof(char));
