@@ -63,7 +63,8 @@ enum cod_op{ // Si se persisten en algun lado,agregar los cod_ops al final
 	OBTENER_VALOR_COMPARTIDA=35,
 	ASIGNAR_VALOR_COMPARTIDA=36,
 	MURIO_CONSOLA=37,
-	RETARDOQUANTUM= 38
+	RETARDOQUANTUM= 38,
+	ERROR_FALTA_MEMORIA =39
 };
 
 int enviar(uint16_t cod_op, int tamano_datos_en_bytes, void* datos, int destino_fd);
