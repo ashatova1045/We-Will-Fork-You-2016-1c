@@ -746,6 +746,35 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				}
 
 				break;
+				
+			case ERROR_FALTA_MEMORIA:
+			{
+				log_debug(logNucleo,"No se pudo asignar memoria al pcb del socket: %d",socket);
+
+				t_pcb *pcb_devuelto = deserializar(paquete.datos);
+
+				liberar_una_relacion(pcb_devuelto);
+
+
+				t_pcb *pcb_viejo_en_exec =  sacarDe_colaExec(pcb_devuelto->pid);
+				if(pcb_viejo_en_exec){ //por si la consola murio y el liberar ya se ocupo del pcb
+					destruir_pcb(pcb_viejo_en_exec);
+					moverA_colaExit(pcb_devuelto);
+
+
+					enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(pcb_devuelto->pid),socket_umc);
+					log_debug(logNucleo,"Envie a la umc el codigo de que finalizo el programa con el pid: %d por falta de memoria", pcb_devuelto->pid );
+
+
+					t_consola* consola = matchear_consola_por_pid(pcb_devuelto->pid);
+
+					enviar(TERMINO_MAL_PROGRAMA,1,consola,consola->socket);
+					elminar_consola_por_socket(consola->socket);
+					enviar_a_cpu();
+				}
+				}
+				break;
+				
 			case WAIT:
 				{t_pedido_wait *pedido_wait = malloc(sizeof(t_pedido_wait));
 				*pedido_wait=  deserializar_wait(paquete.datos);
