@@ -246,12 +246,13 @@ void ejecutoConsola(){
 		}
 		else{
 
-			printf("\nUn momento por favor\n");
+			printf("\nUn momento por favor...\n");
 			//bloqueo a los demas de correr cosas nuevas
-			pthread_mutex_lock(&nuevos_pedidos);
-			//solo sigo cuando no corran nada mas
-			while(*cant_pedidos_corriendo !=0)
-				usleep(100);
+
+			int i;
+			//bloqueo todos los posibles programas. o terminan o se quedan trabados antes de empezar
+			for(i=0;i<*cant_programas_conectados;i++)
+				sem_wait(&programasquepuedencorrer);
 
 			if(string_equals_ignore_case(comando,"retardo\n"))ingresarRetardo();
 			else if(string_equals_ignore_case(comando,"dump\n"))reportes();
@@ -261,7 +262,10 @@ void ejecutoConsola(){
 			printf("\nPara continuar presione Enter\n");
 
 			getchar();
-			pthread_mutex_unlock(&nuevos_pedidos);
+
+			//desbloqueo todos los posibles programas
+			for(i=0;i<*cant_programas_conectados;i++)
+			  sem_post(&programasquepuedencorrer);
 		}
 	}
 }

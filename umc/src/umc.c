@@ -71,10 +71,12 @@ int main(int argc, char **argv){
 
 
 	mutex_pags = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
-	nuevos_pedidos = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
 
-	cant_pedidos_corriendo = malloc(sizeof(int));
-	*cant_pedidos_corriendo = 0;
+	//no puede correr nadie porque no hay nadie conectado
+	sem_init(&programasquepuedencorrer,0,0);
+
+	cant_programas_conectados = malloc(sizeof(int));
+	*cant_programas_conectados = 0;
 
 	//Defino el hilo para el socket servidor
 	pthread_t  pedidosThread;

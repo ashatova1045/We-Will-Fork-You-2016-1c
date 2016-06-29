@@ -28,9 +28,8 @@ void atender_conexion(int* socket_conexion){
 		t_paquete* pedido = recibir_paquete(*socket_conexion);
 		log_info(logUMC,"Se recibio un pedido del socket %d",*socket_conexion);
 
-		pthread_mutex_lock(&nuevos_pedidos);
-		*cant_pedidos_corriendo = (*cant_pedidos_corriendo)+1;
-		pthread_mutex_unlock(&nuevos_pedidos);
+		//puede correr 1 menos
+		sem_wait(&programasquepuedencorrer);
 
 		switch(pedido->cod_op){
 			case NUEVO_PROGRAMA:
@@ -373,9 +372,11 @@ void atender_conexion(int* socket_conexion){
 				break;
 		}
 		destruir_paquete(pedido);
-
-		*cant_pedidos_corriendo = (*cant_pedidos_corriendo)-1;
 	}
+
+	//puedo correr 1 mas
+	sem_post(&programasquepuedencorrer);
+
 	free(socket_conexion);
 }
 
@@ -428,6 +429,9 @@ void manejar_paquete(int socket,t_paquete paq){
 			log_debug(logUMC,"Handshake con CPU exitoso");
 			log_info(logUMC,"El socket %d es de una cpu",socket);
 
+			(*cant_programas_conectados)++;
+			log_debug(logUMC,"Hay %d programas conectados",*cant_programas_conectados);
+
 			break;
 
 		//Handshake con nucleo
@@ -474,6 +478,10 @@ void manejar_paquete(int socket,t_paquete paq){
 //Cerrar puerto de socket conectado
 void cerrar_conexion(int socket){
 	log_debug(logUMC,"Se cerro %d\n",socket);
+	(*cant_programas_conectados)--;
+
+	log_debug(logUMC,"Hay %d programas conectados\n",*cant_programas_conectados);
+
 }
 
 //Recibe nuevas conexiones
