@@ -203,7 +203,9 @@ void atender_conexion(int* socket_conexion){
 					entrada_pag_escritura = buscar_pagina_en_TLB(proceso_activo,pedido_almacenar->nroPagina);
 
 					pthread_mutex_unlock(&mutex_tlb);
-					log_warning(logUMC,"Página no encontrada en la TLB");
+					if(entrada_pag_pedida == NULL){
+						log_warning(logUMC,"Página no encontrada en la TLB");
+					}
 				}
 
 				if(entrada_pag_escritura == NULL){
