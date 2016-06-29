@@ -430,6 +430,7 @@ void manejar_paquete(int socket,t_paquete paq){
 			log_info(logUMC,"El socket %d es de una cpu",socket);
 
 			(*cant_programas_conectados)++;
+			sem_post(&programasquepuedencorrer);
 			log_debug(logUMC,"Hay %d programas conectados",*cant_programas_conectados);
 
 			break;
@@ -465,6 +466,10 @@ void manejar_paquete(int socket,t_paquete paq){
 			log_debug(logUMC,"Handshake con nucleo exitoso");
 			log_info(logUMC,"El socket %d es del nucleo",socket);
 
+			(*cant_programas_conectados)++;
+			sem_post(&programasquepuedencorrer);
+			log_debug(logUMC,"Hay %d programas conectados",*cant_programas_conectados);
+
 			break;
 
 		//Llega código de error
@@ -479,6 +484,7 @@ void manejar_paquete(int socket,t_paquete paq){
 void cerrar_conexion(int socket){
 	log_debug(logUMC,"Se cerro %d\n",socket);
 	(*cant_programas_conectados)--;
+	sem_wait(&programasquepuedencorrer);
 
 	log_debug(logUMC,"Hay %d programas conectados\n",*cant_programas_conectados);
 
