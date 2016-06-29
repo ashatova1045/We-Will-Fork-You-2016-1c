@@ -315,9 +315,9 @@ void generarReporteDeDatosProceso(int idProceso){
 			//Busco los datos de la página y se los envío a la cpu
 			char* datosDePagina = datos_pagina_en_memoria(entPag->nro_marco);
 
-			printf("Datos:\n");
+			printf("Datos del marco: %d\n",entPag->nro_marco);
 
-			printf("%.*s",config_umc->marco_size,datosDePagina);
+			printf("%.*s\n",config_umc->marco_size,datosDePagina);
 
 		}
 	}
