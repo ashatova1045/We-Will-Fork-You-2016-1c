@@ -49,18 +49,14 @@ void ingresarRetardo(){
 	getchar();
 }
 
+void generarReporteProcesoXTablaPaginas(char* key, void* entrada){
+	generarReporteDeProceso(((t_entrada_diccionario*)entrada)->pid);
+}
+
 //Defino funcion de comando dump-Estructura memoria-Todos los procesos
 void rEstructurasDeMemoriaTodas(){
 
-	//Generar reporte de tabla de paginas de todos los procesos
-	if(dictionary_size(tablasDePagina) > 0){
-		int idProceso = 1;
-		for(idProceso=1;idProceso<=dictionary_size(tablasDePagina);idProceso++){
-			generarReporteDeProceso(idProceso);
-		}
-	}else{
-		printf("No hay estructuras cargadas en memoria");
-	}
+	dictionary_iterator(tablasDePagina,generarReporteProcesoXTablaPaginas);
 
 	getchar();
 }
