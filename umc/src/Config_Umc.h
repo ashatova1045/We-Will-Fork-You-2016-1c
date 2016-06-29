@@ -12,8 +12,10 @@ t_umcConfig* config_umc;
 
 t_umcConfig* leerConfiguracion(t_config* config);
 
-//mutex para el acceso a la variable de retardo
-pthread_mutex_t mutex_retardo;
+//mutex para el acceso a los pedidos nuevos
+//esto es para que solo corra la config O los pedidos, nunca los 2
+pthread_mutex_t nuevos_pedidos;
+int* cant_pedidos_corriendo;
 
 void eliminarConfigUmc(t_umcConfig* datosUmcAEliminar);
 

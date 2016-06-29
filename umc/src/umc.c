@@ -71,7 +71,10 @@ int main(int argc, char **argv){
 
 
 	mutex_pags = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
-	mutex_retardo = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
+	nuevos_pedidos = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
+
+	cant_pedidos_corriendo = malloc(sizeof(int));
+	*cant_pedidos_corriendo = 0;
 
 	//Defino el hilo para el socket servidor
 	pthread_t  pedidosThread;

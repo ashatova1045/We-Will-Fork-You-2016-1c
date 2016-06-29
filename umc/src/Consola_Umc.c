@@ -43,13 +43,7 @@ void ingresarRetardo(){
 	//Se ingresa por teclado el retardo
 	scanf("%d",&milisegundos);
 
-	//Bloqueo el acceso a la variable retardo
-	pthread_mutex_lock(&mutex_retardo);
-
 	config_umc->retardo=milisegundos;
-
-	//Desbloqueo el acceso a la variable retardo
-	pthread_mutex_unlock(&mutex_retardo);
 
 	printf("\nSe actualizo el retardo, el nuevo retardo es de %d milisegundos\n",config_umc->retardo);
 	getchar();
@@ -177,17 +171,14 @@ void reportes(){
 //Defino funcion de comando flush tlb
 void limpiarTLB(){
 	if(tlb != NULL){
-			//limpiar completamente el contenido de la tabla de paginas
-			int cantEntradas = list_size(tlb);
-			while(!list_is_empty(tlb)){
-				free(list_remove(tlb,0));
-			}
-			crearTLB(cantEntradas);
-			printf("\nSe limpio la TLB\n");
+		//limpiar completamente el contenido de la tlb
+		list_clean_and_destroy_elements(tlb,free);
+		printf("\nSe limpio la TLB\n");
 	}else{
 		printf("La TLB no está disponible");
 	}
 
+	printf("\nPara volver a la lista de reportes presione Enter\n");
 	getchar();
 }
 
@@ -247,18 +238,30 @@ void ejecutoConsola(){
 		//Se ingresa el comando por teclado
 		getline (&comando, &len, stdin);
 
+
 		//Evaluacion de comando para realizar la accion que corresponda
-		if(string_equals_ignore_case(comando,"help\n"))mostrarOpciones();
-		else if(string_equals_ignore_case(comando,"retardo\n"))ingresarRetardo();
-		else if(string_equals_ignore_case(comando,"dump\n"))reportes();
-		else if(string_equals_ignore_case(comando,"flush tlb\n"))limpiarTLB();
-		else if(string_equals_ignore_case(comando,"flush memory\n"))marcarPaginas();
-		else printf("\nEl comando no es valido\n");
+		if(string_equals_ignore_case(comando,"help\n")){
+			mostrarOpciones();continue;
+		}
+		else{
 
-		printf("\nPara continuar presione Enter\n");
+			printf("\nUn momento por favor\n");
+			//bloqueo a los demas de correr cosas nuevas
+			pthread_mutex_lock(&nuevos_pedidos);
+			//solo sigo cuando no corran nada mas
+			while(*cant_pedidos_corriendo !=0)
+				usleep(100);
 
-		getchar();
+			if(string_equals_ignore_case(comando,"retardo\n"))ingresarRetardo();
+			else if(string_equals_ignore_case(comando,"dump\n"))reportes();
+			else if(string_equals_ignore_case(comando,"flush tlb\n"))limpiarTLB();
+			else if(string_equals_ignore_case(comando,"flush memory\n"))marcarPaginas();
 
+			printf("\nPara continuar presione Enter\n");
+
+			getchar();
+			pthread_mutex_unlock(&nuevos_pedidos);
+		}
 	}
 }
 
@@ -277,15 +280,13 @@ void generarReporteDeProceso(int idProceso){
 	for(i=0;i<list_size(tablaPaginas);i++){
 		t_entrada_tabla_paginas* entPag = list_get(tablaPaginas,i);
 
-		int pagina=list_get_index(tablaPaginas,entPag);
-
 		if((entPag->presencia) == 1){
 
-			printf("Pagina: %d | Presencia: %d | Marco: %d |  ",pagina,entPag->presencia,entPag->nro_marco);
+			printf("Pagina: %d | Presencia: %d | Marco: %d |  ",i,entPag->presencia,entPag->nro_marco);
 
 		}else{
 
-			printf("Pagina: %d| Presencia: %d |  ",pagina,entPag->presencia);
+			printf("Pagina: %d| Presencia: %d |  ",i,entPag->presencia);
 		}
 
 		printf("Uso: %d | ",entPag->uso);

@@ -28,6 +28,10 @@ void atender_conexion(int* socket_conexion){
 		t_paquete* pedido = recibir_paquete(*socket_conexion);
 		log_info(logUMC,"Se recibio un pedido del socket %d",*socket_conexion);
 
+		pthread_mutex_lock(&nuevos_pedidos);
+		*cant_pedidos_corriendo = (*cant_pedidos_corriendo)+1;
+		pthread_mutex_unlock(&nuevos_pedidos);
+
 		switch(pedido->cod_op){
 			case NUEVO_PROGRAMA:
 
@@ -35,14 +39,9 @@ void atender_conexion(int* socket_conexion){
 
 				//Simulo el tiempo de acceso a memoria con el tiempo de retardo ingresado en la configuracion
 
-				//Bloqueo el acceso a la variable retardo
-				pthread_mutex_lock(&mutex_retardo);
 
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
-
-				//Desbloqueo el acceso a la variable retardo
-				pthread_mutex_unlock(&mutex_retardo);
 
 				//Deserializo el programa
 				t_pedido_inicializar *pedido_inicializar=deserializar_pedido_inicializar(pedido->datos);
@@ -107,14 +106,8 @@ void atender_conexion(int* socket_conexion){
 			case LECTURA_PAGINA:
 				//Simulo el tiempo de acceso a memoria con el retardo ingresado en la configuracion
 
-				//Desbloqueo el acceso a la variable retardo
-				pthread_mutex_lock(&mutex_retardo);
-
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
-
-				//Desbloqueo el acceso a la variable retardo
-				pthread_mutex_unlock(&mutex_retardo);
 
 				t_pedido_solicitarBytes solicitud=*((t_pedido_solicitarBytes*)pedido->datos);
 
@@ -190,14 +183,9 @@ void atender_conexion(int* socket_conexion){
 				log_info(logUMC,"Llego un pedido de escritura de página");
 
 				//Simulo el tiempo de acceso a memoria con el retardo ingresado en la configuración
-				//Bloqueo el acceso a la variable retardo
-				pthread_mutex_lock(&mutex_retardo);
 
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
-
-				//Desbloqueo el acceso a la variable retardo
-				pthread_mutex_unlock(&mutex_retardo);
 
 				//Deserializo el paquete que me llego
 				t_pedido_almacenarBytes *pedido_almacenar;
@@ -383,6 +371,8 @@ void atender_conexion(int* socket_conexion){
 				break;
 		}
 		destruir_paquete(pedido);
+
+		*cant_pedidos_corriendo = (*cant_pedidos_corriendo)-1;
 	}
 	free(socket_conexion);
 }
