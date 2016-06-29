@@ -112,7 +112,9 @@ void liberar_una_relacion(t_pcb *pcb_devuelto){
 
 	if(rel->programa->socket==-1){ //esta consola ya se murio
 		log_warning(logNucleo,"Aprovecho para eliminar del sistema la consola cerrada del PID %d",rel->programa->pid);
-		moverA_colaExit(sacarDe_colaReady(rel->programa->pid));
+		//SIEMPRE que llamo a esta funcion el pcb esta en exec
+		//(importante chequear por el log de estados
+		moverA_colaExit(sacarDe_colaExec(rel->programa->pid));
 		enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(rel->programa->pid),socket_umc);
 		elminar_consola_por_pid(rel->programa->pid);
 	}
@@ -132,7 +134,9 @@ void liberar_una_relacion_porsocket_cpu(int socketcpu){
 
 	if(rel->programa->socket==-1){ //esta consola ya se murio
 		log_warning(logNucleo,"Aprovecho para eliminar del sistema la consola cerrada del PID %d",rel->programa->pid);
-		moverA_colaExit(sacarDe_colaReady(rel->programa->pid));
+		//SIEMPRE que llamo a esta funcion el pcb esta en exec
+		//(importante chequear por el log de estados
+		moverA_colaExit(sacarDe_colaExec(rel->programa->pid));
 		enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(rel->programa->pid),socket_umc);
 		elminar_consola_por_pid(rel->programa->pid);
 	}
@@ -444,7 +448,7 @@ void respuesta_inicializar_programa(int* socket){
 //			log_info(logNucleo,"Inicializacion correcta. UMC envio OK");
 
 			moverA_colaReady(pcb_respuesta);
-			log_info(logNucleo,"Se envia mensaje a la consola del socket %d que pudo poner en Ready su PCB ", socket);
+			log_info(logNucleo,"Se envia mensaje a la consola del socket %d que pudo poner en Ready su PCB ", *socket);
 			enviar(OK, 1,&socket,*socket); //que le mando? basura?
 
 			break;
@@ -455,7 +459,7 @@ void respuesta_inicializar_programa(int* socket){
 			//destruir lo inicializado
 
 			moverA_colaExit(pcb_respuesta);
-			log_warning(logNucleo,"Se envia mensaje a la consola del socket %d que no pudo poner en Ready su PCB ", socket);
+			log_warning(logNucleo,"Se envia mensaje a la consola del socket %d que no pudo poner en Ready su PCB ", *socket);
 			enviar(NO_OK, 1,&socket,*socket);
 
 			break;
@@ -630,25 +634,33 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				log_debug(logNucleo,"Fin quantum, recibi pcb serializado del socket: %d",socket);
 				t_pcb *pcb_devuelto = deserializar(paquete.datos);
 				log_debug(logNucleo,"PCB deserializado");
-				sacarDe_colaExec(pcb_devuelto->pid);
-
-				moverA_colaReady(pcb_devuelto);
 				liberar_una_relacion(pcb_devuelto);
+
+				t_pcb *pcb_viejo_en_exec = sacarDe_colaExec(pcb_devuelto->pid);
+				if(pcb_viejo_en_exec) //por si la consola murio y el liberar ya se ocupo del pcb
+					moverA_colaReady(pcb_devuelto);
+
+				destruir_pcb(pcb_viejo_en_exec);
+
 				enviar_a_cpu();
 				break;
 
 			case IMPRIMIR_VARIABLE:
 				log_info(logNucleo, "Recibi orden de imprimir variable");
 				t_relacion *relacion_imp_var = matchear_relacion_por_socketcpu(socket);
-				enviar(IMPRIMIR_VARIABLE,paquete.tamano_datos,paquete.datos,relacion_imp_var->programa->socket);
-				log_debug(logNucleo,"Enviando imprimir variable a la consola");
+				if(relacion_imp_var->programa->socket != -1){
+					enviar(IMPRIMIR_VARIABLE,paquete.tamano_datos,paquete.datos,relacion_imp_var->programa->socket);
+					log_debug(logNucleo,"Enviando imprimir variable a la consola");
+				}
 				break;
 
 			case IMPRIMIR_TEXTO:
 				log_info(logNucleo, "Recibi orden de imprimir texto");
 				t_relacion *relacion_imp_tex = matchear_relacion_por_socketcpu(socket);
-				enviar(IMPRIMIR_TEXTO,paquete.tamano_datos,paquete.datos,relacion_imp_tex->programa->socket);
-				log_debug(logNucleo,"Enviando imprimir texto a la consola");
+				if(relacion_imp_tex->programa->socket != -1){
+					enviar(IMPRIMIR_TEXTO,paquete.tamano_datos,paquete.datos,relacion_imp_tex->programa->socket);
+					log_debug(logNucleo,"Enviando imprimir texto a la consola");
+				}
 				break;
 			case OBTENER_VALOR_COMPARTIDA:
 				{
@@ -691,21 +703,26 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				log_debug(logNucleo,"Fin programa, recibi pcb serializado del socket: %d",socket);
 
 				t_pcb *pcb_devuelto = deserializar(paquete.datos);
-				enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(pcb_devuelto->pid),socket_umc);
-				log_debug(logNucleo,"Envie a la umc el codigo de que finalizo el programa con el pid: %d", pcb_devuelto->pid );
-
-				destruir_pcb(sacarDe_colaExec(pcb_devuelto->pid));
-
-				moverA_colaExit(pcb_devuelto);
 
 				liberar_una_relacion(pcb_devuelto);
 
-				t_consola* consola = matchear_consola_por_pid(pcb_devuelto->pid);
 
-				enviar(TERMINO_BIEN_PROGRAMA,1,consola,consola->socket);
-				elminar_consola_por_socket(consola->socket);
-				enviar_a_cpu();
+				t_pcb *pcb_viejo_en_exec =  sacarDe_colaExec(pcb_devuelto->pid);
+				if(pcb_viejo_en_exec){ //por si la consola murio y el liberar ya se ocupo del pcb
+					destruir_pcb(pcb_viejo_en_exec);
+					moverA_colaExit(pcb_devuelto);
 
+
+					enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(pcb_devuelto->pid),socket_umc);
+					log_debug(logNucleo,"Envie a la umc el codigo de que finalizo el programa con el pid: %d", pcb_devuelto->pid );
+
+
+					t_consola* consola = matchear_consola_por_pid(pcb_devuelto->pid);
+
+					enviar(TERMINO_BIEN_PROGRAMA,1,consola,consola->socket);
+					elminar_consola_por_socket(consola->socket);
+					enviar_a_cpu();
+				}
 				}
 				break;
 			case TERMINO_MAL_PROGRAMA: //sigusr1
@@ -713,13 +730,18 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 
 				t_pcb *pcb_devuelto = deserializar(paquete.datos);
 
-				destruir_pcb(sacarDe_colaExec(pcb_devuelto->pid));
-				moverA_colaReady(pcb_devuelto);
-
 				liberar_una_relacion_porsocket_cpu(socket);
-				eliminar_cpu_por_socket(socket);
 
-				enviar_a_cpu();
+				t_pcb *pcb_viejo_en_exec =  sacarDe_colaExec(pcb_devuelto->pid);
+				if(pcb_viejo_en_exec){ //por si la consola murio y el liberar ya se ocupo del pcb
+					moverA_colaReady(pcb_devuelto);
+
+					eliminar_cpu_por_socket(socket);
+
+					enviar_a_cpu();
+
+					destruir_pcb(pcb_viejo_en_exec);
+				}
 
 				}
 
@@ -746,8 +768,8 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 
 					queue_push(semaforo->cola,pedido_wait->pcb);
 
-					bloquear_pcb(pedido_wait->pcb);
 					liberar_una_relacion_porsocket_cpu(socket);
+					bloquear_pcb(pedido_wait->pcb);
 				}
 
 				enviar(codop,1,&socket,socket);

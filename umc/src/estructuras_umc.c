@@ -119,7 +119,7 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 
 		entrada_pagina=entrada_pag_pedida;
 
-		log_info(logUMC,"La página %d del proceso %d estaba en memoria",pagina,pid);
+		log_info(logUMC,"La página %d del proceso %d estaba en memoria (marco %d)",pagina,pid,entrada_pag_pedida->nro_marco);
 
 	//Si la página no está en memoria le pido los datos al swap
 	}else if(entrada_pag_pedida->presencia==false){
@@ -155,7 +155,7 @@ t_entrada_tabla_paginas* buscar_pagina_en_tabla(int pid,int pagina){
 			//Si hay frames libres
 			if(framesLibres>0){
 
-				log_info(logUMC,"Todavía quedan frames libres en memoria");
+				log_info(logUMC,"Todavía quedan frames libres en memoria (%d)",framesLibres);
 
 				//Traigo el primer frame libre
 				int frameAOcupar = encontrarPrimerVacio();
@@ -535,6 +535,7 @@ t_entrada_tabla_paginas* reemplazarPagina(int pagina,t_entrada_diccionario *entr
 	log_debug(logUMC,"El bit de presencia de la pagina victima del proceso %d ahora es %d",entrada_diccionario->pid,entrada_pag_victima->presencia);
 	log_debug(logUMC,"El numero de frame de la página víctima del proceso %d es %d",entrada_diccionario->pid,entrada_pag_victima->nro_marco);
 	log_debug(logUMC,"El bit de presencia de la página %d del proceso %d es %d",pagina,entrada_diccionario->pid,entrada_pag_pedida->presencia);
+	log_debug(logUMC,"El bit de uso de la página %d del proceso %d es %d",pagina,entrada_diccionario->pid,entrada_pag_pedida->uso);
 
 	eliminar_pagina_TLB(entrada_diccionario->pid,pagina_victima);
 

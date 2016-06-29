@@ -56,6 +56,9 @@ t_pcb *sacar_pcb_por_pid(t_list *listaAct, uint32_t pidBuscado)
 
 void moverA_colaNew(t_pcb *pcb)
 {
+	if(!pcb)
+		return;
+
 	queue_push(colaNew, pcb);
 	log_debug(logEstados, "El PCB: %d paso a la cola New",pcb->pid);
 }
@@ -73,6 +76,9 @@ void moverA_colaExit(t_pcb *pcb)
 
 void moverA_colaBlocked(t_pcb *pcb)
 {
+	if(!pcb)
+		return;
+
 	pthread_mutex_lock(&colaBlockedMutex);
 	queue_push(colaBlocked, pcb);
 	pthread_mutex_unlock(&colaBlockedMutex);
@@ -81,6 +87,9 @@ void moverA_colaBlocked(t_pcb *pcb)
 
 void moverA_colaExec(t_pcb *pcb)
 {
+	if(!pcb)
+		return;
+
 	pthread_mutex_lock(&colaExecMutex);
 	queue_push(colaExec, pcb);
 	pthread_mutex_unlock(&colaExecMutex);
@@ -89,6 +98,9 @@ void moverA_colaExec(t_pcb *pcb)
 
 void moverA_colaReady(t_pcb *pcb)
 {
+	if(!pcb)
+		return;
+
 	pthread_mutex_lock(&colaReadyMutex);
 	queue_push(colaReady, pcb);
 	pthread_mutex_unlock(&colaReadyMutex);
@@ -119,7 +131,8 @@ t_pcb *sacarDe_colaExec(uint32_t pid)
 {
 	pthread_mutex_lock(&colaExecMutex);
 	t_pcb *pcb = sacar_pcb_por_pid(colaExec->elements, pid);
-	log_debug(logEstados, "Sacando PCB: %d de la cola Exec",pid);
+	if(pcb)
+		log_debug(logEstados, "Sacando PCB: %d de la cola Exec",pid);
 	pthread_mutex_unlock(&colaExecMutex);
 	return pcb;
 }
@@ -135,14 +148,18 @@ t_pcb *sacarDe_colaBlocked(uint32_t pid)
 }
 
 void bloquear_pcb(t_pcb* pcbabloquear){
-	printf("Bloqueo a PID = %d\n",pcbabloquear->pid);
+	if(!pcbabloquear) return;
+
 	t_pcb* pcbviejo = sacarDe_colaExec(pcbabloquear->pid);
+	if(pcbviejo){
+		printf("Bloqueo a PID = %d\n",pcbabloquear->pid);
 
-	t_pcb* aux = pcbviejo;
-	pcbviejo = pcbabloquear;
-	destruir_pcb(aux);
+		t_pcb* aux = pcbviejo;
+		pcbviejo = pcbabloquear;
+		destruir_pcb(aux);
 
-	moverA_colaBlocked(pcbviejo);
+		moverA_colaBlocked(pcbviejo);
+	}
 }
 
 void desbloquear_pcb(t_pcb* pcb){
