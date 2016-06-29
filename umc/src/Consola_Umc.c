@@ -56,7 +56,11 @@ void generarReporteProcesoXTablaPaginas(char* key, void* entrada){
 //Defino funcion de comando dump-Estructura memoria-Todos los procesos
 void rEstructurasDeMemoriaTodas(){
 
-	dictionary_iterator(tablasDePagina,generarReporteProcesoXTablaPaginas);
+	if(dictionary_size(tablasDePagina) > 0){
+		dictionary_iterator(tablasDePagina,generarReporteProcesoXTablaPaginas);
+	}else{
+		printf("No hay estructuras cargadas en memoria");
+	}
 
 	getchar();
 }
@@ -86,14 +90,15 @@ void rEstructuraDeMemoriaProceso(){
 
 }
 
+void generarReporteDeDatosProcesoXTablaPaginas(char* key, void* entrada){
+	generarReporteDeDatosProceso(((t_entrada_diccionario*)entrada)->pid);
+}
+
 //Defino funcion de comando dump-Datos memoria-Todos los procesos
 void rDatosMemoriaTodos(){
 
 	if(dictionary_size(tablasDePagina) > 0){
-		int idProceso = 1;
-		for(idProceso=1;idProceso<=dictionary_size(tablasDePagina);idProceso++){
-			generarReporteDeDatosProceso(idProceso);
-		}
+		dictionary_iterator(tablasDePagina,generarReporteDeDatosProcesoXTablaPaginas);
 	}else{
 		printf("No hay estructuras cargadas en memoria");
 	}
