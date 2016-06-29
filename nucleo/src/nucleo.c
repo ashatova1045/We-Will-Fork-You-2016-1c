@@ -113,6 +113,7 @@ void liberar_una_relacion(t_pcb *pcb_devuelto){
 	if(rel->programa->socket==-1){ //esta consola ya se murio
 		log_warning(logNucleo,"Aprovecho para eliminar del sistema la consola cerrada del PID %d",rel->programa->pid);
 		moverA_colaExit(sacarDe_colaReady(rel->programa->pid));
+		enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(rel->programa->pid),socket_umc);
 		elminar_consola_por_pid(rel->programa->pid);
 	}
 	free(rel);
@@ -132,6 +133,7 @@ void liberar_una_relacion_porsocket_cpu(int socketcpu){
 	if(rel->programa->socket==-1){ //esta consola ya se murio
 		log_warning(logNucleo,"Aprovecho para eliminar del sistema la consola cerrada del PID %d",rel->programa->pid);
 		moverA_colaExit(sacarDe_colaReady(rel->programa->pid));
+		enviar(FINALIZA_PROGRAMA,sizeof(int32_t),&(rel->programa->pid),socket_umc);
 		elminar_consola_por_pid(rel->programa->pid);
 	}
 
