@@ -749,7 +749,7 @@ void manejar_socket_cpu(int socket,t_paquete paquete){
 				
 			case ERROR_FALTA_MEMORIA:
 			{
-				log_debug(logNucleo,"No se pudo asignar memoria al pcb del socket: %d",socket);
+				log_debug(logNucleo,"No se pudo asignar memoria al pcb que estaba corriendo en la CPU del socket: %d",socket);
 
 				t_pcb *pcb_devuelto = deserializar(paquete.datos);
 
