@@ -62,6 +62,8 @@ char* recibir_respuesta_lectura() {
 		break;
 	case NO_OK:
 		log_info(logcpu, "NO OK recibido");
+		destruir_paquete(paquete_actual);
+		return NULL;
 		//Respuesta a un pedido
 		break;
 	default:
@@ -109,6 +111,8 @@ char* fetch_instruction(){
 
 	//Envío pedido a UMC
 	char* instruccion_actual = pedir_lectura_de_umc(pedido);
+	if(!instruccion_actual)
+		return NULL;
 
 	int tamanoinstruccionfaltante=posicion_instruccion_actual.size-tamanoinstruccion_que_entra;
 
@@ -117,6 +121,8 @@ char* fetch_instruction(){
 		pedido.offset=0;
 		pedido.tamanioDatos = tamanoinstruccionfaltante;
 		char* instruccion_actual2 = pedir_lectura_de_umc(pedido);
+		if(!instruccion_actual2)
+			return NULL;
 		instruccion_actual = realloc(instruccion_actual,tamanoinstruccion_que_entra+tamanoinstruccionfaltante);
 		memcpy(instruccion_actual+tamanoinstruccion_que_entra,instruccion_actual2,tamanoinstruccionfaltante);
 		free(instruccion_actual2);
@@ -149,6 +155,16 @@ void correr_pcb() {
 		usleep(retardo*1000);
 
 		char *instruccion_actual = fetch_instruction();
+		if(!instruccion_actual){
+			log_warning(logcpu,"La UMC no pudo responder el pedido (probablemente porque no puede sacarle un frame a otro proceso)");
+			t_pcb_serializado serializado = serializar(*pcb_ejecutandose);
+			enviar(ERROR_FALTA_MEMORIA,serializado.tamanio,serializado.contenido_pcb,socket_nucleo);
+
+			free(serializado.contenido_pcb);
+			destruir_pcb(pcb_ejecutandose);
+			return;
+		}
+
 		log_info(logcpu,"Instruccion a correr:\n%s",instruccion_actual);
 		printf("Instruccion a correr:\n%s\n",instruccion_actual);
 
