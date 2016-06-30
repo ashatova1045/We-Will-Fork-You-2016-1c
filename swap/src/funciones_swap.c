@@ -325,7 +325,7 @@ int encontrar_espacio(int cantidadPaginas) {
 			if (j == cantidadPaginas){
 				return i;
 			}else{
-				break;
+				continue;
 			}
 		}
 	}
