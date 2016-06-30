@@ -57,8 +57,7 @@ void manejar_socket_umc(t_paquete* paquete){
 		log_info(logSwap,"Handshake correcto!");
 		break;
 	case ERROR_COD_OP:
-		puts("Error en el recibir. Recibio codigo de error");
-		log_error(logSwap,"Se ha desconectado la UMC");
+		log_warning(logSwap,"Se ha desconectado la UMC");
 		exit(EXIT_FAILURE);
 		break;
 	case TAMANIO_PAGINA:
@@ -115,11 +114,11 @@ int grabarArchivo(int posicion_posta, char* buffer){
 
 	if(fwrite(buffer,tamanioPagina,1,swapFile) != 1){
 		log_error(logSwap, "No se pudo grabar la página en el archivo");
-		puts("No se pudo grabar la página en el archivo");
+		//puts("No se pudo grabar la página en el archivo");
 	}else{
 		codOp = OK;
 		log_info(logSwap,"Grabación exitosa de la página en el archivo");
-		puts("Grabación exitosa");
+		//puts("Grabación exitosa");
 	}
 
 	return codOp;
@@ -136,8 +135,9 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 	printf("ProcessID: %d\n",pedido->idPrograma);
 	printf("Cantidad de Paginas: %d\n",pedido->pagRequeridas);
 
-	printf("Estado del bitmap antes:\n");
-	loggearBitmap();
+	//printf("Estado del bitmap antes:\n");
+	//log_info(logSwap,"Estado del bitmap antes de inicializar programa");
+	loggearBitmap("Estado del bitmap antes de inicializar programa:");
 
 	int cantidadPaginas = pedido->pagRequeridas;
 
@@ -173,8 +173,9 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 				break;
 		}
 
-		printf("Estado del bitmap despues:\n");
-		loggearBitmap();
+		//printf("Estado del bitmap despues:\n");
+		//log_info(logSwap,"Estado del bitmap después de inicializar programa");
+		loggearBitmap("Estado del bitmap después de inicializar programa:");
 
 	}else{
 		//fallar
@@ -279,8 +280,9 @@ void finalizarPrograma(t_paquete* paquete){
 			posAux++;
 		}
 
-		printf("Se limpia el bitmap \n");
-		loggearBitmap();
+		//printf("Se limpia el bitmap \n");
+		//log_info(logSwap,"Al finalizar el programa se limpia el bitmap");
+		loggearBitmap("Al finalizar el programa se limpia el bitmap:");
 
 		free(controlSwap);
 
@@ -351,11 +353,12 @@ void agregarNuevoProceso(int posicion, int cantidadPaginas, t_pedido_inicializar
 
 void compactar(){
 
-	puts("Bitmap antes de la compactación");
-	loggearBitmap(); // Log del bitmap antes de la compactación
+	//puts("Bitmap antes de la compactación");
+	//log_info(logSwap,"Estado del bitmap antes de la compactación");
+	loggearBitmap("Estado del bitmap antes de la compactación:"); // Log del bitmap antes de la compactación
 
 	log_info(logSwap,"Compactando...");
-	puts("COMPACTANDO");
+	puts("COMPACTANDO...");
 
 	log_info(logSwap,"Comienza proceso de compactación");
 	usleep((datosSwap->retardo_compactacion)*1000); // retardo en microsegundos
@@ -372,8 +375,9 @@ void compactar(){
 	primerPosicionVacia = 0;
 	list_iterate(lista_procesos,moverProcesos);
 
-	puts("Bitmap luego de la compactación");
-	loggearBitmap(); // Log del bitmap después de la compactación
+	//puts("Bitmap luego de la compactación");
+	//log_info(logSwap,"Estado del bitmap después de la compactación");
+	loggearBitmap("Estado del bitmap después de la compactación:"); // Log del bitmap después de la compactación
 	puts("Compactación finalizada");
 
 	log_info(logSwap,"Compactación finalizada");
@@ -442,14 +446,17 @@ bool ordenarPorPosicion(void *p1, void *p2){
 	return (proceso1->posicion)<(proceso2->posicion);
 }
 
-void loggearBitmap(){
+void loggearBitmap(char* mensaje){
 	int i;
+	char bufferBitMap[datosSwap->cantidad_paginas];
 	for(i=0;i<(datosSwap->cantidad_paginas);i++){
 		if(bitarray_test_bit(bitarray,i)){
-			printf("1");
+			bufferBitMap[i] = '1';
 		}else{
-			printf("0");
+			bufferBitMap[i]= '0';
 		}
 	}
-	printf("\n");
+	bufferBitMap[datosSwap->cantidad_paginas] = '\0';
+	//printf("%s\n",buffer2);
+	log_info(logSwap,"%s \n %s",mensaje, bufferBitMap);
 }
