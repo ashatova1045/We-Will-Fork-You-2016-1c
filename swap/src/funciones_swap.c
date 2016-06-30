@@ -448,7 +448,7 @@ bool ordenarPorPosicion(void *p1, void *p2){
 
 void loggearBitmap(char* mensaje){
 	int i;
-	char bufferBitMap[datosSwap->cantidad_paginas];
+	char bufferBitMap[datosSwap->cantidad_paginas+1]; //sumo 1 para el null
 	for(i=0;i<(datosSwap->cantidad_paginas);i++){
 		if(bitarray_test_bit(bitarray,i)){
 			bufferBitMap[i] = '1';
