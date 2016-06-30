@@ -372,10 +372,10 @@ void atender_conexion(int* socket_conexion){
 				break;
 		}
 		destruir_paquete(pedido);
-	}
 
-	//puedo correr 1 mas
-	sem_post(&programasquepuedencorrer);
+		//puedo correr 1 mas
+		sem_post(&programasquepuedencorrer);
+	}
 
 	free(socket_conexion);
 }
