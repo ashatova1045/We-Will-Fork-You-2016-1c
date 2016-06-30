@@ -19,9 +19,9 @@ void levantarConfiguracion(t_config* config){
 
 int inicializaSwapFile(){
 	// Inicializa variables
-	char* array = malloc((datosSwap->cantidad_paginas)/8);
+	char* array = malloc(((datosSwap->cantidad_paginas)/8)+1);
 	int i;
-	for(i=0;i<((datosSwap->cantidad_paginas))/8;i++)
+	for(i=0;i<(((datosSwap->cantidad_paginas))/8)+1;i++)
 	        array[i]=0;
 
 	//Se agrega un byte para evitar errores en la creacón del bitmap
