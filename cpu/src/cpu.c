@@ -113,7 +113,7 @@ char* fetch_instruction(){
 	t_pedido_solicitarBytes pedido;
 	pedido.nroPagina = posicion_instruccion_actual.pag;
 	pedido.offset = posicion_instruccion_actual.offset;
-	pedido.tamanioDatos = tamPag-pedido.offset;
+	pedido.tamanioDatos =  min(posicion_instruccion_actual.size,tamPag-pedido.offset);
 	char* instruccion_primera = pedir_lectura_de_umc(pedido);
 	if(!instruccion_primera)
 		return NULL;
