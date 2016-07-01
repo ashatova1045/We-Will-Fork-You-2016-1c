@@ -164,8 +164,22 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 
 		// Grabar
 		int pagscodigo = (strlen(pedido->codigo)+1)/tamanioPagina;
+		int offset_final = (strlen(pedido->codigo)+1)%tamanioPagina;
+
+		if(offset_final > 0)
+			pagscodigo++;
+
+		/*realloco el codigo para asegurarme de que su largo sea
+		  multiplo de tamanioPagina porque grabarArchivo escribe
+		  de a paginas
+		*/
+		pedido->codigo = realloc(pedido->codigo,pagscodigo*tamanioPagina);
+
+		for(;offset_final<tamanioPagina;offset_final++)
+			pedido->codigo[tamanioPagina*(pagscodigo-1)+offset_final] = '\0';
+
 		int i;
-		for(i=0;i<=pagscodigo;i++){
+		for(i=0;i<pagscodigo;i++){
 			int posicion_posta = encontrar_posicion(pedido->idPrograma,i);
 			char* bufferCorrido = pedido->codigo+(i*tamanioPagina);
 			codOp = grabarArchivo(posicion_posta,bufferCorrido);
@@ -228,6 +242,7 @@ void leerPagina(t_paquete* paquete){
 	// Responde a la UMC el resultado de la operación
 	// Sin serializar - manda buffer
 	enviar(codOp,tamanioPagina,buffer,socket_memoria);
+	free(buffer);
 }
 
 void escribirPagina(t_paquete* paquete){
