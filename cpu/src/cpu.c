@@ -210,6 +210,18 @@ void correr_pcb() {
 			log_warning(logcpu,"--------------------");
 			exit(EXIT_FAILURE);
 		}
+
+		if(stack_overflow){
+			printf("Se cierra el programa %d por STACK OVERFLOW",pcb_ejecutandose->pid);
+			log_warning(logcpu,"Se cierra el programa %d por STACK OVERFLOW",pcb_ejecutandose->pid);
+
+			t_pcb_serializado pcb_serializado = serializar(*pcb_ejecutandose);
+			enviar(ERROR_FALTA_MEMORIA,pcb_serializado.tamanio,pcb_serializado.contenido_pcb,socket_nucleo);
+			destruir_pcb(pcb_ejecutandose);
+			free(pcb_serializado.contenido_pcb);
+			stack_overflow = false; //reseteo el flag para poder correr otro programa
+			return;
+		}
 	}
 
 	if(!termino_programa){
@@ -243,6 +255,7 @@ int main() {
 
 	pcb_ejecutandose=NULL;
 	llego_sugus= false;
+	stack_overflow= false;
 	signal(SIGUSR1,sugus);
 
 	inicializar_primitivas();

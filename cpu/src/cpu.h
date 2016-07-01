@@ -18,7 +18,7 @@
 int socket_umc, socket_nucleo;
 int32_t quantumCpu,retardo, tamPag;
 t_pcb* pcb_ejecutandose;
-bool termino_programa;
+bool termino_programa,stack_overflow;
 t_log* logcpu;
 bool llego_sugus;
 

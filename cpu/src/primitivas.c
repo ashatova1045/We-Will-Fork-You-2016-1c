@@ -14,13 +14,17 @@ t_posMemoria pos_logica_a_fisica(t_puntero poslogica){
 }
 
 t_puntero definirVariable(t_nombre_variable identificador_variable){
+	//si ya se habia muerto, pero declaro varias variables en la misma linea
+	if(stack_overflow)
+		return -1;
+
 	log_info(logcpu,"Se solicita definir %c", identificador_variable);
 
 	if(pcb_ejecutandose->fin_stack.pag == pcb_ejecutandose->cant_pags_totales){
 		log_warning(logcpu,"STACK OVERFLOW");
 		puts("STACK OVERFLOW");
-		//todo explotar
-		exit(EXIT_FAILURE);
+		stack_overflow = true;
+		return -1;
 	}
 
 	int entrada_actual = pcb_ejecutandose->cant_entradas_indice_stack-1;
@@ -142,6 +146,9 @@ t_valor_variable dereferenciar(t_puntero direccion_variable){
 }
 
 void asignar(t_puntero	direccion_variable,	t_valor_variable valor){
+	//si ya se habia muerto, pero declaro varias variables en la misma linea
+	if(stack_overflow)
+		return;
 
 	t_posMemoria posf = pos_logica_a_fisica(direccion_variable);
 
@@ -165,7 +172,7 @@ void asignar(t_puntero	direccion_variable,	t_valor_variable valor){
 			break;
 		case NO_OK:
 			log_warning(logcpu,"FALLO LA ASIGNACION");
-			//todo explotar
+			//todo explotar (o no. no se me ocurre por que pasaria esto)
 			break;
 		case ERROR_COD_OP:
 			perror("Murio la UMC");
@@ -233,6 +240,10 @@ void irAlLabel(t_nombre_etiqueta etiqueta){
 }
 
 void llamarConRetorno(t_nombre_etiqueta	etiqueta, t_puntero donde_retornar){
+	//si ya se habia muerto, pero declaro varias variables en la misma linea
+	if(stack_overflow)
+		return;
+
 	log_info(logcpu,"Llamando a la funcion %s", etiqueta);
 
 	//agrego nuevo indice al stack
