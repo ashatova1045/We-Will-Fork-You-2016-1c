@@ -201,6 +201,9 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 
 	enviar(codOp,1,"OK",socket_memoria);
 	puts("Envia respuesta a la UMC");
+
+	free(pedido->codigo);
+	free(pedido);
 }
 
 void leerPagina(t_paquete* paquete){
