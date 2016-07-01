@@ -3,6 +3,9 @@
 //------------------------------------------------------------------------------------------------------
 #include "Consola_Umc.h"
 #include "Config_Umc.h"
+#include <commons/log.h>
+
+
 
 //------------------------------------------------------------------------------------------------------
 //Consola
@@ -272,9 +275,9 @@ void ejecutoConsola(){
 
 void generarReporteDeProceso(int idProceso){
 
-	printf("////////////////////////////////////////////////////\n");
-	printf("----------> Reporte del proceso %d \n",idProceso);
-	printf("////////////////////////////////////////////////////\n");
+	log_info(logDump,"////////////////////////////////////////////////////\n");
+	log_info(logDump,"----------> Reporte del proceso %d \n",idProceso);
+	log_info(logDump,"////////////////////////////////////////////////////\n");
 
 	t_entrada_diccionario* entradaD = dictionary_get(tablasDePagina,i_to_s(idProceso));
 
@@ -287,23 +290,23 @@ void generarReporteDeProceso(int idProceso){
 
 		if((entPag->presencia) == 1){
 
-			printf("Pagina: %d | Presencia: %d | Marco: %d |  ",i,entPag->presencia,entPag->nro_marco);
+			log_info(logDump,"  Pagina: %d | Presencia: %d | Marco: %d |  ",i,entPag->presencia,entPag->nro_marco);
 
 		}else{
 
-			printf("Pagina: %d| Presencia: %d |  ",i,entPag->presencia);
+			log_info(logDump,"  Pagina: %d | Presencia: %d |  ",i,entPag->presencia);
 		}
 
-		printf("Uso: %d | ",entPag->uso);
+		log_info(logDump,"  Uso: %d | ",entPag->uso);
 
-		printf("Modificada: %d | \n",entPag->modificado);
+		log_info(logDump,"  Modificada: %d |\n",entPag->modificado);
 	}
 }
 
 void generarReporteDeDatosProceso(int idProceso){
-	printf("////////////////////////////////////////////////////\n");
-	printf("----------> Reporte de datos del proceso %d \n",idProceso);
-	printf("////////////////////////////////////////////////////\n");
+	log_info(logDump,"////////////////////////////////////////////////////\n");
+	log_info(logDump,"----------> Reporte de datos del proceso %d \n",idProceso);
+	log_info(logDump,"////////////////////////////////////////////////////\n");
 
 	t_entrada_diccionario* entradaD = dictionary_get(tablasDePagina,i_to_s(idProceso));
 
@@ -320,9 +323,9 @@ void generarReporteDeDatosProceso(int idProceso){
 			//Busco los datos de la página y se los envío a la cpu
 			char* datosDePagina = datos_pagina_en_memoria(entPag->nro_marco);
 
-			printf("Datos del marco: %d\n",entPag->nro_marco);
+			log_info(logDump,"Datos del marco: %d\n",entPag->nro_marco);
 
-			printf("%.*s\n",config_umc->marco_size,datosDePagina);
+			log_info(logDump,"%.*s\n",config_umc->marco_size,datosDePagina);
 
 		}
 	}

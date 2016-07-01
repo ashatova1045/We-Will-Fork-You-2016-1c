@@ -24,8 +24,10 @@
 int main(int argc, char **argv){
 
 
-	//Creo el archivo log
+	//Creo los archivos de log
 	logUMC = crearLog();
+	logDump = crearLogDump();
+
 	if(logUMC==NULL){
 		log_error(logUMC,"No se pudo crear el log de la umc");
 	}
@@ -114,6 +116,7 @@ int main(int argc, char **argv){
 	log_info(logUMC,"Estructuras de memoria destruidas");
 
 	log_destroy(logUMC);
+	log_destroy(logDump);
 
 	return EXIT_SUCCESS;
 }
