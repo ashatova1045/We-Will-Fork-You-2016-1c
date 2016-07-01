@@ -11,8 +11,7 @@ int handshake(int socket, uint16_t cop_op_cliente, uint16_t cod_op_esperado)
 	enviar(cop_op_cliente,1,&socket,socket);
 
 	fd_set set;
-	struct timeval timeout;
-	timeout.tv_sec = 5;
+	struct timeval timeout = {10, 0};
 	FD_ZERO(&set);
 	FD_SET(socket, &set);
 	select(socket+1,&set,NULL,NULL,&timeout);
