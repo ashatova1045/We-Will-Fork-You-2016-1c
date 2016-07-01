@@ -5,8 +5,6 @@
 #include <commons/log.h>//Incluyo commons
 
 t_log* logUMC;
-t_log* logReemplazoC;
-t_log* logReemplazoCM;
 t_log* logDump;
 
 t_log* crearLog();

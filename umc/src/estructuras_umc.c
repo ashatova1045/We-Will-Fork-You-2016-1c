@@ -269,6 +269,8 @@ bool paginaPresente(void* entrada_pag){
 //Funcion para elegir una víctima a mandar al swap
 t_entrada_tabla_paginas* elegir_victima_clock(t_entrada_diccionario *entrada_diccionario){
 
+	t_log* logReemplazoC;
+
 	logReemplazoC = crearLogReemplazoClock(entrada_diccionario->pid);
 
 	//Traigo la tabla de páginas del proceso
@@ -294,15 +296,15 @@ t_entrada_tabla_paginas* elegir_victima_clock(t_entrada_diccionario *entrada_dic
 
 			if(entrada_pag_victima->uso){
 
-				log_info(logReemplazoC,"  Página: %d | Uso: %d |", pagina, entrada_pag_victima->uso);
+				log_info(logReemplazoC,"  Página: %d | Uso: %d | Marco: %d", pagina, entrada_pag_victima->uso,entrada_pag_victima->nro_marco);
 				log_info(logReemplazoC,"  Se le da una segunda oportunidad a la página %d", pagina);
 
 				entrada_pag_victima->uso=false;
 
-				log_info(logReemplazoC,"  Pagina: %d | Uso: %d |\n", pagina, entrada_pag_victima->uso);
+				log_info(logReemplazoC,"  Pagina: %d | Uso: %d | Marco: %d\n", pagina, entrada_pag_victima->uso,entrada_pag_victima->nro_marco);
 
 			}else{
-				log_info(logReemplazoC,"  Página víctima: %d\n", pagina);
+				log_info(logReemplazoC,"  Página víctima: %d | Uso: %d | Marco: %d\n", pagina,entrada_pag_victima->uso,entrada_pag_victima->nro_marco);
 				encontro_pag_victima=true;
 			}
 		}else log_info(logReemplazoC,"  La página %d no está en memoria\n",pagina);
@@ -316,6 +318,8 @@ t_entrada_tabla_paginas* elegir_victima_clock(t_entrada_diccionario *entrada_dic
 }
 
 t_entrada_tabla_paginas *elegir_victima_clock_m(t_entrada_diccionario *entrada_diccionario){
+
+	t_log* logReemplazoCM;
 
 	logReemplazoCM = crearLogReemplazoClockM(entrada_diccionario->pid);
 
@@ -346,14 +350,17 @@ t_entrada_tabla_paginas *elegir_victima_clock_m(t_entrada_diccionario *entrada_d
 			//Si la página no está en uso ni modificada
 			if(!entrada_pag_victima->uso && !entrada_pag_victima->modificado && entrada_pag_victima->presencia){
 
-				log_info(logReemplazoCM,"  Página víctima %d",pagina);
-				log_info(logReemplazoCM,"  Uso de página víctima: %d", entrada_pag_victima->uso);
-				log_info(logReemplazoCM,"  Modificado de página víctima: %d\n",entrada_pag_victima->modificado);
+				log_info(logReemplazoCM,"  Página víctima %d | Uso: %d | Modificado: %d | Marco: %d\n",pagina,entrada_pag_victima->uso,entrada_pag_victima->modificado,entrada_pag_victima->nro_marco);
+
 				encontro_pag_victima = true;
+
+				incrementarManecilla(entrada_diccionario,tablaDePaginas);
+				log_info(logReemplazoCM,"  La manecilla pasó a: %d\n",entrada_diccionario->manecilla);
+
 				break;
 			}else if(!entrada_pag_victima->presencia){ log_info(logReemplazoCM, "  La página %d no está en memoria",pagina);}
 			else {
-				log_info(logReemplazoCM,"  Página: %d | Uso: %d | Modificado: %d\n",pagina,entrada_pag_victima->uso,entrada_pag_victima->modificado);
+				log_info(logReemplazoCM,"  Página: %d | Uso: %d | Modificado: %d | Marco: %d\n",pagina,entrada_pag_victima->uso,entrada_pag_victima->modificado,entrada_pag_victima->nro_marco);
 				log_info(logReemplazoCM,"  Se busca una mejor opción");
 			}
 
@@ -380,18 +387,23 @@ t_entrada_tabla_paginas *elegir_victima_clock_m(t_entrada_diccionario *entrada_d
 			//Si la página no está en uso pero si modificada
 			if(!entrada_pag_victima->uso && entrada_pag_victima->modificado && entrada_pag_victima->presencia){
 
-				log_info(logReemplazoCM,"  Página víctima %d",pagina);
-				log_info(logReemplazoCM,"  Uso de página víctima: %d", entrada_pag_victima->uso);
-				log_info(logReemplazoCM,"  Modificado de página víctima: %d\n",entrada_pag_victima->modificado);
+				log_info(logReemplazoCM,"  Página víctima %d | Uso: %d | Modificado: %d | Marco: %d\n",pagina,entrada_pag_victima->uso,entrada_pag_victima->modificado,entrada_pag_victima->nro_marco);
+
+				incrementarManecilla(entrada_diccionario,tablaDePaginas);
+				log_info(logReemplazoCM,"  La manecilla pasó a: %d\n",entrada_diccionario->manecilla);
+
 				encontro_pag_victima = true;
+
 				break;
 			}else if(!entrada_pag_victima->presencia) {log_info(logReemplazoCM,"  La página %d no está en memoria\n",pagina);
 			}else{
 
-			log_info(logReemplazoCM,"  Página: %d | Uso: %d | Modificado: %d\n",pagina, entrada_pag_victima->uso,entrada_pag_victima->modificado);
+			log_info(logReemplazoCM,"  Página: %d | Uso: %d | Modificado: %d | Marco: %d\n",pagina, entrada_pag_victima->uso,entrada_pag_victima->modificado, entrada_pag_victima->nro_marco);
 			log_info(logReemplazoCM,"  Se le da una segunda oportunidad a la página %d",pagina);
+
 			entrada_pag_victima->uso=false;
-			log_info(logReemplazoCM,"  Página: %d | Uso: %d | Modificado: %d\n",pagina,entrada_pag_victima->uso,entrada_pag_victima->modificado);
+
+			log_info(logReemplazoCM,"  Página: %d | Uso: %d | Modificado: %d | Marco: %d\n",pagina,entrada_pag_victima->uso,entrada_pag_victima->modificado,entrada_pag_victima->nro_marco);
 			}
 
 			incrementarManecilla(entrada_diccionario,tablaDePaginas);
