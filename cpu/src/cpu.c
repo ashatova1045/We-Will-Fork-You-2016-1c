@@ -100,41 +100,58 @@ int min (int a,int b){
 char* fetch_instruction(){
 	t_posMemoria posicion_instruccion_actual =
 			pcb_ejecutandose->indice_codigo[pcb_ejecutandose->pc];
+
+	char* instruccion = malloc(posicion_instruccion_actual.size);
+
 	//Pido instrucción a umc
-	int tamanoinstruccion_que_entra = min(tamPag-posicion_instruccion_actual.offset,posicion_instruccion_actual.size);
+
+	int leido = 0;
+	int off_pag_actual = 0;
 
 
+	//pido lo que este en la 1º pag
 	t_pedido_solicitarBytes pedido;
 	pedido.nroPagina = posicion_instruccion_actual.pag;
 	pedido.offset = posicion_instruccion_actual.offset;
-	pedido.tamanioDatos = tamanoinstruccion_que_entra;
-
-	//Envío pedido a UMC
-	char* instruccion_actual = pedir_lectura_de_umc(pedido);
-	if(!instruccion_actual)
+	pedido.tamanioDatos =  min(posicion_instruccion_actual.size,tamPag-pedido.offset);
+	char* instruccion_primera = pedir_lectura_de_umc(pedido);
+	if(!instruccion_primera)
 		return NULL;
+	memcpy(instruccion+leido,instruccion_primera,pedido.tamanioDatos);
+	free(instruccion_primera);
+	leido += pedido.tamanioDatos;
+	off_pag_actual++;
 
-	int tamanoinstruccionfaltante=posicion_instruccion_actual.size-tamanoinstruccion_que_entra;
+	//pido el resto
+	while(leido < posicion_instruccion_actual.size){
 
-	if(tamanoinstruccionfaltante>0){
-		pedido.nroPagina++;
-		pedido.offset=0;
-		pedido.tamanioDatos = tamanoinstruccionfaltante;
-		char* instruccion_actual2 = pedir_lectura_de_umc(pedido);
-		if(!instruccion_actual2)
+		int tamano_instruccion_restante_en_pagina = min(posicion_instruccion_actual.size-leido,tamPag);
+
+		t_pedido_solicitarBytes pedido_actual;
+		pedido_actual.nroPagina = posicion_instruccion_actual.pag+off_pag_actual;
+		//si no es la 1º pagina seguro empieza en 0
+		pedido_actual.offset = 0;
+		pedido_actual.tamanioDatos = tamano_instruccion_restante_en_pagina;
+
+		//Envío pedido a UMC
+		char* instruccion_actual = pedir_lectura_de_umc(pedido_actual);
+		if(!instruccion_actual)
 			return NULL;
-		instruccion_actual = realloc(instruccion_actual,tamanoinstruccion_que_entra+tamanoinstruccionfaltante);
-		memcpy(instruccion_actual+tamanoinstruccion_que_entra,instruccion_actual2,tamanoinstruccionfaltante);
-		free(instruccion_actual2);
+
+		//sumo lo que realmente lei
+		memcpy(instruccion+leido,instruccion_actual,tamano_instruccion_restante_en_pagina);
+		free(instruccion_actual);
+		leido += tamano_instruccion_restante_en_pagina;
+		off_pag_actual++;
 	}
 
 	//hago que el string sea null-terminated para que no imprima basura
 	int i;
-	for(i=0;instruccion_actual[i]!='\n';i++);
-	instruccion_actual[i]='\0';
+	for(i=0;instruccion[i]!='\n';i++);
+	instruccion[i]='\0';
 
 
-	return instruccion_actual;
+	return instruccion;
 }
 
 void correr_pcb() {
@@ -193,6 +210,18 @@ void correr_pcb() {
 			log_warning(logcpu,"--------------------");
 			exit(EXIT_FAILURE);
 		}
+
+		if(stack_overflow){
+			printf("Se cierra el programa %d por STACK OVERFLOW",pcb_ejecutandose->pid);
+			log_warning(logcpu,"Se cierra el programa %d por STACK OVERFLOW",pcb_ejecutandose->pid);
+
+			t_pcb_serializado pcb_serializado = serializar(*pcb_ejecutandose);
+			enviar(ERROR_FALTA_MEMORIA,pcb_serializado.tamanio,pcb_serializado.contenido_pcb,socket_nucleo);
+			destruir_pcb(pcb_ejecutandose);
+			free(pcb_serializado.contenido_pcb);
+			stack_overflow = false; //reseteo el flag para poder correr otro programa
+			return;
+		}
 	}
 
 	if(!termino_programa){
@@ -226,6 +255,7 @@ int main() {
 
 	pcb_ejecutandose=NULL;
 	llego_sugus= false;
+	stack_overflow= false;
 	signal(SIGUSR1,sugus);
 
 	inicializar_primitivas();

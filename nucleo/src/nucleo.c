@@ -278,45 +278,22 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 
 	nvopcb->indice_codigo=malloc(tamano_instrucciones);
 
-	int pagina_actual = 0;
-	int offset_actual = 0;
-	int tamano_pagina_restante = tamano_pag_umc;
 	for(i=0;i<(metadata->instrucciones_size);i++){
-		int tamano_instruccion = metadata->instrucciones_serializado[i].offset;
 
 		t_posMemoria posicion_nueva_instruccion;
-		posicion_nueva_instruccion.pag = pagina_actual;
-		posicion_nueva_instruccion.offset= offset_actual;
-		posicion_nueva_instruccion.size = tamano_instruccion;
+		posicion_nueva_instruccion.pag = metadata->instrucciones_serializado[i].start/tamano_pag_umc;
+		posicion_nueva_instruccion.offset= metadata->instrucciones_serializado[i].start%tamano_pag_umc;
+		posicion_nueva_instruccion.size = metadata->instrucciones_serializado[i].offset;
 		nvopcb->indice_codigo[i] = posicion_nueva_instruccion;
 
-		log_trace(logNucleo,"instruccion %d pag %d offset %d size %d",i,posicion_nueva_instruccion.pag,posicion_nueva_instruccion.offset,posicion_nueva_instruccion.size);
+		log_trace(logNucleo,"Instruccion %d pag %d offset %d size %d",i,posicion_nueva_instruccion.pag,posicion_nueva_instruccion.offset,posicion_nueva_instruccion.size);
 		log_trace(logNucleo,"%.*s",posicion_nueva_instruccion.size,(char*)paquete.datos+metadata->instrucciones_serializado[i].start);
-
-		if(tamano_instruccion<tamano_pagina_restante){
-			offset_actual += tamano_instruccion;
-		}
-		else{
-			pagina_actual++;
-			offset_actual = tamano_instruccion - tamano_pagina_restante;
-		}
-
-		//por si el else del if anterior justo deja el offset al final de la pag
-		if(offset_actual == tamano_pag_umc){
-			pagina_actual++;
-			offset_actual = 0;
-		}
-
-		tamano_pagina_restante = tamano_pag_umc-offset_actual;
 	}
 
-	int tamano_codigo = 0;
-	for(i=0;i<nvopcb->cant_instrucciones;i++)
-		tamano_codigo+= nvopcb->indice_codigo[i].size;
-	log_trace(logNucleo,"Tamano del codigo parseado: %d",tamano_codigo);
-
-	int result_pag = roundup(tamano_codigo, tamano_pag_umc);
+	int result_pag = roundup(paquete.tamano_datos, tamano_pag_umc);
 	nvopcb->cant_pags_totales=(result_pag + (config_nucleo->tamano_stack));
+	log_debug(logNucleo,"Cant paginas codigo: %d",result_pag);
+	log_debug(logNucleo,"Cant paginas stack: %d",config_nucleo->tamano_stack);
 	log_debug(logNucleo,"Cant paginas totales: %d",nvopcb->cant_pags_totales);
 //<<<<<<<<<<<<<<<fin
 
@@ -340,21 +317,6 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 	nvopcb->fin_stack.size=4;
 //<<<<<<<< fin
 	return nvopcb;
-}
-
-char* armar_codigo(t_pcb* nuevo_pcb,char* codigo,t_metadata_program* metadata){
-	int i,offset=0;
-	char *codigo_rta = malloc(tamano_pag_umc*(nuevo_pcb->cant_pags_totales-config_nucleo->tamano_stack));
-	for(i=0;i < nuevo_pcb->cant_instrucciones;i++){
-		memcpy(codigo_rta+offset,codigo+metadata->instrucciones_serializado[i].start,nuevo_pcb->indice_codigo[i].size);
-
-//		log_trace(logNucleo,"Instruccion %d:\n%.*s",i,nuevo_pcb->indice_codigo[i].size,codigo_rta+offset);
-
-		offset+= nuevo_pcb->indice_codigo[i].size;
-	}
-	//lo hago null-terminated para poder serializarlo y printearlo mas facil
-	codigo_rta[offset] = '\0';
-	return codigo_rta;
 }
 
 bool esta_libre(void * unaCpu){
@@ -400,12 +362,12 @@ void enviar_a_cpu(){
 	free(serializado.contenido_pcb);
 }
 
-void inicializar_programa(t_pcb* nuevo_pcb,void *datos, t_metadata_program* metadata){
+void inicializar_programa(t_pcb* nuevo_pcb,t_paquete paquete){
 	t_pedido_inicializar pedido_inicializar;
 
 	pedido_inicializar.idPrograma = nuevo_pcb->pid;
 	pedido_inicializar.pagRequeridas = nuevo_pcb->cant_pags_totales;
-	pedido_inicializar.codigo = armar_codigo(nuevo_pcb,datos,metadata);
+	pedido_inicializar.codigo = paquete.datos;
 	log_trace(logNucleo,"Arme el pedido_inicializar");
 
 	t_pedido_inicializar_serializado *inicializarserializado = serializar_pedido_inicializar(&pedido_inicializar);
@@ -415,7 +377,6 @@ void inicializar_programa(t_pcb* nuevo_pcb,void *datos, t_metadata_program* meta
 	log_debug(logNucleo,"Pedido inicializar enviado. PID %d,paginas %d",pedido_inicializar.idPrograma,pedido_inicializar.pagRequeridas);
 	printf("Pedido inicializar enviado. PID %d,paginas %d\n",pedido_inicializar.idPrograma,pedido_inicializar.pagRequeridas);
 
-	free(pedido_inicializar.codigo);
 	free(inicializarserializado->pedido_serializado);
 	free(inicializarserializado);
 }
@@ -496,12 +457,12 @@ void manejar_socket_consola(int socket,t_paquete paquete){
 			//Creo el pcb y lo agrego a la cola new
 			t_pcb *nuevo_pcb;
 			nuevo_pcb = armar_nuevo_pcb(paquete,metadata);
+			metadata_destruir(metadata);
 			log_debug(logNucleo, "Se armo el nuevo pcb, su id es: %d", nuevo_pcb->pid);
 			moverA_colaNew(nuevo_pcb);
 
 			//envio el inicializar a umc
-			inicializar_programa(nuevo_pcb,paquete.datos,metadata);
-			metadata_destruir(metadata);
+			inicializar_programa(nuevo_pcb,paquete);
 
 //---------------------------------
 
