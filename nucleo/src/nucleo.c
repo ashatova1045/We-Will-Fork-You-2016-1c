@@ -305,7 +305,7 @@ t_pcb* armar_nuevo_pcb (t_paquete paquete,t_metadata_program* metadata){
 
 //>>>>>>> Inicializacion de indice de stack
 	nvopcb->cant_entradas_indice_stack=1;
-	nvopcb->indice_stack= malloc(sizeof(registro_indice_stack));
+	nvopcb->indice_stack= calloc(1,sizeof(registro_indice_stack));
 	nvopcb->indice_stack[0].cant_variables = 0;
 	nvopcb->indice_stack[0].cant_argumentos=0;
 	nvopcb->indice_stack[0].argumentos = NULL;
