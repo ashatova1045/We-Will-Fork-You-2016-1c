@@ -37,8 +37,6 @@ void atender_conexion(int* socket_conexion){
 				log_info(logUMC,"Llego el aviso de un nuevo programa");
 
 				//Simulo el tiempo de acceso a memoria con el tiempo de retardo ingresado en la configuracion
-
-
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
 
@@ -72,7 +70,6 @@ void atender_conexion(int* socket_conexion){
 				//Desbloqueo la conexión con el swap
 				pthread_mutex_unlock(&mutex);
 
-
 				//Si la respuesta es que no hay espacio
 				if(paquete->cod_op==NO_OK){
 					log_info(logUMC,"No hay espacio sufuciente para el programa %d",pedido_inicializar->idPrograma);
@@ -103,8 +100,8 @@ void atender_conexion(int* socket_conexion){
 				break;
 
 			case LECTURA_PAGINA:
-				//Simulo el tiempo de acceso a memoria con el retardo ingresado en la configuracion
 
+				//Simulo el tiempo de acceso a memoria con el retardo ingresado en la configuracion
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
 
@@ -113,40 +110,52 @@ void atender_conexion(int* socket_conexion){
 				log_info(logUMC,"Llego un pedido de lectura de página %d del proceso %d",solicitud.nroPagina,proceso_activo);
 
 				//Casteo el pedido como una solicitud de lectura
-
 				t_entrada_tabla_paginas* entrada_pag_pedida = NULL;
 
 				if(config_umc->entradas_tlb){
+
 					//Poner semáforo mutex para acceder a la TLB
 					log_info(logUMC,"Se busca en la TLB");
 					pthread_mutex_lock(&mutex_tlb);
+
 					//Buscar la página en la TLB, si no esta la busco en la tabla de marcos
 					entrada_pag_pedida = buscar_pagina_en_TLB(proceso_activo,solicitud.nroPagina);
 					pthread_mutex_unlock(&mutex_tlb);
+
+					//Si la página no está en la TLB
 					if(entrada_pag_pedida == NULL){
+
 						log_warning(logUMC,"Página no encontrada en la TLB");
 					}
 				}
 
+				//Si la página no está en la TLB
 				if(entrada_pag_pedida == NULL){
 
 					//Busco la pagina en la tabla de paginas
 					log_info(logUMC,"Se busca en la tabla de páginas");
 					entrada_pag_pedida= buscar_pagina_en_tabla(proceso_activo,solicitud.nroPagina);
 
+					//Si no se pudo cargar la página en la memoria
 					if(entrada_pag_pedida==NULL){
 
 						log_info(logUMC,"La página %d del proceso %d no se pudo leer por falta de espacio",solicitud.nroPagina,proceso_activo);
 						enviar(NO_OK,1,&*socket_conexion,*socket_conexion);
 						log_info(logUMC,"Se le informó a la cpu %d que no se pudo leer la página %d",*socket_conexion,solicitud.nroPagina);
 
+					//Si se trajo la página
 					}else{
 
+						//Si la TLB está activada
 						if(config_umc->entradas_tlb){
+
 							log_info(logUMC,"Se va a agregar la página %d a la TLB", solicitud.nroPagina);
 							log_debug(logUMC,"Tamaño viejo TLB: %d",list_size(tlb));
+
 							//Cargar pagina en la TLB
 							pthread_mutex_lock(&mutex_tlb);
+
+							//Si la TLB está llena
 							if(list_size(tlb) == config_umc->entradas_tlb){
 								//Implementación de LRU
 								eliminar_menos_usado_en_TLB();
@@ -182,7 +191,6 @@ void atender_conexion(int* socket_conexion){
 				log_info(logUMC,"Llego un pedido de escritura de página");
 
 				//Simulo el tiempo de acceso a memoria con el retardo ingresado en la configuración
-
 				//Multiplico por mil para que sean milisegundos, usleep reconoce microsegundos
 				usleep((config_umc->retardo)*1000);
 
@@ -194,7 +202,9 @@ void atender_conexion(int* socket_conexion){
 
 				t_entrada_tabla_paginas* entrada_pag_escritura = NULL;
 
+				//Si la TLB está activada
 				if(config_umc->entradas_tlb){
+
 					//Poner semáforo mutex para acceder a la TLB
 					pthread_mutex_lock(&mutex_tlb);
 
@@ -202,27 +212,37 @@ void atender_conexion(int* socket_conexion){
 					entrada_pag_escritura = buscar_pagina_en_TLB(proceso_activo,pedido_almacenar->nroPagina);
 
 					pthread_mutex_unlock(&mutex_tlb);
+
+					//Si la página no está en la TLB
 					if(entrada_pag_pedida == NULL){
 						log_warning(logUMC,"Página no encontrada en la TLB");
 					}
 				}
 
+				//Si la página no está en la TLB
 				if(entrada_pag_escritura == NULL){
+
 					//Busco la página en la tabla de páginas
 					entrada_pag_escritura=buscar_pagina_en_tabla(proceso_activo,pedido_almacenar->nroPagina);
 
+					//Si no se pudo traer la página
 					if(entrada_pag_escritura==NULL){
 
 						log_info(logUMC,"La página %d del proceso %d no se pudo escribir por falta de espacio",solicitud.nroPagina,proceso_activo);
 						enviar(NO_OK,1,&*socket_conexion,*socket_conexion);
 						log_info(logUMC,"Se le informó a la cpu %d que no se pudo escribir la página %d",*socket_conexion,solicitud.nroPagina);
 
+					//Si se pudo traer la página
 					}else{
 
+						//Si la TLB está activada
 						if(config_umc->entradas_tlb){
+
 							//Cargar pagina en la TLB
 							pthread_mutex_lock(&mutex_tlb);
+
 							if(list_size(tlb) == config_umc->entradas_tlb){
+
 								//Implementación de LRU
 								eliminar_menos_usado_en_TLB();
 							}
