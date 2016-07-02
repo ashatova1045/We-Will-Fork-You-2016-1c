@@ -276,8 +276,6 @@ void finalizarPrograma(t_paquete* paquete){
 	int32_t* pedido = (int32_t*)paquete->datos;
 	int pid_enviado = *pedido;
 
-	log_info(logSwap,"Inicia proceso de finalización de programa %d",pid_enviado);
-
 	int codOp = NO_OK;
 
 	bool matchswap(void* constrolswapentrada){
@@ -309,8 +307,6 @@ void finalizarPrograma(t_paquete* paquete){
 
 		log_info(logSwap,"Finalización del programa exitosa");
 		puts("Finalización del programa exitosa");
-	}else{
-		log_error(logSwap,"La finalización del programa ha fallado");
 	}
 
 	// Responde a la UMC el resultado de la operación
