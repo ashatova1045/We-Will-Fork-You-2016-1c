@@ -29,6 +29,7 @@ int main(int argc, char **argv){
 	logDump = crearLogDump();
 
 	if(logUMC==NULL){
+
 		log_error(logUMC,"No se pudo crear el log de la umc");
 	}
 	log_info(logUMC,"Ejecución del proceso UMC");
@@ -36,7 +37,7 @@ int main(int argc, char **argv){
 	//Creo el archivo de configuración
 	t_config* config = config_create("../umc/umc.cfg");
 	if(config==NULL){
-	log_error(logUMC,"No se pudo crear la config de la umc");
+		log_error(logUMC,"No se pudo crear la config de la umc");
 	}else{
 		log_info(logUMC,"Se creo el config de la umc");
 	}
