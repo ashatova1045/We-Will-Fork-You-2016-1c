@@ -78,7 +78,6 @@ void manejar_socket_umc(t_paquete* paquete){
 }
 
 void manejarOperaciones(t_paquete* paquete){
-	usleep((datosSwap->retardo_acceso)*1000);
 	switch(paquete->cod_op){
 	// Operaciones
 	case NUEVO_PROGRAMA:
@@ -127,6 +126,7 @@ int grabarArchivo(int posicion_posta, char* buffer){
 void inicializarNuevoPrograma(t_paquete* paquete){
 	log_info(logSwap,"Inicio de proceso de inicialización de un nuevo programa");
 	puts("INICIALIZAR NUEVO PROGRAMA");
+	usleep((datosSwap->retardo_acceso)*1000);
 
 	//t_pedido_inicializar_swap* pedido = (t_pedido_inicializar_swap*)paquete->datos;
 
@@ -209,6 +209,7 @@ void inicializarNuevoPrograma(t_paquete* paquete){
 void leerPagina(t_paquete* paquete){
 	log_info(logSwap,"Inicia proceso de lectura de página");
 	puts("LEER PAGINA");
+	usleep((datosSwap->retardo_acceso)*1000);
 
 	t_pedido_leer_swap* pedido = (t_pedido_leer_swap*)paquete->datos;
 
@@ -251,6 +252,7 @@ void leerPagina(t_paquete* paquete){
 void escribirPagina(t_paquete* paquete){
 	log_info(logSwap,"Inicia proceso de escritura de página");
 	puts("ESCRIBE PAGINA");
+	usleep((datosSwap->retardo_acceso)*1000);
 
 	t_pedido_almacenar_swap* pedido = deserializar_pedido_almacenar_swap(paquete->datos,tamanioPagina);
 
@@ -275,8 +277,6 @@ void finalizarPrograma(t_paquete* paquete){
 	int pid_enviado = *pedido;
 
 	log_info(logSwap,"Inicia proceso de finalización de programa %d",pid_enviado);
-	puts("FINALIZA PROGRAMA");
-
 
 	int codOp = NO_OK;
 
@@ -287,6 +287,9 @@ void finalizarPrograma(t_paquete* paquete){
 	t_control_swap* controlSwap = list_remove_by_condition(lista_procesos,matchswap);
 
 	if(controlSwap){
+		codOp = OK;
+		puts("FINALIZANDO PROGRAMA...");
+		usleep((datosSwap->retardo_acceso)*1000);
 
 		int posAux = controlSwap->posicion;
 		int cantidadPaginas = controlSwap->cantPaginas;
@@ -304,12 +307,10 @@ void finalizarPrograma(t_paquete* paquete){
 
 		free(controlSwap);
 
-		codOp = OK;
 		log_info(logSwap,"Finalización del programa exitosa");
 		puts("Finalización del programa exitosa");
 	}else{
 		log_error(logSwap,"La finalización del programa ha fallado");
-		puts("La finalización del programa ha fallado");
 	}
 
 	// Responde a la UMC el resultado de la operación
